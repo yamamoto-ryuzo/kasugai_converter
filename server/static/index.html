@@ -163,6 +163,7 @@
       <button class="tab-btn" data-tab="pg2b3dm">pg2b3dm</button>
       <button class="tab-btn" data-tab="gocesiumtiler">gocesiumtiler</button>
       <button class="tab-btn" data-tab="preprocess">GDAL/PDAL</button>
+      <button class="tab-btn" data-tab="terrain">Cesium Terrain</button>
       <button class="tab-btn" data-tab="systems">関連システム</button>
     </div>
 
@@ -393,6 +394,51 @@
 
         <div class="actions">
           <button id="preprocessRunBtn" type="button">実行</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="terrain" class="tab-content">
+      <div class="card">
+        <h2>Cesium Terrain（DEM → quantized-mesh）</h2>
+        <p class="hint">Cesium Terrain Builder または tin-terrain を使用して DEM ラスターを Cesium 用 terrain タイルに変換します。</p>
+        <form id="terrainForm" class="grid">
+          <div class="full">
+            <label for="terrainProgram">コマンド</label>
+            <input type="text" id="terrainProgram" placeholder="ctb-tile" value="ctb-tile" required />
+          </div>
+          <div class="full">
+            <label for="terrainInput">入力 DEM（GeoTIFF/VRT）</label>
+            <input type="text" id="terrainInput" placeholder="C:\data\dem.tif" required />
+          </div>
+          <div class="full">
+            <label for="terrainOutput">出力ディレクトリ</label>
+            <input type="text" id="terrainOutput" placeholder="C:\data\terrain" required />
+          </div>
+          <div>
+            <label for="terrainFormat">出力形式</label>
+            <input type="text" id="terrainFormat" placeholder="Terrain" value="Terrain" />
+          </div>
+          <div>
+            <label for="terrainProfile">プロファイル</label>
+            <input type="text" id="terrainProfile" placeholder="geodetic" value="geodetic" />
+          </div>
+          <div>
+            <label for="terrainStartZoom">開始ズーム</label>
+            <input type="text" id="terrainStartZoom" placeholder="0" />
+          </div>
+          <div>
+            <label for="terrainEndZoom">終了ズーム</label>
+            <input type="text" id="terrainEndZoom" placeholder="" />
+          </div>
+          <div>
+            <label for="terrainExtraArgs">追加オプション</label>
+            <input type="text" id="terrainExtraArgs" placeholder="-N -C" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="terrainRunBtn" type="button">実行</button>
         </div>
       </div>
     </div>
@@ -641,6 +687,28 @@
         extra_args: getValue('preprocessExtraArgs') || undefined,
       };
       startJob('/api/run/preprocess', payload, document.getElementById('preprocessRunBtn'));
+    });
+
+    // terrain
+    document.getElementById('terrainRunBtn').addEventListener('click', () => {
+      const parts = [];
+      const format = getValue('terrainFormat');
+      const profile = getValue('terrainProfile');
+      const start = getValue('terrainStartZoom');
+      const end = getValue('terrainEndZoom');
+      const extra = getValue('terrainExtraArgs');
+      if (format) { parts.push('-f', format); }
+      if (profile) { parts.push('-p', profile); }
+      if (start) { parts.push('-s', start); }
+      if (end) { parts.push('-e', end); }
+      if (extra) { parts.push(extra); }
+      const payload = {
+        program: getValue('terrainProgram'),
+        input: getValue('terrainInput') || undefined,
+        output: getValue('terrainOutput') || undefined,
+        extra_args: parts.length > 0 ? parts.join(' ') : undefined,
+      };
+      startJob('/api/run/preprocess', payload, document.getElementById('terrainRunBtn'));
     });
 
     // systems
