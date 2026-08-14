@@ -15,6 +15,10 @@ title: 使い方
 - `pg2b3dm`
 - `GDAL/PDAL`
 - `Cesium Terrain`
+- `3D Tiles 1.1`
+- `BIM/CIM`
+- `Imagery`
+- `glTF 最適化`
 - `関連システム`
 
 ## 2. 必要ツールをインストールする
@@ -29,8 +33,16 @@ title: 使い方
 - Py3DTiles
 - pg2b3dm
 - gocesiumtiler
+- IfcOpenShell
+- cjio
 
-`GDAL/PDAL`、`Cesium Terrain` は各自で OSGeo4W、conda-forge、Docker などからツールをインストールしてください。
+手動でインストールが必要なもの:
+
+- `GDAL/PDAL` … OSGeo4W / conda-forge
+- `Cesium Terrain Builder / tin-terrain` … Docker / ソースからビルド
+- `gdal2tiles.py / ctb-tile` … GDAL / Cesium Terrain Builder に同梱
+- `3d-tiles-tools` … `npm install -g 3d-tiles-tools`
+- `gltf-pipeline` … `npm install -g gltf-pipeline`
 
 ## 3. 変換パラメータを入力する
 

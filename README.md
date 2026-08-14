@@ -62,12 +62,16 @@ cargo run
 | Py3DTiles | `tools/python/Scripts/py3dtiles.exe` |
 | pg2b3dm | `tools/pg2b3dm/pg2b3dm.exe` |
 | gocesiumtiler | `tools/gocesiumtiler/gocesiumtiler.exe` |
+| IfcOpenShell | `tools/ifcopenshell/IfcConvert.exe` |
+| cjio | `tools/python/Scripts/cjio.exe` |
 
 以下は手動でインストールしてください。
 
 - **GDAL/PDAL** … OSGeo4W または conda-forge
 - **Cesium Terrain Builder / tin-terrain** … Docker またはソースからビルド
+- **gdal2tiles.py / ctb-tile** … GDAL または Cesium Terrain Builder に同梱
 - **3d-tiles-tools** … `npm install -g 3d-tiles-tools`（Node.js が必要）
+- **gltf-pipeline** … `npm install -g gltf-pipeline`（Node.js が必要）
 
 ## ライセンス
 

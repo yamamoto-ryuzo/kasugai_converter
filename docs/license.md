@@ -36,3 +36,14 @@ Kasuga Converter（Rust サーバー・Web UI）のソースコードは **MIT L
 - 本ツールは外部エンジンを **別プロセスとして呼び出すラッパー** です。ソースコードレベルで結合・修正していないため、外部エンジンのライセンスがラッパー本体に影響を与えることはありません。
 - MIT License は MPL-2.0、Apache-2.0、MIT すべてと互換性があり、再利用・商用利用ともに制限が少ないです。
 - 変換結果の 3D Tiles データはユーザーが所有するデータに帰属します。本ツールのライセンスが出力データに権利を主張することはありません。
+
+## 手動インストールが必要なツール
+
+| ツール | ライセンス |
+|--------|------------|
+| GDAL | MIT |
+| PDAL | BSD-3-Clause |
+| Cesium Terrain Builder | Apache-2.0 |
+| tin-terrain | Apache-2.0 |
+| 3d-tiles-tools | Apache-2.0 |
+| gltf-pipeline | Apache-2.0 |

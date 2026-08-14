@@ -57,4 +57,6 @@ $env:CJIO_PATH = "C:\tools\python\Scripts\cjio.exe"
 | GDAL/PDAL | OSGeo4W または conda-forge |
 | Cesium Terrain Builder | Docker、または[ quantized-mesh 対応フォーク](https://github.com/tum-gis/cesium-terrain-builder-docker) |
 | tin-terrain | Docker、またはソースからビルド |
+| gdal2tiles.py / ctb-tile | GDAL / Cesium Terrain Builder に同梱 |
 | 3d-tiles-tools | `npm install -g 3d-tiles-tools`（Node.js が必要） |
+| gltf-pipeline | `npm install -g gltf-pipeline`（Node.js が必要） |

@@ -36,6 +36,8 @@ Web ブラウザから複数の変換エンジンをタブで切り替えて利�
 | Py3DTiles | `tools/python/Scripts/py3dtiles.exe` |
 | pg2b3dm | `tools/pg2b3dm/pg2b3dm.exe` |
 | gocesiumtiler | `tools/gocesiumtiler/gocesiumtiler.exe` |
+| IfcOpenShell | `tools/ifcopenshell/IfcConvert.exe` |
+| cjio | `tools/python/Scripts/cjio.exe` |
 
 ## クイックスタート
 
