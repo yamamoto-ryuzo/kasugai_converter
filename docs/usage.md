@@ -115,6 +115,18 @@ IFC や CityJSON を glTF/GLB/OBJ/CityGML に変換します。
 
 GDAL/ctb-tile は OSGeo4W などから事前にインストールしてください。
 
+### glTF 最適化
+
+gltf-pipeline を使って glTF/GLB を最適化します。
+
+- コマンド: `gltf-pipeline`
+- 入力: `C:/data/input.glb`
+- 出力: `C:/data/output.glb`
+- Draco 圧縮: 有効 / 無効
+- 追加: `--keepUnusedElements`、`--textureCompression etc1s` など
+
+Node.js 環境で `npm install -g gltf-pipeline` してください。
+
 ## 4. 実行
 
 `実行` ボタンを押すと、バックエンドでジョブが作成されます。

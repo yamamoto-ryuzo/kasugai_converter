@@ -48,6 +48,7 @@ cargo run
 | `3D Tiles 1.1` | 3d-tiles-tools | 3D Tiles 1.0 → 1.1 移行、b3dm → glb 変換 |
 | `BIM/CIM` | IfcOpenShell / cjio | IFC / CityJSON → glTF/GLB/OBJ/CityGML |
 | `Imagery` | gdal2tiles.py / ctb-tile | ラスター → XYZ/TMS 画像タイル |
+| `glTF 最適化` | gltf-pipeline | glTF/GLB の Draco 圧縮・最適化 |
 
 ## 自動インストール対応
 
@@ -82,5 +83,6 @@ cargo run
 | [gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | [MPL-2.0](https://github.com/mfbonfigli/gocesiumtiler/blob/master/LICENSE) |
 | [IfcOpenShell](https://github.com/IfcOpenShell/IfcOpenShell) | [LGPL-3.0](https://github.com/IfcOpenShell/IfcOpenShell/blob/master/COPYING.LESSER) |
 | [cjio](https://github.com/cityjson/cjio) | [MIT](https://github.com/cityjson/cjio/blob/master/LICENSE) |
+| [gltf-pipeline](https://github.com/CesiumGS/gltf-pipeline) | [Apache-2.0](https://github.com/CesiumGS/gltf-pipeline/blob/main/LICENSE.md) |
 
 詳細は [docs/license.md](docs/license.md) を参照してください。

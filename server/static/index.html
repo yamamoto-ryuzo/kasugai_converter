@@ -167,6 +167,7 @@
       <button class="tab-btn" data-tab="tiles11">3D Tiles 1.1</button>
       <button class="tab-btn" data-tab="bimcim">BIM/CIM</button>
       <button class="tab-btn" data-tab="imagery">Imagery</button>
+      <button class="tab-btn" data-tab="gltfopt">glTF 最適化</button>
       <button class="tab-btn" data-tab="systems">関連システム</button>
     </div>
 
@@ -564,6 +565,42 @@
 
         <div class="actions">
           <button id="imageryRunBtn" type="button">実行</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="gltfopt" class="tab-content">
+      <div class="card">
+        <h2>glTF 最適化</h2>
+        <p class="hint">gltf-pipeline を使って glTF/GLB を最適化（Draco 圧縮、KHR_texture_transform 追加など）します。</p>
+        <form id="gltfoptForm" class="grid">
+          <div class="full">
+            <label for="gltfoptCommand">コマンド</label>
+            <input type="text" id="gltfoptCommand" placeholder="gltf-pipeline" value="gltf-pipeline" required />
+          </div>
+          <div class="full">
+            <label for="gltfoptInput">入力 glTF/GLB</label>
+            <input type="text" id="gltfoptInput" placeholder="C:\data\input.glb" required />
+          </div>
+          <div class="full">
+            <label for="gltfoptOutput">出力 glTF/GLB</label>
+            <input type="text" id="gltfoptOutput" placeholder="C:\data\output.glb" required />
+          </div>
+          <div>
+            <label for="gltfoptDraco">Draco 圧縮</label>
+            <select id="gltfoptDraco">
+              <option value="false">無効</option>
+              <option value="true">有効</option>
+            </select>
+          </div>
+          <div class="full">
+            <label for="gltfoptExtraArgs">追加オプション</label>
+            <input type="text" id="gltfoptExtraArgs" placeholder="--keepUnusedElements --textureCompression etc1s" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="gltfoptRunBtn" type="button">実行</button>
         </div>
       </div>
     </div>
@@ -1196,6 +1233,22 @@
         extra_args: parts.length > 0 ? parts.join(' ') : undefined,
       };
       startJob('/api/run/preprocess', payload, document.getElementById('imageryRunBtn'));
+    });
+
+    // gltf optimization
+    document.getElementById('gltfoptRunBtn').addEventListener('click', () => {
+      const parts = ['-i', getValue('gltfoptInput'), '-o', getValue('gltfoptOutput')];
+      const draco = getValue('gltfoptDraco');
+      if (draco === 'true') { parts.push('-d'); }
+      const extra = getValue('gltfoptExtraArgs');
+      if (extra) { parts.push(extra); }
+      const payload = {
+        program: getValue('gltfoptCommand'),
+        input: '',
+        output: '',
+        extra_args: parts.join(' '),
+      };
+      startJob('/api/run/preprocess', payload, document.getElementById('gltfoptRunBtn'));
     });
   </script>
 </body>

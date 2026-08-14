@@ -23,6 +23,7 @@ Kasuga Converter（Rust サーバー・Web UI）のソースコードは **MIT L
 | gocesiumtiler | [mfbonfigli/gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | **MPL-2.0** |
 | IfcOpenShell | [IfcOpenShell/IfcOpenShell](https://github.com/IfcOpenShell/IfcOpenShell) | **LGPL-3.0** |
 | cjio | [cityjson/cjio](https://github.com/cityjson/cjio) | **MIT** |
+| gltf-pipeline | [CesiumGS/gltf-pipeline](https://github.com/CesiumGS/gltf-pipeline) | **Apache-2.0** |
 
 ## 配布・再配布について
 

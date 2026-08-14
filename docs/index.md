@@ -22,6 +22,7 @@ Web ブラウザから複数の変換エンジンをタブで切り替えて利�
 | `3D Tiles 1.1` | 3d-tiles-tools | 3D Tiles 1.0 から 1.1 GLB への移行・変換 |
 | `BIM/CIM` | IfcOpenShell / cjio | IFC / CityJSON から glTF/GLB/OBJ/CityGML へ |
 | `Imagery` | gdal2tiles.py / ctb-tile | ラスターから XYZ/TMS 画像タイルへ |
+| `glTF 最適化` | gltf-pipeline | glTF/GLB の Draco 圧縮・最適化 |
 
 ## 自動インストール
 
