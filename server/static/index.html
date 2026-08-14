@@ -166,6 +166,7 @@
       <button class="tab-btn" data-tab="terrain">Cesium Terrain</button>
       <button class="tab-btn" data-tab="tiles11">3D Tiles 1.1</button>
       <button class="tab-btn" data-tab="bimcim">BIM/CIM</button>
+      <button class="tab-btn" data-tab="imagery">Imagery</button>
       <button class="tab-btn" data-tab="systems">関連システム</button>
     </div>
 
@@ -518,6 +519,51 @@
 
         <div class="actions">
           <button id="bimcimRunBtn" type="button">実行</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="imagery" class="tab-content">
+      <div class="card">
+        <h2>Imagery（ラスター → 画像タイル）</h2>
+        <p class="hint">gdal2tiles.py または ctb-tile を使って、衛星写真や航空写真を XYZ/TMS 画像タイルに変換します。</p>
+        <form id="imageryForm" class="grid">
+          <div class="full">
+            <label for="imageryProgram">コマンド</label>
+            <input type="text" id="imageryProgram" placeholder="gdal2tiles.py" value="gdal2tiles.py" required />
+          </div>
+          <div class="full">
+            <label for="imageryInput">入力画像</label>
+            <input type="text" id="imageryInput" placeholder="C:\data\ortho.tif" required />
+          </div>
+          <div class="full">
+            <label for="imageryOutput">出力ディレクトリ</label>
+            <input type="text" id="imageryOutput" placeholder="C:\data\imagery" required />
+          </div>
+          <div>
+            <label for="imageryProfile">プロファイル</label>
+            <input type="text" id="imageryProfile" placeholder="mercator" value="mercator" />
+          </div>
+          <div>
+            <label for="imageryZoom">ズーム範囲</label>
+            <input type="text" id="imageryZoom" placeholder="5-18" value="5-18" />
+          </div>
+          <div>
+            <label for="imageryFormat">画像形式</label>
+            <input type="text" id="imageryFormat" placeholder="png" value="png" />
+          </div>
+          <div>
+            <label for="imageryThreads">スレッド数</label>
+            <input type="text" id="imageryThreads" placeholder="4" />
+          </div>
+          <div class="full">
+            <label for="imageryExtraArgs">追加オプション</label>
+            <input type="text" id="imageryExtraArgs" placeholder="--processes 4" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="imageryRunBtn" type="button">実行</button>
         </div>
       </div>
     </div>
@@ -1128,6 +1174,28 @@
         extra_args: getValue('bimcimExtraArgs') || undefined,
       };
       startJob('/api/convert/bimcim', payload, document.getElementById('bimcimRunBtn'));
+    });
+
+    // imagery
+    document.getElementById('imageryRunBtn').addEventListener('click', () => {
+      const parts = [];
+      const profile = getValue('imageryProfile');
+      const zoom = getValue('imageryZoom');
+      const fmt = getValue('imageryFormat');
+      const threads = getValue('imageryThreads');
+      const extra = getValue('imageryExtraArgs');
+      if (profile) { parts.push('-p', profile); }
+      if (zoom) { parts.push('-z', zoom); }
+      if (fmt) { parts.push('--tile-format', fmt); }
+      if (threads) { parts.push('--processes', threads); }
+      if (extra) { parts.push(extra); }
+      const payload = {
+        program: getValue('imageryProgram'),
+        input: getValue('imageryInput'),
+        output: getValue('imageryOutput'),
+        extra_args: parts.length > 0 ? parts.join(' ') : undefined,
+      };
+      startJob('/api/run/preprocess', payload, document.getElementById('imageryRunBtn'));
     });
   </script>
 </body>

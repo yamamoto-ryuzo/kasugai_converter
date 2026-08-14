@@ -47,6 +47,7 @@ cargo run
 | `Cesium Terrain` | Cesium Terrain Builder / tin-terrain | DEM ラスター → quantized-mesh terrain タイル |
 | `3D Tiles 1.1` | 3d-tiles-tools | 3D Tiles 1.0 → 1.1 移行、b3dm → glb 変換 |
 | `BIM/CIM` | IfcOpenShell / cjio | IFC / CityJSON → glTF/GLB/OBJ/CityGML |
+| `Imagery` | gdal2tiles.py / ctb-tile | ラスター → XYZ/TMS 画像タイル |
 
 ## 自動インストール対応
 

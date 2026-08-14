@@ -102,6 +102,19 @@ IFC や CityJSON を glTF/GLB/OBJ/CityGML に変換します。
 
 変換結果は `mago-3d-tiler` タブへ入力して 3D Tiles 化できます。
 
+### Imagery
+
+衛星写真や航空写真を Cesium 用の画像タイルに変換します。
+
+- コマンド: `gdal2tiles.py` または `ctb-tile`
+- 入力: `C:/data/ortho.tif`
+- 出力ディレクトリ: `C:/data/imagery`
+- プロファイル: `mercator` または `geodetic`
+- ズーム範囲: `5-18`
+- 画像形式: `png` / `jpg`
+
+GDAL/ctb-tile は OSGeo4W などから事前にインストールしてください。
+
 ## 4. 実行
 
 `実行` ボタンを押すと、バックエンドでジョブが作成されます。
