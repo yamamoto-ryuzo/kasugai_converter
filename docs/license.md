@@ -20,6 +20,7 @@ Kasuga Converter（Rust サーバー・Web UI）のソースコードは **MIT L
 | mago-3d-tiler | [Gaia3D/mago-3d-tiler](https://github.com/Gaia3D/mago-3d-tiler) | **MPL-2.0** |
 | Py3DTiles | [py3dtiles / py3dtiles](https://gitlab.com/py3dtiles/py3dtiles) | **Apache-2.0** |
 | pg2b3dm | [Geodan/pg2b3dm](https://github.com/Geodan/pg2b3dm) | **MIT** |
+| gocesiumtiler | [mfbonfigli/gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | **MPL-2.0** |
 
 ## 配布・再配布について
 

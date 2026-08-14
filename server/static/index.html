@@ -161,6 +161,7 @@
       <button class="tab-btn active" data-tab="mago">mago-3d-tiler</button>
       <button class="tab-btn" data-tab="py3dtiles">Py3DTiles</button>
       <button class="tab-btn" data-tab="pg2b3dm">pg2b3dm</button>
+      <button class="tab-btn" data-tab="gocesiumtiler">gocesiumtiler</button>
       <button class="tab-btn" data-tab="systems">関連システム</button>
     </div>
 
@@ -322,6 +323,50 @@
       </div>
     </div>
 
+    <div id="gocesiumtiler" class="tab-content">
+      <div class="card">
+        <h2>gocesiumtiler（点群 LAS → 3D Tiles）</h2>
+        <form id="gocesiumtilerForm" class="grid">
+          <div class="full">
+            <label for="gocesiumInput">入力 LAS/LAZ</label>
+            <input type="text" id="gocesiumInput" placeholder="C:\data\pointcloud.las" required />
+          </div>
+          <div class="full">
+            <label for="gocesiumOutput">出力ディレクトリ</label>
+            <input type="text" id="gocesiumOutput" placeholder="C:\data\gocesium-out" required />
+          </div>
+          <div>
+            <label for="gocesiumEpsg">EPSG / CRS</label>
+            <input type="text" id="gocesiumEpsg" placeholder="例: 6677" />
+          </div>
+          <div>
+            <label for="gocesiumResolution">Resolution</label>
+            <input type="text" id="gocesiumResolution" placeholder="1" />
+          </div>
+          <div>
+            <label for="gocesiumDepth">Depth</label>
+            <input type="text" id="gocesiumDepth" placeholder="10" />
+          </div>
+          <div>
+            <label for="gocesiumMinPoints">Min Points per Tile</label>
+            <input type="text" id="gocesiumMinPoints" placeholder="5000" />
+          </div>
+          <div>
+            <label for="gocesiumCommand">コマンドパス</label>
+            <input type="text" id="gocesiumCommand" placeholder="gocesiumtiler" value="gocesiumtiler" />
+          </div>
+          <div>
+            <label for="gocesiumExtraArgs">追加オプション</label>
+            <input type="text" id="gocesiumExtraArgs" placeholder="--zoffset 60" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="gocesiumRunBtn" type="button">実行</button>
+        </div>
+      </div>
+    </div>
+
     <div id="systems" class="tab-content">
       <div class="card">
         <h2>関連システム</h2>
@@ -394,6 +439,20 @@
               <button class="secondary" id="installPg2b3dmNow" type="button">自動ダウンロード</button>
               <button class="secondary" id="installPg2b3dmBtn" type="button">ダウンロードページ</button>
               <button class="secondary" id="usePg2b3dmBtn" type="button" style="display:none;">このコマンドを使う</button>
+            </div>
+          </div>
+
+          <div class="system-item">
+            <div class="system-title">gocesiumtiler <span id="gocesiumtilerStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta" id="gocesiumtilerInfo">
+              <code>tools/gocesiumtiler/gocesiumtiler.exe</code> が見つかりません。
+              <pre id="gocesiumtilerVersionOutput" style="display:none;"></pre>
+              <div id="gocesiumtilerPath" class="hint"></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installGocesiumtilerNow" type="button">自動ダウンロード</button>
+              <button class="secondary" id="installGocesiumtilerBtn" type="button">ダウンロードページ</button>
+              <button class="secondary" id="useGocesiumtilerBtn" type="button" style="display:none;">このコマンドを使う</button>
             </div>
           </div>
         </div>
@@ -528,27 +587,45 @@
       startJob('/api/convert/pg2b3dm', payload, document.getElementById('pgRunBtn'));
     });
 
+    // gocesiumtiler
+    document.getElementById('gocesiumRunBtn').addEventListener('click', () => {
+      const payload = {
+        input: getValue('gocesiumInput'),
+        output: getValue('gocesiumOutput'),
+        epsg: getValue('gocesiumEpsg') || undefined,
+        resolution: getValue('gocesiumResolution') || undefined,
+        depth: getValue('gocesiumDepth') || undefined,
+        min_points_per_tile: getValue('gocesiumMinPoints') || undefined,
+        command: getValue('gocesiumCommand') || undefined,
+        extra_args: getValue('gocesiumExtraArgs') || undefined,
+      };
+      startJob('/api/convert/gocesiumtiler', payload, document.getElementById('gocesiumRunBtn'));
+    });
+
     // systems
     let currentJavaPath = null;
     let currentMagoPath = null;
     let currentPythonPath = null;
     let currentPy3dtilesPath = null;
     let currentPg2b3dmPath = null;
+    let currentGocesiumtilerPath = null;
 
     async function loadSystemEnv() {
       try {
-        const [javaRes, magoRes, pythonRes, py3Res, pgRes] = await Promise.all([
+        const [javaRes, magoRes, pythonRes, py3Res, pgRes, gocesiumRes] = await Promise.all([
           fetch('/api/env/java'),
           fetch('/api/env/mago'),
           fetch('/api/env/python'),
           fetch('/api/env/py3dtiles'),
           fetch('/api/env/pg2b3dm'),
+          fetch('/api/env/gocesiumtiler'),
         ]);
         const java = await javaRes.json();
         const mago = await magoRes.json();
         const python = await pythonRes.json();
         const py3 = await py3Res.json();
         const pg = await pgRes.json();
+        const gocesium = await gocesiumRes.json();
 
         const jdkTag = document.getElementById('jdkStatusTag');
         const jdkVersion = document.getElementById('jdkVersionOutput');
@@ -650,6 +727,27 @@
           usePgBtn.style.display = 'none';
           currentPg2b3dmPath = null;
         }
+
+        const gocesiumTag = document.getElementById('gocesiumtilerStatusTag');
+        const gocesiumVersion = document.getElementById('gocesiumtilerVersionOutput');
+        const gocesiumPath = document.getElementById('gocesiumtilerPath');
+        const useGocesiumBtn = document.getElementById('useGocesiumtilerBtn');
+        if (gocesium.found) {
+          gocesiumTag.textContent = '検出済';
+          gocesiumTag.className = 'tag ok';
+          gocesiumVersion.textContent = gocesium.version_output;
+          gocesiumVersion.style.display = 'block';
+          currentGocesiumtilerPath = gocesium.path;
+          gocesiumPath.textContent = 'パス: ' + gocesium.path;
+          useGocesiumBtn.style.display = 'inline-block';
+        } else {
+          gocesiumTag.textContent = '未検出';
+          gocesiumTag.className = 'tag ng';
+          gocesiumVersion.style.display = 'none';
+          gocesiumPath.textContent = '';
+          useGocesiumBtn.style.display = 'none';
+          currentGocesiumtilerPath = null;
+        }
       } catch (e) {
         console.error('env load failed', e);
       }
@@ -715,6 +813,19 @@
       if (currentPg2b3dmPath) {
         setValue('pgCommand', currentPg2b3dmPath);
         document.querySelector('[data-tab="pg2b3dm"]').click();
+      }
+    });
+
+    document.getElementById('installGocesiumtilerBtn').addEventListener('click', () => {
+      window.open('https://github.com/mfbonfigli/gocesiumtiler/releases', '_blank');
+    });
+    document.getElementById('installGocesiumtilerNow').addEventListener('click', () => {
+      startJob('/api/install/gocesiumtiler', {}, document.getElementById('installGocesiumtilerNow'));
+    });
+    document.getElementById('useGocesiumtilerBtn').addEventListener('click', () => {
+      if (currentGocesiumtilerPath) {
+        setValue('gocesiumCommand', currentGocesiumtilerPath);
+        document.querySelector('[data-tab="gocesiumtiler"]').click();
       }
     });
   </script>
