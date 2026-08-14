@@ -354,6 +354,10 @@
             <input type="text" id="gocesiumMinPoints" placeholder="5000" />
           </div>
           <div>
+            <label for="gocesiumVersion">3D Tiles バージョン</label>
+            <input type="text" id="gocesiumVersion" placeholder="1.0" value="1.0" />
+          </div>
+          <div>
             <label for="gocesiumCommand">コマンドパス</label>
             <input type="text" id="gocesiumCommand" placeholder="gocesiumtiler" value="gocesiumtiler" />
           </div>
@@ -672,6 +676,7 @@
         resolution: getValue('gocesiumResolution') || undefined,
         depth: getValue('gocesiumDepth') || undefined,
         min_points_per_tile: getValue('gocesiumMinPoints') || undefined,
+        version: getValue('gocesiumVersion') || undefined,
         command: getValue('gocesiumCommand') || undefined,
         extra_args: getValue('gocesiumExtraArgs') || undefined,
       };

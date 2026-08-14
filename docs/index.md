@@ -13,10 +13,10 @@ Web ブラウザから複数の変換エンジンをタブで切り替えて利�
 
 | タブ | エンジン | 用途 |
 |------|----------|------|
-| `mago-3d-tiler` | [mago-3d-tiler](https://github.com/Gaia3D/mago-3d-tiler) | 3DS/FBX/OBJ/glTF/GLB/LAS/LAZ/CityGML/IndoorGML/SHP/GeoJSON/GPKG など |
-| `Py3DTiles` | [Py3DTiles](https://py3dtiles.org/) | LAS 点群などを 3D Tiles へ |
-| `gocesiumtiler` | [gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | LAS/LAZ 点群を PNTS 3D Tiles へ |
-| `pg2b3dm` | [pg2b3dm](https://github.com/Geodan/pg2b3dm) | PostGIS 3D ジオメトリを 3D Tiles へ |
+| `mago-3d-tiler` | [mago-3d-tiler](https://github.com/Gaia3D/mago-3d-tiler) | 3DS/FBX/OBJ/glTF/GLB/LAS/LAZ/CityGML/IndoorGML/SHP/GeoJSON/GPKG → 3D Tiles 1.0 |
+| `Py3DTiles` | [Py3DTiles](https://py3dtiles.org/) | LAS 点群を 3D Tiles 1.0（pnts）へ |
+| `gocesiumtiler` | [gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | LAS/LAZ 点群を 3D Tiles 1.0 / 1.1（pnts / glb）へ |
+| `pg2b3dm` | [pg2b3dm](https://github.com/Geodan/pg2b3dm) | PostGIS 3D ジオメトリを 3D Tiles 1.0（b3dm）へ |
 | `GDAL/PDAL` | GDAL / PDAL | 再投影、フォーマット変換、点群フィルタなどの前処理 |
 | `Cesium Terrain` | Cesium Terrain Builder / tin-terrain | DEM ラスターを quantized-mesh terrain タイルへ |
 

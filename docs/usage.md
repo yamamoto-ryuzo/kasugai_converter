@@ -44,11 +44,19 @@ title: 使い方
 - CRS
 - Java パス / JAR パス
 
-### Py3DTiles / gocesiumtiler
+### Py3DTiles
+
+- 入力ファイル（例: `sample.las`）
+- 出力ディレクトリ
+- 入力 / 出力 SRS
+- コマンドパス
+
+### gocesiumtiler
 
 - 入力ファイル（例: `sample.las`）
 - 出力ディレクトリ
 - EPSG / CRS
+- **3D Tiles バージョン（`1.0` または `1.1`）**
 - コマンドパス
 
 ### pg2b3dm

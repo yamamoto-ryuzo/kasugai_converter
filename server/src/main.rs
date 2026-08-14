@@ -89,6 +89,7 @@ struct ConvertGocesiumtilerRequest {
     resolution: Option<String>,
     depth: Option<String>,
     min_points_per_tile: Option<String>,
+    version: Option<String>,
     command: Option<String>,
     extra_args: Option<String>,
 }
@@ -546,6 +547,14 @@ async fn convert_gocesiumtiler_handler(
         let trimmed = min.trim();
         if !trimmed.is_empty() {
             args.push("--min-points-per-tile".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(version) = req.version.as_ref() {
+        let trimmed = version.trim();
+        if !trimmed.is_empty() {
+            args.push("--version".to_string());
             args.push(trimmed.to_string());
         }
     }
