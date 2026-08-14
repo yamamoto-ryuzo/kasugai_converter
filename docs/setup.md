@@ -33,6 +33,8 @@ UI の「関連システム」タブから、以下を自動ダウンロード�
 | Py3DTiles | 自動インストール | `tools/python/Scripts/py3dtiles.exe` |
 | pg2b3dm | 自動ダウンロード | `tools/pg2b3dm/pg2b3dm.exe` |
 | gocesiumtiler | 自動ダウンロード | `tools/gocesiumtiler/gocesiumtiler.exe` |
+| IfcOpenShell | 自動ダウンロード | `tools/ifcopenshell/IfcConvert.exe` |
+| cjio | 自動インストール | `tools/python/Scripts/cjio.exe` |
 
 ## 手動でパスを指定する場合
 
@@ -44,6 +46,8 @@ $env:MAGO_JAR_PATH = "C:\tools\mago-3d-tiler.jar"
 $env:PY3DTILES_PATH = "C:\tools\py3dtiles-venv\Scripts\py3dtiles.exe"
 $env:PG2B3DM_PATH = "C:\tools\pg2b3dm\pg2b3dm.exe"
 $env:GOCESIUMTILER_PATH = "C:\tools\gocesiumtiler\gocesiumtiler.exe"
+$env:IFCCONVERT_PATH = "C:\tools\ifcopenshell\IfcConvert.exe"
+$env:CJIO_PATH = "C:\tools\python\Scripts\cjio.exe"
 ```
 
 ## GDAL/PDAL・Cesium Terrain ツールのインストール

@@ -165,6 +165,7 @@
       <button class="tab-btn" data-tab="preprocess">GDAL/PDAL</button>
       <button class="tab-btn" data-tab="terrain">Cesium Terrain</button>
       <button class="tab-btn" data-tab="tiles11">3D Tiles 1.1</button>
+      <button class="tab-btn" data-tab="bimcim">BIM/CIM</button>
       <button class="tab-btn" data-tab="systems">関連システム</button>
     </div>
 
@@ -481,6 +482,46 @@
       </div>
     </div>
 
+    <div id="bimcim" class="tab-content">
+      <div class="card">
+        <h2>BIM/CIM 前処理</h2>
+        <p class="hint">IFC や CityJSON を glTF/GLB や CityGML/OBJ に変換します。変換後、mago-3d-tiler タブで 3D Tiles 化できます。</p>
+        <form id="bimcimForm" class="grid">
+          <div class="full">
+            <label for="bimcimTool">ツール</label>
+            <select id="bimcimTool">
+              <option value="ifcconvert">IfcConvert（IFC → OBJ/GLB）</option>
+              <option value="cjio">cjio（CityJSON → GLB/OBJ/CityGML）</option>
+            </select>
+          </div>
+          <div class="full">
+            <label for="bimcimInput">入力ファイル</label>
+            <input type="text" id="bimcimInput" placeholder="C:\data\building.ifc または C:\data\city.json" required />
+          </div>
+          <div class="full">
+            <label for="bimcimOutput">出力ファイル</label>
+            <input type="text" id="bimcimOutput" placeholder="C:\data\building.glb" required />
+          </div>
+          <div>
+            <label for="bimcimFormat">出力形式（cjio）</label>
+            <input type="text" id="bimcimFormat" placeholder="glb" />
+          </div>
+          <div>
+            <label for="bimcimCommand">コマンドパス</label>
+            <input type="text" id="bimcimCommand" placeholder="" />
+          </div>
+          <div class="full">
+            <label for="bimcimExtraArgs">追加オプション</label>
+            <input type="text" id="bimcimExtraArgs" placeholder="--use-world-ids" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="bimcimRunBtn" type="button">実行</button>
+        </div>
+      </div>
+    </div>
+
     <div id="systems" class="tab-content">
       <div class="card">
         <h2>関連システム</h2>
@@ -567,6 +608,32 @@
               <button class="secondary" id="installGocesiumtilerNow" type="button">自動ダウンロード</button>
               <button class="secondary" id="installGocesiumtilerBtn" type="button">ダウンロードページ</button>
               <button class="secondary" id="useGocesiumtilerBtn" type="button" style="display:none;">このコマンドを使う</button>
+            </div>
+          </div>
+
+          <div class="system-item">
+            <div class="system-title">IfcOpenShell <span id="ifcopenshellStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta" id="ifcopenshellInfo">
+              <code>tools/ifcopenshell/IfcConvert.exe</code> が見つかりません。
+              <pre id="ifcopenshellVersionOutput" style="display:none;"></pre>
+              <div id="ifcopenshellPath" class="hint"></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installIfcOpenShellNow" type="button">自動ダウンロード</button>
+              <button class="secondary" id="installIfcOpenShellBtn" type="button">ダウンロードページ</button>
+            </div>
+          </div>
+
+          <div class="system-item">
+            <div class="system-title">cjio <span id="cjioStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta" id="cjioInfo">
+              <code>tools/python/Scripts/cjio.exe</code> が見つかりません。
+              <pre id="cjioVersionOutput" style="display:none;"></pre>
+              <div id="cjioPath" class="hint"></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installCjioNow" type="button">自動インストール</button>
+              <button class="secondary" id="installCjioBtn" type="button">PyPI ページ</button>
             </div>
           </div>
         </div>
@@ -774,16 +841,20 @@
     let currentPy3dtilesPath = null;
     let currentPg2b3dmPath = null;
     let currentGocesiumtilerPath = null;
+    let currentIfcOpenShellPath = null;
+    let currentCjioPath = null;
 
     async function loadSystemEnv() {
       try {
-        const [javaRes, magoRes, pythonRes, py3Res, pgRes, gocesiumRes] = await Promise.all([
+        const [javaRes, magoRes, pythonRes, py3Res, pgRes, gocesiumRes, ifcRes, cjioRes] = await Promise.all([
           fetch('/api/env/java'),
           fetch('/api/env/mago'),
           fetch('/api/env/python'),
           fetch('/api/env/py3dtiles'),
           fetch('/api/env/pg2b3dm'),
           fetch('/api/env/gocesiumtiler'),
+          fetch('/api/env/ifcopenshell'),
+          fetch('/api/env/cjio'),
         ]);
         const java = await javaRes.json();
         const mago = await magoRes.json();
@@ -791,6 +862,8 @@
         const py3 = await py3Res.json();
         const pg = await pgRes.json();
         const gocesium = await gocesiumRes.json();
+        const ifc = await ifcRes.json();
+        const cjio = await cjioRes.json();
 
         const jdkTag = document.getElementById('jdkStatusTag');
         const jdkVersion = document.getElementById('jdkVersionOutput');
@@ -913,6 +986,42 @@
           useGocesiumBtn.style.display = 'none';
           currentGocesiumtilerPath = null;
         }
+
+        const ifcTag = document.getElementById('ifcopenshellStatusTag');
+        const ifcVersion = document.getElementById('ifcopenshellVersionOutput');
+        const ifcPath = document.getElementById('ifcopenshellPath');
+        if (ifc.found) {
+          ifcTag.textContent = '検出済';
+          ifcTag.className = 'tag ok';
+          ifcVersion.textContent = ifc.version_output;
+          ifcVersion.style.display = 'block';
+          currentIfcOpenShellPath = ifc.path;
+          ifcPath.textContent = 'パス: ' + ifc.path;
+        } else {
+          ifcTag.textContent = '未検出';
+          ifcTag.className = 'tag ng';
+          ifcVersion.style.display = 'none';
+          ifcPath.textContent = '';
+          currentIfcOpenShellPath = null;
+        }
+
+        const cjioTag = document.getElementById('cjioStatusTag');
+        const cjioVersion = document.getElementById('cjioVersionOutput');
+        const cjioPath = document.getElementById('cjioPath');
+        if (cjio.found) {
+          cjioTag.textContent = '検出済';
+          cjioTag.className = 'tag ok';
+          cjioVersion.textContent = cjio.version_output;
+          cjioVersion.style.display = 'block';
+          currentCjioPath = cjio.path;
+          cjioPath.textContent = 'パス: ' + cjio.path;
+        } else {
+          cjioTag.textContent = '未検出';
+          cjioTag.className = 'tag ng';
+          cjioVersion.style.display = 'none';
+          cjioPath.textContent = '';
+          currentCjioPath = null;
+        }
       } catch (e) {
         console.error('env load failed', e);
       }
@@ -992,6 +1101,33 @@
         setValue('gocesiumCommand', currentGocesiumtilerPath);
         document.querySelector('[data-tab="gocesiumtiler"]').click();
       }
+    });
+
+    document.getElementById('installIfcOpenShellBtn').addEventListener('click', () => {
+      window.open('https://ifcopenshell.org/downloads.html', '_blank');
+    });
+    document.getElementById('installIfcOpenShellNow').addEventListener('click', () => {
+      startJob('/api/install/ifcopenshell', {}, document.getElementById('installIfcOpenShellNow'));
+    });
+
+    document.getElementById('installCjioBtn').addEventListener('click', () => {
+      window.open('https://pypi.org/project/cjio/', '_blank');
+    });
+    document.getElementById('installCjioNow').addEventListener('click', () => {
+      startJob('/api/install/cjio', {}, document.getElementById('installCjioNow'));
+    });
+
+    // bimcim
+    document.getElementById('bimcimRunBtn').addEventListener('click', () => {
+      const payload = {
+        tool: getValue('bimcimTool'),
+        input: getValue('bimcimInput'),
+        output: getValue('bimcimOutput'),
+        output_format: getValue('bimcimFormat') || undefined,
+        command: getValue('bimcimCommand') || undefined,
+        extra_args: getValue('bimcimExtraArgs') || undefined,
+      };
+      startJob('/api/convert/bimcim', payload, document.getElementById('bimcimRunBtn'));
     });
   </script>
 </body>

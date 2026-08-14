@@ -91,6 +91,17 @@ title: 使い方
 
 Node.js がインストール済みの環境で `npm install -g 3d-tiles-tools` してください。
 
+### BIM/CIM
+
+IFC や CityJSON を glTF/GLB/OBJ/CityGML に変換します。
+
+- ツール: `IfcConvert` または `cjio`
+- 入力ファイル: `C:/data/building.ifc` または `C:/data/city.json`
+- 出力ファイル: `C:/data/building.glb`
+- 出力形式（cjio）: `glb`、`obj`、`citygml` など
+
+変換結果は `mago-3d-tiler` タブへ入力して 3D Tiles 化できます。
+
 ## 4. 実行
 
 `実行` ボタンを押すと、バックエンドでジョブが作成されます。

@@ -20,6 +20,7 @@ Web ブラウザから複数の変換エンジンをタブで切り替えて利�
 | `GDAL/PDAL` | GDAL / PDAL | 再投影、フォーマット変換、点群フィルタなどの前処理 |
 | `Cesium Terrain` | Cesium Terrain Builder / tin-terrain | DEM ラスターを quantized-mesh terrain タイルへ |
 | `3D Tiles 1.1` | 3d-tiles-tools | 3D Tiles 1.0 から 1.1 GLB への移行・変換 |
+| `BIM/CIM` | IfcOpenShell / cjio | IFC / CityJSON から glTF/GLB/OBJ/CityGML へ |
 
 ## 自動インストール
 

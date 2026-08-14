@@ -46,6 +46,7 @@ cargo run
 | `GDAL/PDAL` | GDAL / PDAL | 再投影、フォーマット変換、点群フィルタなどの前処理 |
 | `Cesium Terrain` | Cesium Terrain Builder / tin-terrain | DEM ラスター → quantized-mesh terrain タイル |
 | `3D Tiles 1.1` | 3d-tiles-tools | 3D Tiles 1.0 → 1.1 移行、b3dm → glb 変換 |
+| `BIM/CIM` | IfcOpenShell / cjio | IFC / CityJSON → glTF/GLB/OBJ/CityGML |
 
 ## 自動インストール対応
 
@@ -78,5 +79,7 @@ cargo run
 | [Py3DTiles](https://py3dtiles.org/) | [Apache-2.0](https://gitlab.com/py3dtiles/py3dtiles/-/blob/master/LICENSE) |
 | [pg2b3dm](https://github.com/Geodan/pg2b3dm) | [MIT](https://github.com/Geodan/pg2b3dm/blob/master/LICENSE) |
 | [gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | [MPL-2.0](https://github.com/mfbonfigli/gocesiumtiler/blob/master/LICENSE) |
+| [IfcOpenShell](https://github.com/IfcOpenShell/IfcOpenShell) | [LGPL-3.0](https://github.com/IfcOpenShell/IfcOpenShell/blob/master/COPYING.LESSER) |
+| [cjio](https://github.com/cityjson/cjio) | [MIT](https://github.com/cityjson/cjio/blob/master/LICENSE) |
 
 詳細は [docs/license.md](docs/license.md) を参照してください。

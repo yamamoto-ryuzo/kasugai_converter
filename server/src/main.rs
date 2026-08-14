@@ -102,6 +102,16 @@ struct PreprocessRequest {
     extra_args: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct ConvertBimcimRequest {
+    tool: String,
+    input: String,
+    output: String,
+    output_format: Option<String>,
+    command: Option<String>,
+    extra_args: Option<String>,
+}
+
 #[tokio::main]
 async fn main() {
     let state = AppState {
@@ -115,6 +125,7 @@ async fn main() {
         .route("/convert/pg2b3dm", post(convert_pg2b3dm_handler))
         .route("/convert/gocesiumtiler", post(convert_gocesiumtiler_handler))
         .route("/run/preprocess", post(preprocess_handler))
+        .route("/convert/bimcim", post(convert_bimcim_handler))
         .route("/install/{name}", post(install_handler))
         .route("/jobs/{id}", get(get_job))
         .route("/jobs", get(list_jobs))
@@ -124,6 +135,8 @@ async fn main() {
         .route("/env/py3dtiles", get(get_py3dtiles_env))
         .route("/env/pg2b3dm", get(get_pg2b3dm_env))
         .route("/env/gocesiumtiler", get(get_gocesiumtiler_env))
+        .route("/env/ifcopenshell", get(get_ifcopenshell_env))
+        .route("/env/cjio", get(get_cjio_env))
         .with_state(state);
 
     let app = Router::new()
@@ -660,6 +673,106 @@ async fn preprocess_handler(
     Json(ConvertResponse { job_id: response_id }).into_response()
 }
 
+async fn convert_bimcim_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ConvertBimcimRequest>,
+) -> impl IntoResponse {
+    let tool = req.tool.trim().to_string();
+    if tool.is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "tool is required").into_response();
+    }
+    if req.input.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "input is required").into_response();
+    }
+    if req.output.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "output is required").into_response();
+    }
+
+    let (program, mut args) = match tool.as_str() {
+        "ifcconvert" => {
+            let exe = req
+                .command
+                .as_ref()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "tools/ifcopenshell/IfcConvert.exe".to_string());
+            let script = format!(
+                "cd (Split-Path -Parent '{}'); & (Split-Path -Leaf '{}') '{}' '{}'",
+                exe, exe, req.input.trim().replace("'", "''"), req.output.trim().replace("'", "''")
+            );
+            ("powershell".to_string(), vec!["-Command".to_string(), script])
+        }
+        "cjio" => {
+            let command = req
+                .command
+                .as_ref()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| "tools/python/Scripts/cjio.exe".to_string());
+            let mut a = vec![req.input.trim().to_string(), "export".to_string()];
+            if let Some(fmt) = req.output_format.as_ref() {
+                let trimmed = fmt.trim();
+                if !trimmed.is_empty() {
+                    a.push(trimmed.to_string());
+                }
+            }
+            a.push(req.output.trim().to_string());
+            (command, a)
+        }
+        _ => {
+            return (axum::http::StatusCode::BAD_REQUEST, "unknown tool").into_response();
+        }
+    };
+
+    if let Some(extra) = req.extra_args.as_ref() {
+        let trimmed = extra.trim();
+        if !trimmed.is_empty() {
+            for part in trimmed.split_whitespace() {
+                args.push(part.to_string());
+            }
+        }
+    }
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
+    }
+
+    let response_id = job_id.clone();
+    let state_spawn = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = run_conversion(state_spawn, job_id.clone(), program, args).await {
+            let mut jobs = state.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Failed;
+                job.output.push_str(&format!("\n[system error] {}\n", e));
+            }
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
 async fn install_handler(
     Path(name): Path<String>,
     State(state): State<AppState>,
@@ -798,6 +911,42 @@ if (Test-Path "$dst/gocesiumtiler.exe") { Remove-Item "$dst/gocesiumtiler.exe" -
 Rename-Item "$dst/gocesiumtiler-win-x64.exe" "gocesiumtiler.exe"
 Remove-Item $tmp -Recurse -Force
 Write-Output "gocesiumtiler installed to $dst"
+"#;
+            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+        }
+        "ifcopenshell" => {
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+$tmp = "$tools/temp-ifcopenshell"
+$dst = "$tools/ifcopenshell"
+Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $dst -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $tmp -Force
+Write-Output "Downloading IfcOpenShell..."
+curl.exe -s -S -L --fail -o "$tmp/ifcopenshell.zip" "https://github.com/IfcOpenShell/IfcOpenShell/releases/download/ifcconvert-0.8.4/ifcconvert-0.8.4-win64.zip"
+if ($LASTEXITCODE -ne 0) { throw "ifcopenshell download failed" }
+Write-Output "Extracting IfcOpenShell..."
+Expand-Archive -Path "$tmp/ifcopenshell.zip" -DestinationPath $tmp -Force
+$exe = Get-ChildItem $tmp -Recurse -Filter "IfcConvert.exe" | Select-Object -First 1
+if (-not $exe) { throw "IfcConvert.exe not found in archive" }
+$dir = Split-Path $exe.FullName
+New-Item -ItemType Directory -Path $dst -Force
+Move-Item "$dir/*" $dst -Force -ErrorAction SilentlyContinue
+Remove-Item $tmp -Recurse -Force
+Write-Output "ifcopenshell installed to $dst"
+"#;
+            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+        }
+        "cjio" => {
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+$python = if (Test-Path "$tools/python/python.exe") { "$tools/python/python.exe" } else { "python" }
+Write-Output "Installing cjio..."
+& $python -m pip install --no-warn-script-location --progress-bar off cjio
+if ($LASTEXITCODE -ne 0) { throw "cjio install failed" }
+Write-Output "cjio installed"
 "#;
             ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
         }
@@ -1178,6 +1327,78 @@ async fn get_gocesiumtiler_env() -> impl IntoResponse {
     }
 
     Json(GocesiumtilerEnv {
+        found,
+        path,
+        version_output,
+    })
+}
+
+#[derive(Debug, Serialize)]
+struct IfcOpenShellEnv {
+    found: bool,
+    path: String,
+    version_output: String,
+}
+
+async fn get_ifcopenshell_env() -> impl IntoResponse {
+    let default_path = "tools/ifcopenshell/IfcConvert.exe".to_string();
+    let env_path = std::env::var("IFCCONVERT_PATH").ok();
+    let path = match env_path {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ if StdPath::new(&default_path).exists() => default_path.clone(),
+        _ => default_path,
+    };
+
+    let mut found = false;
+    let mut version_output = String::new();
+    if StdPath::new(&path).exists() {
+        match Command::new(&path).arg("--version").output().await {
+            Ok(out) => {
+                version_output = String::from_utf8_lossy(&out.stdout).to_string();
+                version_output.push_str(&String::from_utf8_lossy(&out.stderr));
+                found = out.status.success();
+            }
+            _ => {}
+        }
+    }
+
+    Json(IfcOpenShellEnv {
+        found,
+        path,
+        version_output,
+    })
+}
+
+#[derive(Debug, Serialize)]
+struct CjioEnv {
+    found: bool,
+    path: String,
+    version_output: String,
+}
+
+async fn get_cjio_env() -> impl IntoResponse {
+    let default_path = "tools/python/Scripts/cjio.exe".to_string();
+    let env_path = std::env::var("CJIO_PATH").ok();
+    let path = match env_path {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ if StdPath::new(&default_path).exists() => default_path.clone(),
+        _ => default_path,
+    };
+
+    let mut found = false;
+    let mut version_output = String::new();
+    if StdPath::new(&path).exists() {
+        match Command::new(&path).arg("--version").output().await {
+            Ok(out) => {
+                version_output = String::from_utf8_lossy(&out.stdout).to_string();
+                version_output.push_str(&String::from_utf8_lossy(&out.stderr));
+                found = out.status.success();
+            }
+            _ => {}
+        }
+    }
+
+    Json(CjioEnv {
         found,
         path,
         version_output,

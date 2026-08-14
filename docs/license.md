@@ -21,6 +21,8 @@ Kasuga Converter（Rust サーバー・Web UI）のソースコードは **MIT L
 | Py3DTiles | [py3dtiles / py3dtiles](https://gitlab.com/py3dtiles/py3dtiles) | **Apache-2.0** |
 | pg2b3dm | [Geodan/pg2b3dm](https://github.com/Geodan/pg2b3dm) | **MIT** |
 | gocesiumtiler | [mfbonfigli/gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | **MPL-2.0** |
+| IfcOpenShell | [IfcOpenShell/IfcOpenShell](https://github.com/IfcOpenShell/IfcOpenShell) | **LGPL-3.0** |
+| cjio | [cityjson/cjio](https://github.com/cityjson/cjio) | **MIT** |
 
 ## 配布・再配布について
 
