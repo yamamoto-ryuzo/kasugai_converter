@@ -53,3 +53,4 @@ $env:GOCESIUMTILER_PATH = "C:\tools\gocesiumtiler\gocesiumtiler.exe"
 | GDAL/PDAL | OSGeo4W または conda-forge |
 | Cesium Terrain Builder | Docker、または[ quantized-mesh 対応フォーク](https://github.com/tum-gis/cesium-terrain-builder-docker) |
 | tin-terrain | Docker、またはソースからビルド |
+| 3d-tiles-tools | `npm install -g 3d-tiles-tools`（Node.js が必要） |

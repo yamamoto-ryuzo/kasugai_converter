@@ -79,6 +79,18 @@ title: 使い方
 - 出力ディレクトリ
 - 出力形式、プロファイル、ズーム範囲
 
+### 3D Tiles 1.1
+
+3d-tiles-tools を使って 3D Tiles 1.0 を 1.1 化します。
+
+- コマンド（例: `3d-tiles-tools`、`npx 3d-tiles-tools`）
+- 処理（例: `upgrade`、`b3dmToGlb`、`convertB3dmToGlb`、`optimizeGlb`）
+- 入力ファイルまたは `tileset.json`
+- 出力ディレクトリ
+- 追加オプション（例: `--targetVersion 1.1`）
+
+Node.js がインストール済みの環境で `npm install -g 3d-tiles-tools` してください。
+
 ## 4. 実行
 
 `実行` ボタンを押すと、バックエンドでジョブが作成されます。

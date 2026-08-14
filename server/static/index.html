@@ -164,6 +164,7 @@
       <button class="tab-btn" data-tab="gocesiumtiler">gocesiumtiler</button>
       <button class="tab-btn" data-tab="preprocess">GDAL/PDAL</button>
       <button class="tab-btn" data-tab="terrain">Cesium Terrain</button>
+      <button class="tab-btn" data-tab="tiles11">3D Tiles 1.1</button>
       <button class="tab-btn" data-tab="systems">関連システム</button>
     </div>
 
@@ -447,6 +448,39 @@
       </div>
     </div>
 
+    <div id="tiles11" class="tab-content">
+      <div class="card">
+        <h2>3D Tiles 1.1 後処理</h2>
+        <p class="hint">3d-tiles-tools を使って 3D Tiles 1.0 を 1.1 GLB 化、または b3dm/i3dm から glb を取り出します。</p>
+        <form id="tiles11Form" class="grid">
+          <div class="full">
+            <label for="tdtCommand">コマンド</label>
+            <input type="text" id="tdtCommand" placeholder="3d-tiles-tools または npx 3d-tiles-tools" value="3d-tiles-tools" required />
+          </div>
+          <div class="full">
+            <label for="tdtTool">処理</label>
+            <input type="text" id="tdtTool" placeholder="upgrade" value="upgrade" required />
+          </div>
+          <div class="full">
+            <label for="tdtInput">入力</label>
+            <input type="text" id="tdtInput" placeholder="C:\data\tileset.json または C:\data\input.b3dm" required />
+          </div>
+          <div class="full">
+            <label for="tdtOutput">出力</label>
+            <input type="text" id="tdtOutput" placeholder="C:\data\out" required />
+          </div>
+          <div class="full">
+            <label for="tdtExtraArgs">追加オプション</label>
+            <input type="text" id="tdtExtraArgs" placeholder="--targetVersion 1.1" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="tdtRunBtn" type="button">実行</button>
+        </div>
+      </div>
+    </div>
+
     <div id="systems" class="tab-content">
       <div class="card">
         <h2>関連システム</h2>
@@ -714,6 +748,23 @@
         extra_args: parts.length > 0 ? parts.join(' ') : undefined,
       };
       startJob('/api/run/preprocess', payload, document.getElementById('terrainRunBtn'));
+    });
+
+    // 3d-tiles-tools
+    document.getElementById('tdtRunBtn').addEventListener('click', () => {
+      const tool = getValue('tdtTool');
+      const input = getValue('tdtInput');
+      const output = getValue('tdtOutput');
+      const extra = getValue('tdtExtraArgs');
+      const parts = [tool, '-i', input, '-o', output];
+      if (extra) { parts.push(extra); }
+      const payload = {
+        program: getValue('tdtCommand'),
+        input: '',
+        output: '',
+        extra_args: parts.join(' '),
+      };
+      startJob('/api/run/preprocess', payload, document.getElementById('tdtRunBtn'));
     });
 
     // systems

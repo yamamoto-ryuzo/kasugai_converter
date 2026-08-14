@@ -45,6 +45,7 @@ cargo run
 | `pg2b3dm` | [pg2b3dm](https://github.com/Geodan/pg2b3dm) | PostGIS 3D ジオメトリ → 3D Tiles 1.0（b3dm） |
 | `GDAL/PDAL` | GDAL / PDAL | 再投影、フォーマット変換、点群フィルタなどの前処理 |
 | `Cesium Terrain` | Cesium Terrain Builder / tin-terrain | DEM ラスター → quantized-mesh terrain タイル |
+| `3D Tiles 1.1` | 3d-tiles-tools | 3D Tiles 1.0 → 1.1 移行、b3dm → glb 変換 |
 
 ## 自動インストール対応
 
@@ -58,6 +59,12 @@ cargo run
 | Py3DTiles | `tools/python/Scripts/py3dtiles.exe` |
 | pg2b3dm | `tools/pg2b3dm/pg2b3dm.exe` |
 | gocesiumtiler | `tools/gocesiumtiler/gocesiumtiler.exe` |
+
+以下は手動でインストールしてください。
+
+- **GDAL/PDAL** … OSGeo4W または conda-forge
+- **Cesium Terrain Builder / tin-terrain** … Docker またはソースからビルド
+- **3d-tiles-tools** … `npm install -g 3d-tiles-tools`（Node.js が必要）
 
 ## ライセンス
 
