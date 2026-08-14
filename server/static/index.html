@@ -162,6 +162,7 @@
       <button class="tab-btn" data-tab="py3dtiles">Py3DTiles</button>
       <button class="tab-btn" data-tab="pg2b3dm">pg2b3dm</button>
       <button class="tab-btn" data-tab="gocesiumtiler">gocesiumtiler</button>
+      <button class="tab-btn" data-tab="preprocess">GDAL/PDAL</button>
       <button class="tab-btn" data-tab="systems">関連システム</button>
     </div>
 
@@ -363,6 +364,35 @@
 
         <div class="actions">
           <button id="gocesiumRunBtn" type="button">実行</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="preprocess" class="tab-content">
+      <div class="card">
+        <h2>GDAL/PDAL 前処理</h2>
+        <p class="hint">gdalwarp、pdal translate、ogr2ogr などを実行して入力を整形します。</p>
+        <form id="preprocessForm" class="grid">
+          <div class="full">
+            <label for="preprocessProgram">プログラム</label>
+            <input type="text" id="preprocessProgram" placeholder="gdalwarp" value="gdalwarp" required />
+          </div>
+          <div class="full">
+            <label for="preprocessInput">入力</label>
+            <input type="text" id="preprocessInput" placeholder="C:\data\input.las" />
+          </div>
+          <div class="full">
+            <label for="preprocessOutput">出力</label>
+            <input type="text" id="preprocessOutput" placeholder="C:\data\output.laz" />
+          </div>
+          <div class="full">
+            <label for="preprocessExtraArgs">追加オプション</label>
+            <input type="text" id="preprocessExtraArgs" placeholder="-t_srs EPSG:4326" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="preprocessRunBtn" type="button">実行</button>
         </div>
       </div>
     </div>
@@ -600,6 +630,17 @@
         extra_args: getValue('gocesiumExtraArgs') || undefined,
       };
       startJob('/api/convert/gocesiumtiler', payload, document.getElementById('gocesiumRunBtn'));
+    });
+
+    // preprocess
+    document.getElementById('preprocessRunBtn').addEventListener('click', () => {
+      const payload = {
+        program: getValue('preprocessProgram'),
+        input: getValue('preprocessInput') || undefined,
+        output: getValue('preprocessOutput') || undefined,
+        extra_args: getValue('preprocessExtraArgs') || undefined,
+      };
+      startJob('/api/run/preprocess', payload, document.getElementById('preprocessRunBtn'));
     });
 
     // systems

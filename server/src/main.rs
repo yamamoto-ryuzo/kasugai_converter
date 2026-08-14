@@ -93,6 +93,14 @@ struct ConvertGocesiumtilerRequest {
     extra_args: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct PreprocessRequest {
+    program: String,
+    input: Option<String>,
+    output: Option<String>,
+    extra_args: Option<String>,
+}
+
 #[tokio::main]
 async fn main() {
     let state = AppState {
@@ -105,6 +113,7 @@ async fn main() {
         .route("/convert/py3dtiles", post(convert_py3dtiles_handler))
         .route("/convert/pg2b3dm", post(convert_pg2b3dm_handler))
         .route("/convert/gocesiumtiler", post(convert_gocesiumtiler_handler))
+        .route("/run/preprocess", post(preprocess_handler))
         .route("/install/{name}", post(install_handler))
         .route("/jobs/{id}", get(get_job))
         .route("/jobs", get(list_jobs))
@@ -553,6 +562,79 @@ async fn convert_gocesiumtiler_handler(
     args.push("--out".to_string());
     args.push(req.output.trim().to_string());
     args.push(req.input.trim().to_string());
+
+    let response_id = job_id.clone();
+    let state_spawn = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = run_conversion(state_spawn, job_id.clone(), program, args).await {
+            let mut jobs = state.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Failed;
+                job.output.push_str(&format!("\n[system error] {}\n", e));
+            }
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
+async fn preprocess_handler(
+    State(state): State<AppState>,
+    Json(req): Json<PreprocessRequest>,
+) -> impl IntoResponse {
+    let program = req.program.trim().to_string();
+    if program.is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "program is required").into_response();
+    }
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
+    }
+
+    let mut args: Vec<String> = Vec::new();
+    if let Some(extra) = req.extra_args.as_ref() {
+        let trimmed = extra.trim();
+        if !trimmed.is_empty() {
+            for part in trimmed.split_whitespace() {
+                args.push(part.to_string());
+            }
+        }
+    }
+
+    if let Some(input) = req.input.as_ref() {
+        let trimmed = input.trim();
+        if !trimmed.is_empty() {
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(output) = req.output.as_ref() {
+        let trimmed = output.trim();
+        if !trimmed.is_empty() {
+            args.push(trimmed.to_string());
+        }
+    }
 
     let response_id = job_id.clone();
     let state_spawn = state.clone();
