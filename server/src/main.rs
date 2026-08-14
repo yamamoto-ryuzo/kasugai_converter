@@ -455,6 +455,44 @@ async fn install_handler(
     State(state): State<AppState>,
 ) -> impl IntoResponse {
     let (program, args): (String, Vec<String>) = match name.as_str() {
+        "python" => {
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+$tmp = "$tools/temp-python"
+Remove-Item "$tools/python" -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $tmp -Force
+Write-Output "Downloading Python 3.12.4..."
+curl.exe -s -S -L --fail -o "$tmp/python.zip" "https://www.python.org/ftp/python/3.12.4/python-3.12.4-embed-amd64.zip"
+if ($LASTEXITCODE -ne 0) { throw "Python download failed" }
+Write-Output "Extracting Python..."
+Expand-Archive -Path "$tmp/python.zip" -DestinationPath "$tools/python" -Force
+Remove-Item $tmp -Recurse -Force
+$pth = Get-ChildItem "$tools/python" -Filter "python*._pth" | Select-Object -First 1
+if ($pth) {
+    $content = Get-Content $pth.FullName
+    $content = $content -replace '^#import site', 'import site'
+    $content | Set-Content $pth.FullName
+}
+$python = "$tools/python/python.exe"
+Write-Output "Checking pip..."
+& $python -m pip --version
+if ($LASTEXITCODE -ne 0) {
+    Write-Output "Bootstrapping pip..."
+    curl.exe -s -S -L --fail -o "$tools/python/get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
+    if ($LASTEXITCODE -ne 0) { throw "get-pip.py download failed" }
+    & $python "$tools/python/get-pip.py" --no-setuptools --no-wheel
+    if ($LASTEXITCODE -ne 0) { throw "pip bootstrap failed" }
+    Remove-Item "$tools/python/get-pip.py"
+}
+Write-Output "Upgrading pip..."
+& $python -m pip install --upgrade pip --no-warn-script-location --progress-bar off
+if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+Write-Output "Python installed to $tools/python"
+"#;
+            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+        }
         "jdk" => {
             let script = r#"
 $ErrorActionPreference = "Stop"
@@ -492,12 +530,14 @@ Write-Host "JAR saved to $tools/mago-3d-tiler.jar"
             let script = r#"
 $ErrorActionPreference = "Stop"
 $tools = "tools"
-$venv = "$tools/py3dtiles-venv"
-Remove-Item $venv -Recurse -Force -ErrorAction SilentlyContinue
-python -m venv $venv
-& "$venv/Scripts/python.exe" -m pip install --upgrade pip
-& "$venv/Scripts/python.exe" -m pip install py3dtiles
-Write-Host "py3dtiles installed to $venv"
+$python = if (Test-Path "$tools/python/python.exe") { "$tools/python/python.exe" } else { "python" }
+Write-Output "Upgrading pip..."
+& $python -m pip install --upgrade pip --no-warn-script-location --progress-bar off
+if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+Write-Output "Installing py3dtiles..."
+& $python -m pip install --no-warn-script-location --progress-bar off py3dtiles
+if ($LASTEXITCODE -ne 0) { throw "py3dtiles install failed" }
+Write-Output "py3dtiles installed"
 "#;
             ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
         }
@@ -769,6 +809,13 @@ async fn get_python_env() -> impl IntoResponse {
     }
 
     if path.is_none() {
+        let tools_python = "tools/python/python.exe";
+        if StdPath::new(tools_python).exists() {
+            path = Some(tools_python.to_string());
+        }
+    }
+
+    if path.is_none() {
         match Command::new("where").arg("python").output().await {
             Ok(out) if out.status.success() => {
                 let first = String::from_utf8_lossy(&out.stdout)
@@ -807,17 +854,19 @@ async fn get_python_env() -> impl IntoResponse {
 
 async fn get_py3dtiles_env() -> impl IntoResponse {
     let default_path = "tools/py3dtiles-venv/Scripts/py3dtiles.exe".to_string();
+    let alt_path = "tools/python/Scripts/py3dtiles.exe".to_string();
     let env_path = std::env::var("PY3DTILES_PATH").ok();
     let path = match env_path {
         Some(s) if !s.trim().is_empty() => s.trim().to_string(),
         _ if StdPath::new(&default_path).exists() => default_path.clone(),
+        _ if StdPath::new(&alt_path).exists() => alt_path.clone(),
         _ => default_path,
     };
 
     let mut found = false;
     let mut version_output = String::new();
     if StdPath::new(&path).exists() {
-        match Command::new(&path).arg("--version").output().await {
+        match Command::new(&path).arg("-h").output().await {
             Ok(out) => {
                 version_output = String::from_utf8_lossy(&out.stdout).to_string();
                 version_output.push_str(&String::from_utf8_lossy(&out.stderr));

@@ -364,6 +364,7 @@
               <div id="pythonPath" class="hint"></div>
             </div>
             <div class="system-actions">
+              <button class="secondary" id="installPythonNow" type="button">自動ダウンロード</button>
               <button class="secondary" id="installPythonBtn" type="button">ダウンロードページ</button>
             </div>
           </div>
@@ -684,6 +685,9 @@
       }
     });
 
+    document.getElementById('installPythonNow').addEventListener('click', () => {
+      startJob('/api/install/python', {}, document.getElementById('installPythonNow'));
+    });
     document.getElementById('installPythonBtn').addEventListener('click', () => {
       window.open('https://www.python.org/downloads/release/python-3124/', '_blank');
     });
