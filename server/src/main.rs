@@ -92,6 +92,7 @@ async fn main() {
         .route("/convert", post(convert_handler))
         .route("/convert/py3dtiles", post(convert_py3dtiles_handler))
         .route("/convert/pg2b3dm", post(convert_pg2b3dm_handler))
+        .route("/install/{name}", post(install_handler))
         .route("/jobs/{id}", get(get_job))
         .route("/jobs", get(list_jobs))
         .route("/env/java", get(get_java_env))
@@ -429,6 +430,89 @@ async fn convert_pg2b3dm_handler(
                 args.push(part.to_string());
             }
         }
+    }
+
+    let response_id = job_id.clone();
+    let state_spawn = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = run_conversion(state_spawn, job_id.clone(), program, args).await {
+            let mut jobs = state.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Failed;
+                job.output.push_str(&format!("\n[system error] {}\n", e));
+            }
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
+async fn install_handler(
+    Path(name): Path<String>,
+    State(state): State<AppState>,
+) -> impl IntoResponse {
+    let (program, args): (String, Vec<String>) = match name.as_str() {
+        "jdk" => {
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+$tmp = "$tools/temp-jdk"
+Remove-Item "$tools/jdk-21" -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $tmp -Force
+Write-Host "Downloading JDK 21..."
+curl.exe -s -S -L --fail -o "$tmp/jdk.zip" "https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse?project=jdk"
+if ($LASTEXITCODE -ne 0) { throw "JDK download failed" }
+Write-Host "Extracting JDK..."
+Expand-Archive -Path "$tmp/jdk.zip" -DestinationPath $tmp -Force
+$dir = Get-ChildItem $tmp -Directory | Select-Object -First 1
+if (-not $dir) { throw "No extracted directory found" }
+$dst = "$tools/jdk-21"
+Move-Item $dir.FullName $dst -Force
+Remove-Item $tmp -Recurse -Force
+Write-Host "JDK installed to $dst"
+"#;
+            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+        }
+        "mago" => {
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+New-Item -ItemType Directory -Path $tools -Force
+Write-Host "Downloading mago-3d-tiler JAR..."
+curl.exe -s -S -L --fail -o "$tools/mago-3d-tiler.jar" "https://github.com/Gaia3D/mago-3d-tiler/releases/download/v1.15.4/mago-3d-tiler-1.15.4.jar"
+if ($LASTEXITCODE -ne 0) { throw "mago-3d-tiler download failed" }
+Write-Host "JAR saved to $tools/mago-3d-tiler.jar"
+"#;
+            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+        }
+        _ => {
+            return (axum::http::StatusCode::NOT_FOUND, "install target not found").into_response();
+        }
+    };
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
     }
 
     let response_id = job_id.clone();

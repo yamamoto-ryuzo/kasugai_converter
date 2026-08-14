@@ -336,6 +336,7 @@
               <div id="jdkPath" class="hint"></div>
             </div>
             <div class="system-actions">
+              <button class="secondary" id="installJdkNow" type="button">自動インストール</button>
               <button class="secondary" id="installJdkMs" type="button">Microsoft Build of OpenJDK 21</button>
               <button class="secondary" id="installJdkAdoptium" type="button">Eclipse Temurin 21</button>
               <button class="secondary" id="useJdkBtn" type="button" style="display:none;">この Java を使う</button>
@@ -348,6 +349,7 @@
               JAR ファイルが <code>tools/mago-3d-tiler.jar</code> または <code>MAGO_JAR_PATH</code> に見つかりません。
             </div>
             <div class="system-actions">
+              <button class="secondary" id="installMagoNow" type="button">自動ダウンロード</button>
               <button class="secondary" id="installMagoBtn" type="button">ダウンロードページ</button>
               <button class="secondary" id="useMagoBtn" type="button" style="display:none;">この JAR を使う</button>
             </div>
@@ -550,6 +552,13 @@
     });
     document.getElementById('installMagoBtn').addEventListener('click', () => {
       window.open('https://github.com/Gaia3D/mago-3d-tiler/releases', '_blank');
+    });
+
+    document.getElementById('installJdkNow').addEventListener('click', () => {
+      startJob('/api/install/jdk', {}, document.getElementById('installJdkNow'));
+    });
+    document.getElementById('installMagoNow').addEventListener('click', () => {
+      startJob('/api/install/mago', {}, document.getElementById('installMagoNow'));
     });
 
     document.getElementById('useJdkBtn').addEventListener('click', () => {
