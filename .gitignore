@@ -1,2 +1,5 @@
 target/
 server/tools/
+download/
+dist/
+__pycache__/
