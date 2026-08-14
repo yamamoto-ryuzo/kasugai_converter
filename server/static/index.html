@@ -26,7 +26,7 @@
       line-height: 1.6;
     }
     .container {
-      max-width: 900px;
+      max-width: 960px;
       margin: 2rem auto;
       padding: 0 1rem;
     }
@@ -35,8 +35,9 @@
 
     .tabs {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.25rem;
       margin-bottom: 1rem;
+      flex-wrap: wrap;
     }
     .tab-btn {
       background: #e5e7eb;
@@ -47,24 +48,21 @@
       cursor: pointer;
       font-weight: 600;
     }
+    .tab-btn:hover { background: #d1d5db; }
     .tab-btn.active {
       background: var(--card);
       color: var(--primary);
       border-bottom: 2px solid var(--primary);
     }
-    .tab-content {
-      display: none;
-    }
-    .tab-content.active {
-      display: block;
-    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
 
     .card {
       background: var(--card);
       border-radius: 0.75rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       padding: 1.5rem;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1rem;
     }
     .grid {
       display: grid;
@@ -127,8 +125,8 @@
       color: #e5e7eb;
       padding: 1rem;
       border-radius: 0.5rem;
-      min-height: 12rem;
-      max-height: 24rem;
+      min-height: 10rem;
+      max-height: 20rem;
       overflow-y: auto;
     }
     .log:empty::before { content: "ログがここに表示されます"; color: #6b7280; }
@@ -161,12 +159,14 @@
 
     <div class="tabs">
       <button class="tab-btn active" data-tab="mago">mago-3d-tiler</button>
+      <button class="tab-btn" data-tab="py3dtiles">Py3DTiles</button>
+      <button class="tab-btn" data-tab="pg2b3dm">pg2b3dm</button>
       <button class="tab-btn" data-tab="systems">関連システム</button>
     </div>
 
     <div id="mago" class="tab-content active">
       <div class="card">
-        <h2>変換設定</h2>
+        <h2>mago-3d-tiler</h2>
         <form id="convertForm" class="grid">
           <div>
             <label for="input">入力ディレクトリ</label>
@@ -216,7 +216,6 @@
           <div>
             <label for="jarPath">mago-3d-tiler JAR パス</label>
             <input type="text" id="jarPath" placeholder="tools/mago-3d-tiler.jar" value="tools/mago-3d-tiler.jar" />
-            <p class="hint">環境変数 <code>MAGO_JAR_PATH</code> / <code>MAGO_JAVA_PATH</code> でも指定できます。</p>
           </div>
 
           <div>
@@ -231,13 +230,95 @@
 
         <div class="actions">
           <button id="runBtn" type="button">変換開始</button>
-          <span id="status" class="status">待機中</span>
         </div>
       </div>
+    </div>
 
+    <div id="py3dtiles" class="tab-content">
       <div class="card">
-        <h2>実行ログ</h2>
-        <pre id="log" class="log"></pre>
+        <h2>Py3DTiles</h2>
+        <form id="py3dtilesForm" class="grid">
+          <div class="full">
+            <label for="pyInput">入力ファイル/ディレクトリ</label>
+            <input type="text" id="pyInput" placeholder="C:\data\pointcloud.las" required />
+          </div>
+          <div class="full">
+            <label for="pyOutput">出力ディレクトリ</label>
+            <input type="text" id="pyOutput" placeholder="C:\data\py3dtiles-out" required />
+          </div>
+          <div>
+            <label for="pySrsIn">入力 SRS</label>
+            <input type="text" id="pySrsIn" placeholder="例: 6677" />
+          </div>
+          <div>
+            <label for="pySrsOut">出力 SRS</label>
+            <input type="text" id="pySrsOut" placeholder="例: 4326" />
+          </div>
+          <div>
+            <label for="pyCommand">コマンドパス</label>
+            <input type="text" id="pyCommand" placeholder="py3dtiles" value="py3dtiles" />
+          </div>
+          <div>
+            <label for="pyExtraArgs">追加オプション</label>
+            <input type="text" id="pyExtraArgs" placeholder="--rgb" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="pyRunBtn" type="button">実行</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="pg2b3dm" class="tab-content">
+      <div class="card">
+        <h2>pg2b3dm（PostGIS → 3D Tiles）</h2>
+        <form id="pg2b3dmForm" class="grid">
+          <div class="full">
+            <label for="pgConn">接続文字列</label>
+            <input type="text" id="pgConn" placeholder='Host=localhost;Username=postgres;Database=postgres;CommandTimeOut=0' required />
+          </div>
+          <div>
+            <label for="pgTable">テーブル名</label>
+            <input type="text" id="pgTable" placeholder="public.buildings" required />
+          </div>
+          <div>
+            <label for="pgColumn">ジオメトリ列</label>
+            <input type="text" id="pgColumn" placeholder="geom" value="geom" />
+          </div>
+          <div>
+            <label for="pgOutput">出力ディレクトリ</label>
+            <input type="text" id="pgOutput" placeholder="output" value="output" />
+          </div>
+          <div>
+            <label for="pgAttrColumns">属性列</label>
+            <input type="text" id="pgAttrColumns" placeholder="id,name" />
+          </div>
+          <div>
+            <label for="pgShaderColumn">シェーダ列</label>
+            <input type="text" id="pgShaderColumn" placeholder="shaders" />
+          </div>
+          <div>
+            <label for="pgGeoErrors">Geometric Errors</label>
+            <input type="text" id="pgGeoErrors" placeholder="1000,500,0" />
+          </div>
+          <div>
+            <label for="pgQuery">クエリ</label>
+            <input type="text" id="pgQuery" placeholder="type='building'" />
+          </div>
+          <div>
+            <label for="pgCommand">コマンドパス</label>
+            <input type="text" id="pgCommand" placeholder="pg2b3dm" value="pg2b3dm" />
+          </div>
+          <div>
+            <label for="pgExtraArgs">追加オプション</label>
+            <input type="text" id="pgExtraArgs" placeholder="--double_sided false" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="pgRunBtn" type="button">実行</button>
+        </div>
       </div>
     </div>
 
@@ -250,7 +331,7 @@
           <div class="system-item">
             <div class="system-title">JDK 21 <span id="jdkStatusTag" class="tag ng">未検出</span></div>
             <div class="system-meta">
-              mago-3d-tiler の実行には JDK 21 以上が必要です。下記からダウンロードしてインストールしてください。
+              mago-3d-tiler の実行には JDK 21 以上が必要です。
               <pre id="jdkVersionOutput" style="display:none;"></pre>
               <div id="jdkPath" class="hint"></div>
             </div>
@@ -274,78 +355,60 @@
         </div>
       </div>
     </div>
+
+    <div class="card">
+      <div class="actions" style="margin-top:0; margin-bottom:0.75rem;">
+        <span id="status" class="status">待機中</span>
+      </div>
+      <pre id="log" class="log"></pre>
+    </div>
   </div>
 
   <script>
-    const runBtn = document.getElementById('runBtn');
     const statusEl = document.getElementById('status');
     const logEl = document.getElementById('log');
 
-    // Tab switching
+    function getValue(id) { return document.getElementById(id).value.trim(); }
+    function setValue(id, val) { document.getElementById(id).value = val; }
+    function setStatus(text, cls) {
+      statusEl.textContent = text;
+      statusEl.className = 'status ' + (cls || '');
+    }
+
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(btn.dataset.tab).classList.add('active');
-        if (btn.dataset.tab === 'systems') {
-          loadSystemEnv();
-        }
+        if (btn.dataset.tab === 'systems') loadSystemEnv();
       });
     });
 
-    function getValue(id) {
-      return document.getElementById(id).value.trim();
-    }
-    function setValue(id, val) {
-      document.getElementById(id).value = val;
-    }
-    function setStatus(text, cls) {
-      statusEl.textContent = text;
-      statusEl.className = 'status ' + (cls || '');
-    }
-
-    async function startConvert() {
-      runBtn.disabled = true;
+    async function startJob(endpoint, payload, button) {
+      button.disabled = true;
       setStatus('送信中...', 'running');
       logEl.textContent = '';
 
-      const payload = {
-        input: getValue('input'),
-        output: getValue('output'),
-        input_type: getValue('inputType') || undefined,
-        output_type: getValue('outputType') || undefined,
-        crs: getValue('crs') || undefined,
-        java_path: getValue('javaPath') || undefined,
-        jar_path: getValue('jarPath') || undefined,
-        jvm_options: getValue('jvmOptions') || undefined,
-        extra_args: getValue('extraArgs') || undefined,
-      };
-
       try {
-        const res = await fetch('/api/convert', {
+        const res = await fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
         });
-
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text);
-        }
-
+        if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
         setStatus('実行中...', 'running');
         logEl.textContent = `job id: ${data.job_id}\n`;
-        pollJob(data.job_id);
+        pollJob(data.job_id, button);
       } catch (e) {
         setStatus('エラー', 'failed');
         logEl.textContent = e.message;
-        runBtn.disabled = false;
+        button.disabled = false;
       }
     }
 
-    function pollJob(jobId) {
+    function pollJob(jobId, button) {
       const interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/jobs/${jobId}`);
@@ -360,24 +423,68 @@
           } else if (job.status === 'completed') {
             clearInterval(interval);
             setStatus(`完了 (exit ${job.exit_code ?? '?'})`, 'completed');
-            runBtn.disabled = false;
+            button.disabled = false;
           } else if (job.status === 'failed') {
             clearInterval(interval);
             setStatus(`失敗 (exit ${job.exit_code ?? '?'})`, 'failed');
-            runBtn.disabled = false;
+            button.disabled = false;
           }
         } catch (e) {
           clearInterval(interval);
           setStatus('ポーリングエラー', 'failed');
           logEl.textContent += '\n' + e.message;
-          runBtn.disabled = false;
+          button.disabled = false;
         }
       }, 1000);
     }
 
-    runBtn.addEventListener('click', startConvert);
+    // mago
+    document.getElementById('runBtn').addEventListener('click', () => {
+      const payload = {
+        input: getValue('input'),
+        output: getValue('output'),
+        input_type: getValue('inputType') || undefined,
+        output_type: getValue('outputType') || undefined,
+        crs: getValue('crs') || undefined,
+        java_path: getValue('javaPath') || undefined,
+        jar_path: getValue('jarPath') || undefined,
+        jvm_options: getValue('jvmOptions') || undefined,
+        extra_args: getValue('extraArgs') || undefined,
+      };
+      startJob('/api/convert', payload, document.getElementById('runBtn'));
+    });
 
-    // Systems tab
+    // py3dtiles
+    document.getElementById('pyRunBtn').addEventListener('click', () => {
+      const payload = {
+        input: getValue('pyInput'),
+        output: getValue('pyOutput'),
+        srs_in: getValue('pySrsIn') || undefined,
+        srs_out: getValue('pySrsOut') || undefined,
+        command: getValue('pyCommand') || undefined,
+        extra_args: getValue('pyExtraArgs') || undefined,
+      };
+      startJob('/api/convert/py3dtiles', payload, document.getElementById('pyRunBtn'));
+    });
+
+    // pg2b3dm
+    document.getElementById('pgRunBtn').addEventListener('click', () => {
+      const payload = {
+        connection: getValue('pgConn'),
+        table: getValue('pgTable'),
+        column: getValue('pgColumn') || undefined,
+        output: getValue('pgOutput') || undefined,
+        attribute_columns: getValue('pgAttrColumns') || undefined,
+        query: getValue('pgQuery') || undefined,
+        shader_column: getValue('pgShaderColumn') || undefined,
+        geometric_errors: getValue('pgGeoErrors') || undefined,
+        command: getValue('pgCommand') || undefined,
+        extra_args: getValue('pgExtraArgs') || undefined,
+      };
+      startJob('/api/convert/pg2b3dm', payload, document.getElementById('pgRunBtn'));
+    });
+
+    // systems
     let currentJavaPath = null;
     let currentMagoPath = null;
 
@@ -390,7 +497,6 @@
         const java = await javaRes.json();
         const mago = await magoRes.json();
 
-        // JDK
         const jdkTag = document.getElementById('jdkStatusTag');
         const jdkVersion = document.getElementById('jdkVersionOutput');
         const jdkPath = document.getElementById('jdkPath');
@@ -413,7 +519,6 @@
           currentJavaPath = null;
         }
 
-        // mago JAR
         const magoTag = document.getElementById('magoStatusTag');
         const magoInfo = document.getElementById('magoInfo');
         const useMagoBtn = document.getElementById('useMagoBtn');

@@ -57,6 +57,30 @@ struct ConvertResponse {
     job_id: String,
 }
 
+#[derive(Debug, Deserialize)]
+struct ConvertPy3dtilesRequest {
+    input: String,
+    output: String,
+    srs_in: Option<String>,
+    srs_out: Option<String>,
+    command: Option<String>,
+    extra_args: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ConvertPg2b3dmRequest {
+    connection: String,
+    table: String,
+    column: Option<String>,
+    output: Option<String>,
+    attribute_columns: Option<String>,
+    query: Option<String>,
+    shader_column: Option<String>,
+    geometric_errors: Option<String>,
+    command: Option<String>,
+    extra_args: Option<String>,
+}
+
 #[tokio::main]
 async fn main() {
     let state = AppState {
@@ -66,6 +90,8 @@ async fn main() {
 
     let api = Router::new()
         .route("/convert", post(convert_handler))
+        .route("/convert/py3dtiles", post(convert_py3dtiles_handler))
+        .route("/convert/pg2b3dm", post(convert_pg2b3dm_handler))
         .route("/jobs/{id}", get(get_job))
         .route("/jobs", get(list_jobs))
         .route("/env/java", get(get_java_env))
@@ -208,6 +234,218 @@ async fn convert_handler(
     Json(ConvertResponse { job_id: response_id }).into_response()
 }
 
+async fn convert_py3dtiles_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ConvertPy3dtilesRequest>,
+) -> impl IntoResponse {
+    if req.input.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "input is required").into_response();
+    }
+    if req.output.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "output is required").into_response();
+    }
+
+    let program = req
+        .command
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "py3dtiles".to_string());
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
+    }
+
+    let mut args: Vec<String> = vec![
+        "convert".to_string(),
+        req.input.trim().to_string(),
+        "--out".to_string(),
+        req.output.trim().to_string(),
+    ];
+
+    if let Some(srs_in) = req.srs_in.as_ref() {
+        let trimmed = srs_in.trim();
+        if !trimmed.is_empty() {
+            args.push("--srs-in".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(srs_out) = req.srs_out.as_ref() {
+        let trimmed = srs_out.trim();
+        if !trimmed.is_empty() {
+            args.push("--srs-out".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(extra) = req.extra_args.as_ref() {
+        let trimmed = extra.trim();
+        if !trimmed.is_empty() {
+            for part in trimmed.split_whitespace() {
+                args.push(part.to_string());
+            }
+        }
+    }
+
+    let response_id = job_id.clone();
+    let state_spawn = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = run_conversion(state_spawn, job_id.clone(), program, args).await {
+            let mut jobs = state.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Failed;
+                job.output.push_str(&format!("\n[system error] {}\n", e));
+            }
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
+async fn convert_pg2b3dm_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ConvertPg2b3dmRequest>,
+) -> impl IntoResponse {
+    if req.connection.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "connection is required").into_response();
+    }
+    if req.table.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "table is required").into_response();
+    }
+
+    let program = req
+        .command
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "pg2b3dm".to_string());
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
+    }
+
+    let mut args: Vec<String> = vec![
+        "--connection".to_string(),
+        req.connection.trim().to_string(),
+        "-t".to_string(),
+        req.table.trim().to_string(),
+    ];
+
+    if let Some(col) = req.column.as_ref() {
+        let trimmed = col.trim();
+        if !trimmed.is_empty() {
+            args.push("-c".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(out) = req.output.as_ref() {
+        let trimmed = out.trim();
+        if !trimmed.is_empty() {
+            args.push("-o".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(attrs) = req.attribute_columns.as_ref() {
+        let trimmed = attrs.trim();
+        if !trimmed.is_empty() {
+            args.push("-a".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(query) = req.query.as_ref() {
+        let trimmed = query.trim();
+        if !trimmed.is_empty() {
+            args.push("-q".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(shader) = req.shader_column.as_ref() {
+        let trimmed = shader.trim();
+        if !trimmed.is_empty() {
+            args.push("--shaderscolumn".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(errs) = req.geometric_errors.as_ref() {
+        let trimmed = errs.trim();
+        if !trimmed.is_empty() {
+            args.push("-g".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(extra) = req.extra_args.as_ref() {
+        let trimmed = extra.trim();
+        if !trimmed.is_empty() {
+            for part in trimmed.split_whitespace() {
+                args.push(part.to_string());
+            }
+        }
+    }
+
+    let response_id = job_id.clone();
+    let state_spawn = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = run_conversion(state_spawn, job_id.clone(), program, args).await {
+            let mut jobs = state.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Failed;
+                job.output.push_str(&format!("\n[system error] {}\n", e));
+            }
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
 async fn get_job(State(state): State<AppState>, Path(id): Path<String>) -> impl IntoResponse {
     let jobs = state.jobs.lock().await;
     match jobs.get(&id) {
@@ -241,7 +479,7 @@ async fn run_conversion(
         .stderr(Stdio::piped())
         .kill_on_drop(true)
         .spawn()
-        .map_err(|e| format!("failed to start mago-3d-tiler: {}", e))?;
+        .map_err(|e| format!("failed to start {}: {}", java_path, e))?;
 
     let log = Arc::new(Mutex::new(String::new()));
     let out_log = log.clone();
