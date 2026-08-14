@@ -1,5 +1,6 @@
 target/
 server/tools/
-download/
+download/*
+!download/latest.json
 dist/
 __pycache__/

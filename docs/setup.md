@@ -60,3 +60,17 @@ $env:CJIO_PATH = "C:\tools\python\Scripts\cjio.exe"
 | gdal2tiles.py / ctb-tile | GDAL / Cesium Terrain Builder に同梱 |
 | 3d-tiles-tools | `npm install -g 3d-tiles-tools`（Node.js が必要） |
 | gltf-pipeline | `npm install -g gltf-pipeline`（Node.js が必要） |
+
+## リリースビルド
+
+```powershell
+python run.py -b              # EXE + ZIP 生成
+python run.py -b --installer  # ZIP + NSIS インストーラー生成
+python run.py                 # 開発モード起動
+```
+
+生成物:
+
+- `download/kasugai_converter.zip`
+- `download/kasugai_converter_setup.exe`（NSIS インストーラー）
+- `download/kasugai_converter_setup.zip`

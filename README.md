@@ -73,6 +73,19 @@ cargo run
 - **3d-tiles-tools** … `npm install -g 3d-tiles-tools`（Node.js が必要）
 - **gltf-pipeline** … `npm install -g gltf-pipeline`（Node.js が必要）
 
+## リリースビルド
+
+```powershell
+python run.py -b        # EXE + ZIP 生成
+python run.py -b --installer  # ZIP + NSIS インストーラー生成
+```
+
+出力:
+
+- `download/kasugai_converter.zip`
+- `download/kasugai_converter_setup.exe`（要 NSIS）
+- `download/kasugai_converter_setup.zip`
+
 ## ライセンス
 
 本プロジェクト（Rust サーバー・Web UI）自身は **MIT License** で公開します。

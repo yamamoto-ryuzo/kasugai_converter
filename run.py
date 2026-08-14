@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Kasugai Converter リリースビルドスクリプト"""
+"""Kasugai Converter release build script."""
 
 import argparse
 import os
@@ -27,10 +27,10 @@ def build_release():
     """Build the Rust server in release mode."""
     rc = run_command(["cargo", "build", "--release"], cwd=SERVER_DIR)
     if rc != 0:
-        print("[Kasugai] ビルドに失敗しました。")
+        print("[Kasugai] Build failed.")
         sys.exit(rc)
     if not TARGET_EXE.exists():
-        print(f"[Kasugai] 出力 EXE が見つかりません: {TARGET_EXE}")
+        print(f"[Kasugai] Output EXE not found: {TARGET_EXE}")
         sys.exit(1)
 
 
@@ -46,9 +46,8 @@ def package_zip():
     if static_src.exists():
         shutil.copytree(static_src, DIST_DIR / "static")
     else:
-        print("[Kasugai] warning: static ディレクトリが見つかりません。")
+        print("[Kasugai] warning: static directory not found.")
 
-    # ツールは実行時に自動ダウンロードされるが、ディレクトリだけは作っておく
     (DIST_DIR / "tools").mkdir(exist_ok=True)
 
     zip_path = DOWNLOAD_DIR / f"{APP_NAME}.zip"
@@ -62,53 +61,77 @@ def package_zip():
                 arcname = str(file_path.relative_to(DIST_DIR))
                 zf.write(file_path, arcname)
 
-    print(f"[Kasugai] リリース ZIP を生成しました: {zip_path}")
+    print(f"[Kasugai] Release ZIP created: {zip_path}")
     return zip_path
 
 
 def build_installer():
-    """Build NSIS installer if the .nsi file and makensis are available."""
+    """Build NSIS installer and wrap it into a ZIP."""
     nsi = PROJECT_ROOT / "installer" / f"{APP_NAME}.nsi"
     if not nsi.exists():
-        print(f"[Kasugai] インストーラースクリプトが見つかりません: {nsi}")
+        print(f"[Kasugai] Installer script not found: {nsi}")
         return 1
     if shutil.which("makensis") is None:
-        print("[Kasugai] makensis が見つかりません。NSIS をインストールしてください。")
+        print("[Kasugai] makensis not found. Install NSIS to build the installer.")
         return 1
-    return run_command(["makensis", str(nsi)], cwd=PROJECT_ROOT)
+
+    rc = run_command(["makensis", str(nsi)], cwd=PROJECT_ROOT / "installer")
+    if rc != 0:
+        return rc
+
+    installer_exe = DOWNLOAD_DIR / f"{APP_NAME}_setup.exe"
+    if not installer_exe.exists():
+        print(f"[Kasugai] Installer EXE not found: {installer_exe}")
+        return 1
+
+    dest_zip = DOWNLOAD_DIR / f"{APP_NAME}_setup.zip"
+    if dest_zip.exists():
+        dest_zip.unlink()
+
+    with zipfile.ZipFile(dest_zip, "w", zipfile.ZIP_DEFLATED) as zf:
+        zf.write(installer_exe, installer_exe.name)
+
+    print(f"[Kasugai] Installer EXE created: {installer_exe}")
+    print(f"[Kasugai] Installer ZIP created: {dest_zip}")
+    return 0
 
 
 def run_release():
     """Run the release EXE."""
     if not TARGET_EXE.exists():
-        print(f"[Kasugai] リリース EXE が見つかりません: {TARGET_EXE}")
-        print("[Kasugai] 先に `python run.py -b` でビルドしてください。")
+        print(f"[Kasugai] Release EXE not found: {TARGET_EXE}")
+        print("[Kasugai] Run `python run.py -b` first.")
         sys.exit(1)
     sys.exit(run_command([str(TARGET_EXE)], cwd=SERVER_DIR))
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Kasugai Converter リリースビルドスクリプト")
+    parser = argparse.ArgumentParser(description="Kasugai Converter release build script")
     parser.add_argument(
         "cmd",
         nargs="?",
         choices=["b", "B"],
-        help="`b` または `B` でリリースビルドを実行します。",
+        help="`b` or `B` to run release build.",
     )
-    parser.add_argument("-b", "-B", "--build", action="store_true", help="リリースビルド・ZIP 化")
-    parser.add_argument("--installer", action="store_true", help="NSIS インストーラーを作成")
-    parser.add_argument("--release", action="store_true", help="リリース EXE を起動")
+    parser.add_argument("-b", "-B", "--build", action="store_true", help="Release build and ZIP packaging")
+    parser.add_argument("--installer", action="store_true", help="Build NSIS installer after packaging")
+    parser.add_argument("--release", action="store_true", help="Run the release EXE")
     args = parser.parse_args()
 
-    if args.build or args.cmd in ("b", "B"):
+    wants_installer = args.installer or args.build or args.cmd in ("b", "B")
+    build_requested = args.build or args.cmd in ("b", "B")
+
+    if args.release:
+        run_release()
+    elif build_requested or wants_installer:
         build_release()
         package_zip()
-        if args.installer:
+        if wants_installer:
             build_installer()
     elif args.installer:
+        build_release()
+        package_zip()
         build_installer()
-    elif args.release:
-        run_release()
     else:
         # 引数なし: 開発モード起動
         sys.exit(run_command(["cargo", "run"], cwd=SERVER_DIR))

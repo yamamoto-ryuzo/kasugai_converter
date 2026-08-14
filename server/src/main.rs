@@ -1,3 +1,5 @@
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
 use axum::{
     extract::{Path, State},
     response::IntoResponse,
@@ -9,7 +11,8 @@ use std::collections::HashMap;
 use std::path::Path as StdPath;
 use std::process::Stdio;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::net::{Ipv4Addr, SocketAddr};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
 use tokio::sync::Mutex;
@@ -114,12 +117,46 @@ struct ConvertBimcimRequest {
 
 #[tokio::main]
 async fn main() {
+    let open_browser = std::env::args().any(|a| a == "--open-browser");
+    let port = 8590;
+    let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
+
+    let listener = 'bind: loop {
+        match tokio::net::TcpListener::bind(addr).await {
+            Ok(l) => break 'bind l,
+            Err(e) => {
+                let health_url = format!("http://127.0.0.1:{}/health", port);
+                let existing = reqwest::get(&health_url)
+                    .await
+                    .map(|r| r.status().is_success())
+                    .unwrap_or(false);
+                if !existing {
+                    eprintln!("ポート {} で起動できません: {}", port, e);
+                    std::process::exit(1);
+                }
+                println!("既にポート {} で起動しています。古いインスタンスを停止します。", port);
+                let stop_url = format!("http://127.0.0.1:{}/api/v1/server/stop", port);
+                let _ = reqwest::Client::new().post(&stop_url).send().await;
+                for _ in 1..=60 {
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    if let Ok(l) = tokio::net::TcpListener::bind(addr).await {
+                        println!("ポート {} を確保しました。新しいインスタンスを起動します。", port);
+                        break 'bind l;
+                    }
+                }
+                eprintln!("ポート {} の解放を待ちましたが、起動できません: {}", port, e);
+                std::process::exit(1);
+            }
+        }
+    };
+
     let state = AppState {
         jobs: Arc::new(Mutex::new(HashMap::new())),
         next_id: Arc::new(Mutex::new(1)),
     };
 
     let api = Router::new()
+        .route("/v1/server/stop", post(stop_handler))
         .route("/convert", post(convert_handler))
         .route("/convert/py3dtiles", post(convert_py3dtiles_handler))
         .route("/convert/pg2b3dm", post(convert_pg2b3dm_handler))
@@ -140,12 +177,67 @@ async fn main() {
         .with_state(state);
 
     let app = Router::new()
+        .route("/", get(serve_index))
+        .route("/health", get(health_handler))
         .nest("/api", api)
         .fallback_service(ServeDir::new("static"));
 
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8590").await.unwrap();
     println!("Kasuga converter server listening on http://127.0.0.1:8590");
+
+    if open_browser {
+        let open_url = format!("http://127.0.0.1:{}/", port);
+        let health_url = format!("http://127.0.0.1:{}/health", port);
+        tokio::spawn(async move {
+            for _ in 0..60 {
+                if let Ok(resp) = reqwest::get(&health_url).await {
+                    if resp.status().is_success() {
+                        let _ = opener::open(&open_url);
+                        break;
+                    }
+                }
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+        });
+    }
+
     axum::serve(listener, app).await.unwrap();
+}
+
+async fn health_handler() -> impl IntoResponse {
+    "ok"
+}
+
+async fn stop_handler() -> impl IntoResponse {
+    tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        std::process::exit(0);
+    });
+    "shutting down"
+}
+
+async fn serve_index() -> impl IntoResponse {
+    let html = match tokio::fs::read_to_string("static/index.html").await {
+        Ok(s) => s,
+        Err(_) => {
+            return (
+                axum::http::StatusCode::NOT_FOUND,
+                axum::http::header::HeaderMap::new(),
+                "index.html not found",
+            )
+                .into_response();
+        }
+    };
+    let html = html.replace("<version>", env!("CARGO_PKG_VERSION"));
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        axum::http::header::CONTENT_TYPE,
+        "text/html; charset=utf-8".parse().unwrap(),
+    );
+    headers.insert(
+        axum::http::header::CACHE_CONTROL,
+        "no-cache".parse().unwrap(),
+    );
+    (headers, html).into_response()
 }
 
 async fn convert_handler(
