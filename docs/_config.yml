@@ -1,0 +1,6 @@
+theme: jekyll-theme-cayman
+title: Kasuga Converter
+description: GISデータをOGC 3D Tilesに変換する自前ホスト型ツール
+lang: ja
+baseurl: /kasuga_converter
+url: ""
