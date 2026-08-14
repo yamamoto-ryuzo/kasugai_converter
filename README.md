@@ -1,14 +1,17 @@
 # Kasuga Converter
 
-自前環境で動作する、GIS データから OGC 3D Tiles への変換システムです。
+自前環境で動作する、GIS データから **OGC 3D Tiles** への変換システムです。
 
 ## 概要
 
 - `mago-3d-tiler`
 - `Py3DTiles`
+- `gocesiumtiler`
 - `pg2b3dm`
+- `GDAL/PDAL 前処理`
+- `Cesium Terrain`
 
-などの変換エンジンを、Web UI からひとつのタブで切り替えて利用できます。Rust/Axum 製のローカルサーバー + 静的 HTML UI で構成されています。
+などの変換エンジンを、Web UI からタブで切り替えて利用できます。Rust/Axum 製のローカルサーバー + 静的 HTML UI で構成されています。
 
 ## ドキュメント
 
@@ -30,15 +33,31 @@ cargo build
 cargo run
 ```
 
-ブラウザで `http://127.0.0.1:8590/` を開き、「関連システム」タブから必要なツールを自動インストールします。
+ブラウザで `http://127.0.0.1:8590/` を開き、各タブから変換を実行します。初回は「関連システム」タブから外部ツールを自動インストールできます。
 
 ## 主な機能
 
-| 機能 | 対象 |
-|------|------|
-| mago-3d-tiler | 3DS/FBX/OBJ/glTF/GLB/LAS/LAZ/CityGML/IndoorGML/SHP/GeoJSON/GPKG → b3dm/i3dm/pnts |
-| Py3DTiles | LAS 点群など → 3D Tiles |
-| pg2b3dm | PostGIS 3D ジオメトリ → 3D Tiles |
+| タブ | エンジン | 用途 |
+|------|----------|------|
+| `mago-3d-tiler` | [mago-3d-tiler](https://github.com/Gaia3D/mago-3d-tiler) | 3DS/FBX/OBJ/glTF/GLB/LAS/LAZ/CityGML/IndoorGML/SHP/GeoJSON/GPKG → b3dm/i3dm/pnts |
+| `Py3DTiles` | [Py3DTiles](https://py3dtiles.org/) | LAS 点群など → 3D Tiles |
+| `gocesiumtiler` | [gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | LAS/LAZ 点群 → PNTS 3D Tiles |
+| `pg2b3dm` | [pg2b3dm](https://github.com/Geodan/pg2b3dm) | PostGIS 3D ジオメトリ → 3D Tiles |
+| `GDAL/PDAL` | GDAL / PDAL | 再投影、フォーマット変換、点群フィルタなどの前処理 |
+| `Cesium Terrain` | Cesium Terrain Builder / tin-terrain | DEM ラスター → quantized-mesh terrain タイル |
+
+## 自動インストール対応
+
+「関連システム」タブから以下を自動ダウンロード・配置できます。
+
+| ツール | 配置先 |
+|--------|--------|
+| JDK 21 | `tools/jdk-21` |
+| mago-3d-tiler JAR | `tools/mago-3d-tiler.jar` |
+| Python 3.12.4 | `tools/python` |
+| Py3DTiles | `tools/python/Scripts/py3dtiles.exe` |
+| pg2b3dm | `tools/pg2b3dm/pg2b3dm.exe` |
+| gocesiumtiler | `tools/gocesiumtiler/gocesiumtiler.exe` |
 
 ## ライセンス
 
@@ -51,5 +70,6 @@ cargo run
 | [mago-3d-tiler](https://github.com/Gaia3D/mago-3d-tiler) | [MPL-2.0](https://github.com/Gaia3D/mago-3d-tiler/blob/main/LICENSE) |
 | [Py3DTiles](https://py3dtiles.org/) | [Apache-2.0](https://gitlab.com/py3dtiles/py3dtiles/-/blob/master/LICENSE) |
 | [pg2b3dm](https://github.com/Geodan/pg2b3dm) | [MIT](https://github.com/Geodan/pg2b3dm/blob/master/LICENSE) |
+| [gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | [MPL-2.0](https://github.com/mfbonfigli/gocesiumtiler/blob/master/LICENSE) |
 
 詳細は [docs/license.md](docs/license.md) を参照してください。

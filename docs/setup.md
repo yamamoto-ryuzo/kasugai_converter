@@ -32,6 +32,7 @@ UI の「関連システム」タブから、以下を自動ダウンロード�
 | Python 3.12.4 | 自動ダウンロード | `tools/python` |
 | Py3DTiles | 自動インストール | `tools/python/Scripts/py3dtiles.exe` |
 | pg2b3dm | 自動ダウンロード | `tools/pg2b3dm/pg2b3dm.exe` |
+| gocesiumtiler | 自動ダウンロード | `tools/gocesiumtiler/gocesiumtiler.exe` |
 
 ## 手動でパスを指定する場合
 
@@ -42,4 +43,13 @@ $env:MAGO_JAVA_PATH = "C:\tools\jdk-21\bin\java.exe"
 $env:MAGO_JAR_PATH = "C:\tools\mago-3d-tiler.jar"
 $env:PY3DTILES_PATH = "C:\tools\py3dtiles-venv\Scripts\py3dtiles.exe"
 $env:PG2B3DM_PATH = "C:\tools\pg2b3dm\pg2b3dm.exe"
+$env:GOCESIUMTILER_PATH = "C:\tools\gocesiumtiler\gocesiumtiler.exe"
 ```
+
+## GDAL/PDAL・Cesium Terrain ツールのインストール
+
+| 用途 | 推奨方法 |
+|------|----------|
+| GDAL/PDAL | OSGeo4W または conda-forge |
+| Cesium Terrain Builder | Docker、または[ quantized-mesh 対応フォーク](https://github.com/tum-gis/cesium-terrain-builder-docker) |
+| tin-terrain | Docker、またはソースからビルド |
