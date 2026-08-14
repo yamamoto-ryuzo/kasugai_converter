@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kasuga Converter - mago-3d-tiler UI</title>
+  <title>Kasuga Converter</title>
   <style>
     :root {
       --bg: #f5f7fa;
@@ -32,6 +32,33 @@
     }
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
     .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    .tab-btn {
+      background: #e5e7eb;
+      color: #374151;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .tab-btn.active {
+      background: var(--card);
+      color: var(--primary);
+      border-bottom: 2px solid var(--primary);
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+
     .card {
       background: var(--card);
       border-radius: 0.75rem;
@@ -64,9 +91,8 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
     }
-    textarea { min-height: 4rem; resize: vertical; }
     .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
-    .actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 1rem; }
+    .actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 1rem; flex-wrap: wrap; }
     button {
       background: var(--primary);
       color: #fff;
@@ -79,6 +105,9 @@
     }
     button:hover { background: var(--primary-dark); }
     button:disabled { opacity: 0.6; cursor: not-allowed; }
+    button.secondary { background: #6b7280; }
+    button.secondary:hover { background: #4b5563; }
+
     .status {
       font-size: 0.9rem;
       padding: 0.35rem 0.7rem;
@@ -103,91 +132,147 @@
       overflow-y: auto;
     }
     .log:empty::before { content: "ログがここに表示されます"; color: #6b7280; }
-    .error { color: var(--error); font-weight: 600; }
-    .success { color: var(--success); }
+
+    .system-list { display: flex; flex-direction: column; gap: 1rem; }
+    .system-item {
+      border: 1px solid var(--border);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      background: #f9fafb;
+    }
+    .system-title { font-weight: 700; margin-bottom: 0.5rem; }
+    .system-meta { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.75rem; }
+    .system-meta pre { margin: 0.25rem 0 0; padding: 0.5rem; background: #1f2937; color: #e5e7eb; border-radius: 0.25rem; white-space: pre-wrap; }
+    .system-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .tag { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
+    .tag.ok { background: #d1fae5; color: #065f46; }
+    .tag.ng { background: #fee2e2; color: #991b1b; }
+
     @media (max-width: 640px) {
       .grid { grid-template-columns: 1fr; }
+      .tabs { flex-wrap: wrap; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Kasuga Converter</h1>
-    <p class="subtitle">mago-3d-tiler を使って GIS データを 3D Tiles に変換</p>
+    <p class="subtitle">GIS データ → 3D Tiles 自前変換システム</p>
 
-    <div class="card">
-      <h2>変換設定</h2>
-      <form id="convertForm" class="grid">
-        <div>
-          <label for="input">入力ディレクトリ</label>
-          <input type="text" id="input" placeholder="C:\data\input" required />
-        </div>
-        <div>
-          <label for="output">出力ディレクトリ</label>
-          <input type="text" id="output" placeholder="C:\data\output" required />
-        </div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="mago">mago-3d-tiler</button>
+      <button class="tab-btn" data-tab="systems">関連システム</button>
+    </div>
 
-        <div>
-          <label for="inputType">入力形式</label>
-          <select id="inputType">
-            <option value="">自動判定</option>
-            <option value="shp">Shapefile (shp)</option>
-            <option value="geojson">GeoJSON</option>
-            <option value="gpkg">GeoPackage</option>
-            <option value="kml">KML</option>
-            <option value="citygml">CityGML</option>
-            <option value="indoorgml">IndoorGML</option>
-            <option value="obj">OBJ</option>
-            <option value="fbx">FBX</option>
-            <option value="3ds">3DS</option>
-            <option value="gltf/glb">glTF/GLB</option>
-            <option value="las/laz">LAS/LAZ</option>
-          </select>
-        </div>
-        <div>
-          <label for="outputType">出力形式</label>
-          <select id="outputType">
-            <option value="">デフォルト</option>
-            <option value="b3dm">Batched 3D Model (b3dm)</option>
-            <option value="i3dm">Instanced 3D Model (i3dm)</option>
-            <option value="pnts">Point Cloud (pnts)</option>
-          </select>
-        </div>
+    <div id="mago" class="tab-content active">
+      <div class="card">
+        <h2>変換設定</h2>
+        <form id="convertForm" class="grid">
+          <div>
+            <label for="input">入力ディレクトリ</label>
+            <input type="text" id="input" placeholder="C:\data\input" required />
+          </div>
+          <div>
+            <label for="output">出力ディレクトリ</label>
+            <input type="text" id="output" placeholder="C:\data\output" required />
+          </div>
 
-        <div>
-          <label for="crs">座標参照系 (EPSG)</label>
-          <input type="text" id="crs" placeholder="例: 5186, 4326, 3857" />
-        </div>
+          <div>
+            <label for="inputType">入力形式</label>
+            <select id="inputType">
+              <option value="">自動判定</option>
+              <option value="shp">Shapefile (shp)</option>
+              <option value="geojson">GeoJSON</option>
+              <option value="gpkg">GeoPackage</option>
+              <option value="kml">KML</option>
+              <option value="citygml">CityGML</option>
+              <option value="indoorgml">IndoorGML</option>
+              <option value="obj">OBJ</option>
+              <option value="fbx">FBX</option>
+              <option value="3ds">3DS</option>
+              <option value="gltf/glb">glTF/GLB</option>
+              <option value="las/laz">LAS/LAZ</option>
+            </select>
+          </div>
+          <div>
+            <label for="outputType">出力形式</label>
+            <select id="outputType">
+              <option value="">デフォルト</option>
+              <option value="b3dm">Batched 3D Model (b3dm)</option>
+              <option value="i3dm">Instanced 3D Model (i3dm)</option>
+              <option value="pnts">Point Cloud (pnts)</option>
+            </select>
+          </div>
 
-        <div>
-          <label for="javaPath">Java 実行ファイル</label>
-          <input type="text" id="javaPath" placeholder="java" value="java" />
-        </div>
-        <div>
-          <label for="jarPath">mago-3d-tiler JAR パス</label>
-          <input type="text" id="jarPath" placeholder="tools/mago-3d-tiler.jar" value="tools/mago-3d-tiler.jar" />
-          <p class="hint">環境変数 <code>MAGO_JAR_PATH</code> で指定することもできます。</p>
-        </div>
+          <div>
+            <label for="crs">座標参照系 (EPSG)</label>
+            <input type="text" id="crs" placeholder="例: 5186, 4326, 3857" />
+          </div>
 
-        <div>
-          <label for="jvmOptions">JVM オプション</label>
-          <input type="text" id="jvmOptions" placeholder="-Xms1g -Xmx4g" value="-Xms1g -Xmx4g" />
-        </div>
-        <div>
-          <label for="extraArgs">追加オプション</label>
-          <input type="text" id="extraArgs" placeholder="--heightColumn height --quantize" />
-        </div>
-      </form>
+          <div>
+            <label for="javaPath">Java 実行ファイル</label>
+            <input type="text" id="javaPath" placeholder="java" value="java" />
+          </div>
+          <div>
+            <label for="jarPath">mago-3d-tiler JAR パス</label>
+            <input type="text" id="jarPath" placeholder="tools/mago-3d-tiler.jar" value="tools/mago-3d-tiler.jar" />
+            <p class="hint">環境変数 <code>MAGO_JAR_PATH</code> / <code>MAGO_JAVA_PATH</code> でも指定できます。</p>
+          </div>
 
-      <div class="actions">
-        <button id="runBtn" type="button">変換開始</button>
-        <span id="status" class="status">待機中</span>
+          <div>
+            <label for="jvmOptions">JVM オプション</label>
+            <input type="text" id="jvmOptions" placeholder="-Xms1g -Xmx4g" value="-Xms1g -Xmx4g" />
+          </div>
+          <div>
+            <label for="extraArgs">追加オプション</label>
+            <input type="text" id="extraArgs" placeholder="--heightColumn height --quantize" />
+          </div>
+        </form>
+
+        <div class="actions">
+          <button id="runBtn" type="button">変換開始</button>
+          <span id="status" class="status">待機中</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>実行ログ</h2>
+        <pre id="log" class="log"></pre>
       </div>
     </div>
 
-    <div class="card">
-      <h2>実行ログ</h2>
-      <pre id="log" class="log"></pre>
+    <div id="systems" class="tab-content">
+      <div class="card">
+        <h2>関連システム</h2>
+        <p class="hint">ここで JDK など、変換に必要な外部ツールの状態を確認・インストールできます。</p>
+
+        <div class="system-list">
+          <div class="system-item">
+            <div class="system-title">JDK 21 <span id="jdkStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta">
+              mago-3d-tiler の実行には JDK 21 以上が必要です。下記からダウンロードしてインストールしてください。
+              <pre id="jdkVersionOutput" style="display:none;"></pre>
+              <div id="jdkPath" class="hint"></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installJdkMs" type="button">Microsoft Build of OpenJDK 21</button>
+              <button class="secondary" id="installJdkAdoptium" type="button">Eclipse Temurin 21</button>
+              <button class="secondary" id="useJdkBtn" type="button" style="display:none;">この Java を使う</button>
+            </div>
+          </div>
+
+          <div class="system-item">
+            <div class="system-title">mago-3d-tiler JAR <span id="magoStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta" id="magoInfo">
+              JAR ファイルが <code>tools/mago-3d-tiler.jar</code> または <code>MAGO_JAR_PATH</code> に見つかりません。
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installMagoBtn" type="button">ダウンロードページ</button>
+              <button class="secondary" id="useMagoBtn" type="button" style="display:none;">この JAR を使う</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -196,10 +281,25 @@
     const statusEl = document.getElementById('status');
     const logEl = document.getElementById('log');
 
+    // Tab switching
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+        if (btn.dataset.tab === 'systems') {
+          loadSystemEnv();
+        }
+      });
+    });
+
     function getValue(id) {
       return document.getElementById(id).value.trim();
     }
-
+    function setValue(id, val) {
+      document.getElementById(id).value = val;
+    }
     function setStatus(text, cls) {
       statusEl.textContent = text;
       statusEl.className = 'status ' + (cls || '');
@@ -276,6 +376,89 @@
     }
 
     runBtn.addEventListener('click', startConvert);
+
+    // Systems tab
+    let currentJavaPath = null;
+    let currentMagoPath = null;
+
+    async function loadSystemEnv() {
+      try {
+        const [javaRes, magoRes] = await Promise.all([
+          fetch('/api/env/java'),
+          fetch('/api/env/mago'),
+        ]);
+        const java = await javaRes.json();
+        const mago = await magoRes.json();
+
+        // JDK
+        const jdkTag = document.getElementById('jdkStatusTag');
+        const jdkVersion = document.getElementById('jdkVersionOutput');
+        const jdkPath = document.getElementById('jdkPath');
+        const useJdkBtn = document.getElementById('useJdkBtn');
+
+        if (java.found) {
+          jdkTag.textContent = '検出済';
+          jdkTag.className = 'tag ok';
+          jdkVersion.textContent = java.version_output;
+          jdkVersion.style.display = 'block';
+          currentJavaPath = java.path;
+          jdkPath.textContent = 'パス: ' + java.path;
+          useJdkBtn.style.display = 'inline-block';
+        } else {
+          jdkTag.textContent = '未検出';
+          jdkTag.className = 'tag ng';
+          jdkVersion.style.display = 'none';
+          jdkPath.textContent = '';
+          useJdkBtn.style.display = 'none';
+          currentJavaPath = null;
+        }
+
+        // mago JAR
+        const magoTag = document.getElementById('magoStatusTag');
+        const magoInfo = document.getElementById('magoInfo');
+        const useMagoBtn = document.getElementById('useMagoBtn');
+
+        if (mago.found) {
+          magoTag.textContent = '検出済';
+          magoTag.className = 'tag ok';
+          const sizeMb = mago.size ? (mago.size / 1024 / 1024).toFixed(1) : '?';
+          magoInfo.innerHTML = `JAR を検出しました。<br>パス: <code>${mago.path}</code><br>サイズ: ${sizeMb} MB`;
+          currentMagoPath = mago.path;
+          useMagoBtn.style.display = 'inline-block';
+        } else {
+          magoTag.textContent = '未検出';
+          magoTag.className = 'tag ng';
+          magoInfo.innerHTML = `JAR ファイルが <code>${mago.path}</code> に見つかりません。下記からダウンロードしてください。`;
+          useMagoBtn.style.display = 'none';
+          currentMagoPath = null;
+        }
+      } catch (e) {
+        console.error('env load failed', e);
+      }
+    }
+
+    document.getElementById('installJdkMs').addEventListener('click', () => {
+      window.open('https://learn.microsoft.com/java/openjdk/download', '_blank');
+    });
+    document.getElementById('installJdkAdoptium').addEventListener('click', () => {
+      window.open('https://adoptium.net/temurin/releases/?version=21', '_blank');
+    });
+    document.getElementById('installMagoBtn').addEventListener('click', () => {
+      window.open('https://github.com/Gaia3D/mago-3d-tiler/releases', '_blank');
+    });
+
+    document.getElementById('useJdkBtn').addEventListener('click', () => {
+      if (currentJavaPath) {
+        setValue('javaPath', currentJavaPath);
+        document.querySelector('[data-tab="mago"]').click();
+      }
+    });
+    document.getElementById('useMagoBtn').addEventListener('click', () => {
+      if (currentMagoPath) {
+        setValue('jarPath', currentMagoPath);
+        document.querySelector('[data-tab="mago"]').click();
+      }
+    });
   </script>
 </body>
 </html>

@@ -68,6 +68,8 @@ async fn main() {
         .route("/convert", post(convert_handler))
         .route("/jobs/{id}", get(get_job))
         .route("/jobs", get(list_jobs))
+        .route("/env/java", get(get_java_env))
+        .route("/env/mago", get(get_mago_env))
         .with_state(state);
 
     let app = Router::new()
@@ -287,4 +289,88 @@ async fn run_conversion(
     }
 
     Ok(())
+}
+
+#[derive(Debug, Serialize)]
+struct JavaEnv {
+    found: bool,
+    path: Option<String>,
+    version_output: String,
+}
+
+#[derive(Debug, Serialize)]
+struct MagoEnv {
+    found: bool,
+    path: String,
+    size: Option<u64>,
+}
+
+async fn get_java_env() -> impl IntoResponse {
+    let mut path: Option<String> = None;
+
+    if let Ok(p) = std::env::var("MAGO_JAVA_PATH") {
+        let trimmed = p.trim().to_string();
+        if !trimmed.is_empty() && StdPath::new(&trimmed).exists() {
+            path = Some(trimmed);
+        }
+    }
+
+    if path.is_none() {
+        let tools_java = "tools/jdk-21/bin/java.exe";
+        if StdPath::new(tools_java).exists() {
+            path = Some(tools_java.to_string());
+        }
+    }
+
+    if path.is_none() {
+        match Command::new("where").arg("java").output().await {
+            Ok(out) if out.status.success() => {
+                let first = String::from_utf8_lossy(&out.stdout)
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                if !first.is_empty() {
+                    path = Some(first);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut found = false;
+    let mut version_output = String::new();
+    if let Some(p) = path.as_ref() {
+        match Command::new(p).arg("-version").output().await {
+            Ok(out) => {
+                version_output = String::from_utf8_lossy(&out.stderr).to_string();
+                found = out.status.success();
+            }
+            _ => {}
+        }
+    }
+
+    Json(JavaEnv {
+        found,
+        path,
+        version_output,
+    })
+}
+
+async fn get_mago_env() -> impl IntoResponse {
+    let default_path = "tools/mago-3d-tiler.jar".to_string();
+    let env_path = std::env::var("MAGO_JAR_PATH").ok();
+    let path = match env_path {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ if StdPath::new(&default_path).exists() => default_path.clone(),
+        _ => default_path,
+    };
+
+    let (found, size) = match std::fs::metadata(&path) {
+        Ok(meta) => (true, Some(meta.len())),
+        Err(_) => (false, None),
+    };
+
+    Json(MagoEnv { found, path, size })
 }
