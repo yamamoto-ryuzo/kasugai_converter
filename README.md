@@ -42,4 +42,14 @@ cargo run
 
 ## ライセンス
 
-MIT
+本プロジェクト（Rust サーバー・Web UI）自身は **MIT License** で公開します。
+
+なお、本ツールは以下の変換エンジンを自動ダウンロードして利用します。各エンジンのライセンスは該当リポジトリに従います。
+
+| エンジン | ライセンス |
+|----------|------------|
+| [mago-3d-tiler](https://github.com/Gaia3D/mago-3d-tiler) | [MPL-2.0](https://github.com/Gaia3D/mago-3d-tiler/blob/main/LICENSE) |
+| [Py3DTiles](https://py3dtiles.org/) | [Apache-2.0](https://gitlab.com/py3dtiles/py3dtiles/-/blob/master/LICENSE) |
+| [pg2b3dm](https://github.com/Geodan/pg2b3dm) | [MIT](https://github.com/Geodan/pg2b3dm/blob/master/LICENSE) |
+
+詳細は [docs/license.md](docs/license.md) を参照してください。

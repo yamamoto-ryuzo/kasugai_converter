@@ -31,3 +31,4 @@ cargo run
 
 - [セットアップ](setup)
 - [使い方](usage)
+- [ライセンス](license)
