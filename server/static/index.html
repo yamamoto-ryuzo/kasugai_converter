@@ -355,6 +355,47 @@
             </div>
           </div>
         </div>
+
+          <div class="system-item">
+            <div class="system-title">Python <span id="pythonStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta" id="pythonInfo">
+              Py3DTiles をインストールするには Python が必要です。
+              <pre id="pythonVersionOutput" style="display:none;"></pre>
+              <div id="pythonPath" class="hint"></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installPythonBtn" type="button">ダウンロードページ</button>
+            </div>
+          </div>
+
+          <div class="system-item">
+            <div class="system-title">Py3DTiles <span id="py3dtilesStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta" id="py3dtilesInfo">
+              venv 内に py3dtiles がインストールされていません。
+              <pre id="py3dtilesVersionOutput" style="display:none;"></pre>
+              <div id="py3dtilesPath" class="hint"></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installPy3dtilesNow" type="button">自動インストール</button>
+              <button class="secondary" id="installPy3dtilesBtn" type="button">PyPI ページ</button>
+              <button class="secondary" id="usePy3dtilesBtn" type="button" style="display:none;">このコマンドを使う</button>
+            </div>
+          </div>
+
+          <div class="system-item">
+            <div class="system-title">pg2b3dm <span id="pg2b3dmStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta" id="pg2b3dmInfo">
+              <code>tools/pg2b3dm/pg2b3dm.exe</code> が見つかりません。
+              <pre id="pg2b3dmVersionOutput" style="display:none;"></pre>
+              <div id="pg2b3dmPath" class="hint"></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installPg2b3dmNow" type="button">自動ダウンロード</button>
+              <button class="secondary" id="installPg2b3dmBtn" type="button">ダウンロードページ</button>
+              <button class="secondary" id="usePg2b3dmBtn" type="button" style="display:none;">このコマンドを使う</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -489,15 +530,24 @@
     // systems
     let currentJavaPath = null;
     let currentMagoPath = null;
+    let currentPythonPath = null;
+    let currentPy3dtilesPath = null;
+    let currentPg2b3dmPath = null;
 
     async function loadSystemEnv() {
       try {
-        const [javaRes, magoRes] = await Promise.all([
+        const [javaRes, magoRes, pythonRes, py3Res, pgRes] = await Promise.all([
           fetch('/api/env/java'),
           fetch('/api/env/mago'),
+          fetch('/api/env/python'),
+          fetch('/api/env/py3dtiles'),
+          fetch('/api/env/pg2b3dm'),
         ]);
         const java = await javaRes.json();
         const mago = await magoRes.json();
+        const python = await pythonRes.json();
+        const py3 = await py3Res.json();
+        const pg = await pgRes.json();
 
         const jdkTag = document.getElementById('jdkStatusTag');
         const jdkVersion = document.getElementById('jdkVersionOutput');
@@ -539,6 +589,66 @@
           useMagoBtn.style.display = 'none';
           currentMagoPath = null;
         }
+
+        const pythonTag = document.getElementById('pythonStatusTag');
+        const pythonVersion = document.getElementById('pythonVersionOutput');
+        const pythonPath = document.getElementById('pythonPath');
+        if (python.found) {
+          pythonTag.textContent = '検出済';
+          pythonTag.className = 'tag ok';
+          pythonVersion.textContent = python.version_output;
+          pythonVersion.style.display = 'block';
+          currentPythonPath = python.path;
+          pythonPath.textContent = 'パス: ' + python.path;
+        } else {
+          pythonTag.textContent = '未検出';
+          pythonTag.className = 'tag ng';
+          pythonVersion.style.display = 'none';
+          pythonPath.textContent = 'Python が見つかりません。インストールしてください。';
+          currentPythonPath = null;
+        }
+
+        const py3Tag = document.getElementById('py3dtilesStatusTag');
+        const py3Version = document.getElementById('py3dtilesVersionOutput');
+        const py3Path = document.getElementById('py3dtilesPath');
+        const usePy3Btn = document.getElementById('usePy3dtilesBtn');
+        if (py3.found) {
+          py3Tag.textContent = '検出済';
+          py3Tag.className = 'tag ok';
+          py3Version.textContent = py3.version_output;
+          py3Version.style.display = 'block';
+          currentPy3dtilesPath = py3.path;
+          py3Path.textContent = 'パス: ' + py3.path;
+          usePy3Btn.style.display = 'inline-block';
+        } else {
+          py3Tag.textContent = '未検出';
+          py3Tag.className = 'tag ng';
+          py3Version.style.display = 'none';
+          py3Path.textContent = '';
+          usePy3Btn.style.display = 'none';
+          currentPy3dtilesPath = null;
+        }
+
+        const pgTag = document.getElementById('pg2b3dmStatusTag');
+        const pgVersion = document.getElementById('pg2b3dmVersionOutput');
+        const pgPath = document.getElementById('pg2b3dmPath');
+        const usePgBtn = document.getElementById('usePg2b3dmBtn');
+        if (pg.found) {
+          pgTag.textContent = '検出済';
+          pgTag.className = 'tag ok';
+          pgVersion.textContent = pg.version_output;
+          pgVersion.style.display = 'block';
+          currentPg2b3dmPath = pg.path;
+          pgPath.textContent = 'パス: ' + pg.path;
+          usePgBtn.style.display = 'inline-block';
+        } else {
+          pgTag.textContent = '未検出';
+          pgTag.className = 'tag ng';
+          pgVersion.style.display = 'none';
+          pgPath.textContent = '';
+          usePgBtn.style.display = 'none';
+          currentPg2b3dmPath = null;
+        }
       } catch (e) {
         console.error('env load failed', e);
       }
@@ -571,6 +681,36 @@
       if (currentMagoPath) {
         setValue('jarPath', currentMagoPath);
         document.querySelector('[data-tab="mago"]').click();
+      }
+    });
+
+    document.getElementById('installPythonBtn').addEventListener('click', () => {
+      window.open('https://www.python.org/downloads/release/python-3124/', '_blank');
+    });
+    document.getElementById('installPy3dtilesBtn').addEventListener('click', () => {
+      window.open('https://py3dtiles.org/', '_blank');
+    });
+    document.getElementById('installPg2b3dmBtn').addEventListener('click', () => {
+      window.open('https://github.com/Geodan/pg2b3dm/releases', '_blank');
+    });
+
+    document.getElementById('installPy3dtilesNow').addEventListener('click', () => {
+      startJob('/api/install/py3dtiles', {}, document.getElementById('installPy3dtilesNow'));
+    });
+    document.getElementById('installPg2b3dmNow').addEventListener('click', () => {
+      startJob('/api/install/pg2b3dm', {}, document.getElementById('installPg2b3dmNow'));
+    });
+
+    document.getElementById('usePy3dtilesBtn').addEventListener('click', () => {
+      if (currentPy3dtilesPath) {
+        setValue('pyCommand', currentPy3dtilesPath);
+        document.querySelector('[data-tab="py3dtiles"]').click();
+      }
+    });
+    document.getElementById('usePg2b3dmBtn').addEventListener('click', () => {
+      if (currentPg2b3dmPath) {
+        setValue('pgCommand', currentPg2b3dmPath);
+        document.querySelector('[data-tab="pg2b3dm"]').click();
       }
     });
   </script>

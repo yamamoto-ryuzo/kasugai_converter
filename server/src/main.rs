@@ -97,6 +97,9 @@ async fn main() {
         .route("/jobs", get(list_jobs))
         .route("/env/java", get(get_java_env))
         .route("/env/mago", get(get_mago_env))
+        .route("/env/python", get(get_python_env))
+        .route("/env/py3dtiles", get(get_py3dtiles_env))
+        .route("/env/pg2b3dm", get(get_pg2b3dm_env))
         .with_state(state);
 
     let app = Router::new()
@@ -485,6 +488,43 @@ Write-Host "JAR saved to $tools/mago-3d-tiler.jar"
 "#;
             ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
         }
+        "py3dtiles" => {
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+$venv = "$tools/py3dtiles-venv"
+Remove-Item $venv -Recurse -Force -ErrorAction SilentlyContinue
+python -m venv $venv
+& "$venv/Scripts/python.exe" -m pip install --upgrade pip
+& "$venv/Scripts/python.exe" -m pip install py3dtiles
+Write-Host "py3dtiles installed to $venv"
+"#;
+            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+        }
+        "pg2b3dm" => {
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+$tmp = "$tools/temp-pg2b3dm"
+$dst = "$tools/pg2b3dm"
+Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $dst -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $tmp -Force
+Write-Host "Downloading pg2b3dm..."
+curl.exe -s -S -L --fail -o "$tmp/pg2b3dm.zip" "https://github.com/Geodan/pg2b3dm/releases/download/v2.27.0/pg2b3dm-win-x64.zip"
+if ($LASTEXITCODE -ne 0) { throw "pg2b3dm download failed" }
+Write-Host "Extracting pg2b3dm..."
+Expand-Archive -Path "$tmp/pg2b3dm.zip" -DestinationPath $tmp -Force
+$exe = Get-ChildItem $tmp -Recurse -Filter "pg2b3dm.exe" | Select-Object -First 1
+if (-not $exe) { throw "pg2b3dm.exe not found in archive" }
+$dir = Split-Path $exe.FullName
+New-Item -ItemType Directory -Path $dst -Force
+Move-Item "$dir/*" $dst -Force -ErrorAction SilentlyContinue
+Remove-Item $tmp -Recurse -Force
+Write-Host "pg2b3dm installed to $dst"
+"#;
+            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+        }
         _ => {
             return (axum::http::StatusCode::NOT_FOUND, "install target not found").into_response();
         }
@@ -695,4 +735,130 @@ async fn get_mago_env() -> impl IntoResponse {
     };
 
     Json(MagoEnv { found, path, size })
+}
+
+#[derive(Debug, Serialize)]
+struct PythonEnv {
+    found: bool,
+    path: Option<String>,
+    version_output: String,
+}
+
+#[derive(Debug, Serialize)]
+struct Py3dtilesEnv {
+    found: bool,
+    path: String,
+    version_output: String,
+}
+
+#[derive(Debug, Serialize)]
+struct Pg2b3dmEnv {
+    found: bool,
+    path: String,
+    version_output: String,
+}
+
+async fn get_python_env() -> impl IntoResponse {
+    let mut path: Option<String> = None;
+
+    if let Ok(p) = std::env::var("MAGO_PYTHON_PATH") {
+        let trimmed = p.trim().to_string();
+        if !trimmed.is_empty() && StdPath::new(&trimmed).exists() {
+            path = Some(trimmed);
+        }
+    }
+
+    if path.is_none() {
+        match Command::new("where").arg("python").output().await {
+            Ok(out) if out.status.success() => {
+                let first = String::from_utf8_lossy(&out.stdout)
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                if !first.is_empty() {
+                    path = Some(first);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut found = false;
+    let mut version_output = String::new();
+    if let Some(p) = path.as_ref() {
+        match Command::new(p).arg("--version").output().await {
+            Ok(out) => {
+                version_output = String::from_utf8_lossy(&out.stdout).to_string();
+                version_output.push_str(&String::from_utf8_lossy(&out.stderr));
+                found = out.status.success();
+            }
+            _ => {}
+        }
+    }
+
+    Json(PythonEnv {
+        found,
+        path,
+        version_output,
+    })
+}
+
+async fn get_py3dtiles_env() -> impl IntoResponse {
+    let default_path = "tools/py3dtiles-venv/Scripts/py3dtiles.exe".to_string();
+    let env_path = std::env::var("PY3DTILES_PATH").ok();
+    let path = match env_path {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ if StdPath::new(&default_path).exists() => default_path.clone(),
+        _ => default_path,
+    };
+
+    let mut found = false;
+    let mut version_output = String::new();
+    if StdPath::new(&path).exists() {
+        match Command::new(&path).arg("--version").output().await {
+            Ok(out) => {
+                version_output = String::from_utf8_lossy(&out.stdout).to_string();
+                version_output.push_str(&String::from_utf8_lossy(&out.stderr));
+                found = out.status.success();
+            }
+            _ => {}
+        }
+    }
+
+    Json(Py3dtilesEnv {
+        found,
+        path,
+        version_output,
+    })
+}
+
+async fn get_pg2b3dm_env() -> impl IntoResponse {
+    let default_path = "tools/pg2b3dm/pg2b3dm.exe".to_string();
+    let env_path = std::env::var("PG2B3DM_PATH").ok();
+    let path = match env_path {
+        Some(s) if !s.trim().is_empty() => s.trim().to_string(),
+        _ if StdPath::new(&default_path).exists() => default_path.clone(),
+        _ => default_path,
+    };
+
+    let mut found = false;
+    let mut version_output = String::new();
+    if StdPath::new(&path).exists() {
+        match Command::new(&path).arg("--version").output().await {
+            Ok(out) => {
+                version_output = String::from_utf8_lossy(&out.stdout).to_string();
+                version_output.push_str(&String::from_utf8_lossy(&out.stderr));
+                found = out.status.success();
+            }
+            _ => {}
+        }
+    }
+
+    Json(Pg2b3dmEnv {
+        found,
+        path,
+        version_output,
+    })
 }
