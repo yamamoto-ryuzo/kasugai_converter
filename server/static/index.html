@@ -213,6 +213,57 @@
     .tag.ok { background: #d1fae5; color: #065f46; }
     .tag.ng { background: #fee2e2; color: #991b1b; }
 
+    .format-filter-tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 0.25rem;
+      flex-wrap: wrap;
+      border-bottom: 2px solid var(--border);
+    }
+    .format-filter-tab {
+      background: #e5e7eb;
+      color: #374151;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .format-filter-tab:hover { background: #d1d5db; }
+    .format-filter-tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .format-filter-panel { display: none; }
+    .format-filter-panel.active { display: block; }
+    .format-filter-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem 1rem;
+      padding: 0.5rem 0;
+      align-items: center;
+    }
+    .format-filter-options label {
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.85rem;
+      font-weight: 400;
+      cursor: pointer;
+      margin: 0;
+    }
+    .format-filter-options input { width: auto; }
+    .format-filter-options input[type="text"] {
+      width: 14rem;
+      min-width: 8rem;
+    }
+    .format-filter-hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+
     @media (max-width: 640px) {
       .grid { grid-template-columns: 1fr; }
       .import-search-layout { grid-template-columns: 1fr; }
@@ -225,7 +276,6 @@
   <div class="container">
     <div class="app-header">
       <h1>Kasuga Converter</h1>
-      <span id="status" class="status">待機中</span>
     </div>
 
     <div class="top-tabs">
@@ -959,9 +1009,117 @@
                   <label for="importQuery">検索語</label>
                   <input type="text" id="importQuery" placeholder="例: 土地利用 境界 建物" />
                 </div>
-                <div>
-                  <label for="importFormatFilter">形式フィルタ（省略可）</label>
-                  <input type="text" id="importFormatFilter" placeholder="例: geojson, shp, las" />
+                <div class="full">
+                  <label>形式フィルタ（省略可）</label>
+                  <div class="format-filter-tabs">
+                    <button class="format-filter-tab active" data-format-tab="filter-doc" type="button">文章</button>
+                    <button class="format-filter-tab" data-format-tab="filter-raster" type="button">ラスター</button>
+                    <button class="format-filter-tab" data-format-tab="filter-cad" type="button">CAD</button>
+                    <button class="format-filter-tab" data-format-tab="filter-bimcim" type="button">BIM/CIM</button>
+                    <button class="format-filter-tab" data-format-tab="filter-pointcloud" type="button">点群データ</button>
+                    <button class="format-filter-tab" data-format-tab="filter-terrain" type="button">地形データ</button>
+                    <button class="format-filter-tab" data-format-tab="filter-gis" type="button">GIS</button>
+                    <button class="format-filter-tab" data-format-tab="filter-digital-twin" type="button">デジタルツイン</button>
+                  </div>
+                  <div id="filter-doc" class="format-filter-panel active">
+                    <div class="format-filter-options">
+                      <label><input type="checkbox" value="csv" /> csv</label>
+                      <label><input type="checkbox" value="xls" /> xls</label>
+                      <label><input type="checkbox" value="xlsx" /> xlsx</label>
+                      <label><input type="checkbox" value="pdf" /> pdf</label>
+                      <label><input type="checkbox" value="txt" /> txt</label>
+                      <label><input type="checkbox" value="doc" /> doc</label>
+                      <label><input type="checkbox" value="docx" /> docx</label>
+                      <label><input type="checkbox" value="md" /> md</label>
+                    </div>
+                    <button type="button" class="format-filter-toggle secondary">すべてON/OFF</button>
+                    <label>追加: <input type="text" class="format-filter-custom" placeholder="追加の拡張子（カンマ区切り）" /></label>
+                  </div>
+                  <div id="filter-raster" class="format-filter-panel">
+                    <div class="format-filter-options">
+                      <label><input type="checkbox" value="png" /> png</label>
+                      <label><input type="checkbox" value="jpg" /> jpg</label>
+                      <label><input type="checkbox" value="jpeg" /> jpeg</label>
+                      <label><input type="checkbox" value="webp" /> webp</label>
+                    </div>
+                    <button type="button" class="format-filter-toggle secondary">すべてON/OFF</button>
+                    <label>追加: <input type="text" class="format-filter-custom" placeholder="追加の拡張子（カンマ区切り）" /></label>
+                  </div>
+                  <div id="filter-cad" class="format-filter-panel">
+                    <div class="format-filter-options">
+                      <label><input type="checkbox" value="dxf" /> dxf</label>
+                      <label><input type="checkbox" value="dwg" /> dwg</label>
+                      <label><input type="checkbox" value="dgn" /> dgn</label>
+                      <label><input type="checkbox" value="iges" /> iges</label>
+                      <label><input type="checkbox" value="igs" /> igs</label>
+                      <label><input type="checkbox" value="step" /> step</label>
+                      <label><input type="checkbox" value="stp" /> stp</label>
+                    </div>
+                    <button type="button" class="format-filter-toggle secondary">すべてON/OFF</button>
+                    <label>追加: <input type="text" class="format-filter-custom" placeholder="追加の拡張子（カンマ区切り）" /></label>
+                  </div>
+                  <div id="filter-bimcim" class="format-filter-panel">
+                    <div class="format-filter-options">
+                      <label><input type="checkbox" value="ifc" /> ifc</label>
+                      <label><input type="checkbox" value="cityjson" /> cityjson</label>
+                      <label><input type="checkbox" value="bcf" /> bcf</label>
+                    </div>
+                    <button type="button" class="format-filter-toggle secondary">すべてON/OFF</button>
+                    <label>追加: <input type="text" class="format-filter-custom" placeholder="追加の拡張子（カンマ区切り）" /></label>
+                  </div>
+                  <div id="filter-pointcloud" class="format-filter-panel">
+                    <div class="format-filter-options">
+                      <label><input type="checkbox" value="las" /> las</label>
+                      <label><input type="checkbox" value="laz" /> laz</label>
+                      <label><input type="checkbox" value="pnts" /> pnts</label>
+                      <label><input type="checkbox" value="e57" /> e57</label>
+                      <label><input type="checkbox" value="ply" /> ply</label>
+                      <label><input type="checkbox" value="pts" /> pts</label>
+                      <label><input type="checkbox" value="pcd" /> pcd</label>
+                    </div>
+                    <button type="button" class="format-filter-toggle secondary">すべてON/OFF</button>
+                    <label>追加: <input type="text" class="format-filter-custom" placeholder="追加の拡張子（カンマ区切り）" /></label>
+                  </div>
+                  <div id="filter-terrain" class="format-filter-panel">
+                    <div class="format-filter-options">
+                      <label><input type="checkbox" value="dem" /> dem</label>
+                      <label><input type="checkbox" value="asc" /> asc</label>
+                      <label><input type="checkbox" value="tif" /> tif</label>
+                      <label><input type="checkbox" value="tiff" /> tiff</label>
+                    </div>
+                    <button type="button" class="format-filter-toggle secondary">すべてON/OFF</button>
+                    <label>追加: <input type="text" class="format-filter-custom" placeholder="追加の拡張子（カンマ区切り）" /></label>
+                  </div>
+                  <div id="filter-gis" class="format-filter-panel">
+                    <div class="format-filter-options">
+                      <label><input type="checkbox" value="shp" /> shp</label>
+                      <label><input type="checkbox" value="geojson" /> geojson</label>
+                      <label><input type="checkbox" value="gpkg" /> gpkg</label>
+                      <label><input type="checkbox" value="kml" /> kml</label>
+                      <label><input type="checkbox" value="gml" /> gml</label>
+                      <label><input type="checkbox" value="citygml" /> citygml</label>
+                      <label><input type="checkbox" value="fgdb" /> fgdb</label>
+                      <label><input type="checkbox" value="spatialite" /> spatialite</label>
+                      <label><input type="checkbox" value="kmz" /> kmz</label>
+                    </div>
+                    <button type="button" class="format-filter-toggle secondary">すべてON/OFF</button>
+                    <label>追加: <input type="text" class="format-filter-custom" placeholder="追加の拡張子（カンマ区切り）" /></label>
+                  </div>
+                  <div id="filter-digital-twin" class="format-filter-panel">
+                    <div class="format-filter-options">
+                      <label><input type="checkbox" value="obj" /> obj</label>
+                      <label><input type="checkbox" value="fbx" /> fbx</label>
+                      <label><input type="checkbox" value="3ds" /> 3ds</label>
+                      <label><input type="checkbox" value="gltf" /> gltf</label>
+                      <label><input type="checkbox" value="glb" /> glb</label>
+                      <label><input type="checkbox" value="b3dm" /> b3dm</label>
+                      <label><input type="checkbox" value="i3dm" /> i3dm</label>
+                    </div>
+                    <button type="button" class="format-filter-toggle secondary">すべてON/OFF</button>
+                    <label>追加: <input type="text" class="format-filter-custom" placeholder="追加の拡張子（カンマ区切り）" /></label>
+                  </div>
+                  <input type="hidden" id="importFormatFilter" />
+                  <p class="format-filter-hint">チェックした拡張子で CKAN リソースを絞り込みます。未選択の場合はすべて表示されます。</p>
                 </div>
                 <div>
                   <label for="importRows">取得件数</label>
@@ -970,6 +1128,7 @@
               </div>
               <div class="actions">
                 <button type="button" id="importSearchBtn">検索</button>
+                <button type="button" id="importResetBtn" class="secondary">クリア</button>
                 <span id="importSearchStatus" class="status" style="display:none;"></span>
               </div>
             </div>
@@ -1000,6 +1159,7 @@
     function getValue(id) { return document.getElementById(id).value.trim(); }
     function setValue(id, val) { document.getElementById(id).value = val; }
     function setStatus(text, cls) {
+      if (!statusEl) return;
       statusEl.textContent = text;
       statusEl.className = 'status ' + (cls || '');
     }
@@ -1686,6 +1846,46 @@
     let currentImportResults = [];
     let lastImportedDir = null;
 
+    function updateImportFormatFilter() {
+      const checked = [...document.querySelectorAll('.format-filter-options input[type="checkbox"]:checked')].map(cb => cb.value);
+      const custom = [];
+      document.querySelectorAll('.format-filter-custom').forEach(input => {
+        input.value.split(/[,\s]+/).forEach(p => {
+          const v = p.trim().toLowerCase();
+          if (v) custom.push(v);
+        });
+      });
+      const all = [...new Set([...checked, ...custom])];
+      document.getElementById('importFormatFilter').value = all.join(',');
+    }
+
+    document.querySelectorAll('.format-filter-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.format-filter-tab').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.format-filter-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.formatTab).classList.add('active');
+      });
+    });
+
+    document.querySelectorAll('.format-filter-options input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', updateImportFormatFilter);
+    });
+
+    document.querySelectorAll('.format-filter-custom').forEach(input => {
+      input.addEventListener('input', updateImportFormatFilter);
+    });
+
+    document.querySelectorAll('.format-filter-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const panel = btn.closest('.format-filter-panel');
+        const checkboxes = panel.querySelectorAll('input[type="checkbox"]');
+        const allChecked = [...checkboxes].every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = !allChecked);
+        updateImportFormatFilter();
+      });
+    });
+
     function normalizeText(value) {
       if (typeof value === 'string') return value;
       if (value && typeof value === 'object') return Object.values(value).filter(v => v).join(' / ');
@@ -1855,6 +2055,25 @@
       document.getElementById('importDownloadBtn').disabled = checked === 0;
       document.getElementById('importConvertBtn').disabled = true;
     }
+
+    function resetImportSearch() {
+      setValue('importQuery', '');
+      setValue('importRows', '20');
+      document.querySelectorAll('#importCategories input[type="checkbox"]').forEach(cb => cb.checked = false);
+      document.querySelectorAll('.format-filter-options input[type="checkbox"]').forEach(cb => cb.checked = false);
+      document.querySelectorAll('.format-filter-custom').forEach(input => input.value = '');
+      setValue('importFormatFilter', '');
+      document.getElementById('importResults').innerHTML = '';
+      document.getElementById('importSearchStatus').style.display = 'none';
+      document.getElementById('importSearchStatus').textContent = '';
+      document.getElementById('importDownloadBtn').disabled = true;
+      document.getElementById('importConvertBtn').disabled = true;
+      currentImportResults = [];
+      lastImportedDir = null;
+      document.querySelector('#import .tab-btn[data-import-tab="import-search"]').click();
+    }
+
+    document.getElementById('importResetBtn').addEventListener('click', resetImportSearch);
 
     document.getElementById('importSearchBtn').addEventListener('click', async () => {
       const apiUrl = document.getElementById('importCatalog').value;
