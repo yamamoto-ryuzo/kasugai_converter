@@ -1,9 +1,19 @@
 target/
 server/tools/
+dist/
+__pycache__/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# Logs / temp
+*.log
+*.tmp
+
+# Release artifacts are kept in download/ for raw GitHub distribution
 download/*
 !download/latest.json
 !download/kasugai_converter.zip
 !download/kasugai_converter_setup.zip
 !download/kasugai_converter_setup.exe
-dist/
-__pycache__/
