@@ -1121,10 +1121,6 @@
                   <input type="hidden" id="importFormatFilter" />
                   <p class="format-filter-hint">チェックした拡張子で CKAN リソースを絞り込みます。未選択の場合はすべて表示されます。</p>
                 </div>
-                <div>
-                  <label for="importRows">取得件数</label>
-                  <input type="number" id="importRows" value="20" min="1" max="100" />
-                </div>
               </div>
               <div class="actions">
                 <button type="button" id="importSearchBtn">検索</button>
@@ -1844,6 +1840,7 @@
 
     // オープンデータ取り込み
     let currentImportResults = [];
+    let currentImportStart = 0;
     let lastImportedDir = null;
 
     function updateImportFormatFilter() {
@@ -1962,8 +1959,11 @@
 
     function formatFilterMatch(resource, filterText) {
       if (!filterText) return true;
-      const fmt = (resource.format || '').toLowerCase();
-      return filterText.split(/[,\s]+/).some(f => f && fmt.includes(f.toLowerCase()));
+      const fmt = (resource.format || '').toLowerCase().trim();
+      return filterText.split(/[,\s]+/).some(f => {
+        const v = f.toLowerCase().trim();
+        return v && (fmt.includes(v) || v.includes(fmt));
+      });
     }
 
     function renderImportResults(data) {
@@ -1978,16 +1978,12 @@
         return;
       }
 
-      const countEl = document.createElement('p');
-      countEl.className = 'hint';
-      countEl.textContent = `全 ${data.count || 0} 件ヒット`;
-      container.appendChild(countEl);
-
       const wrap = document.createElement('div');
       wrap.style.display = 'flex';
       wrap.style.flexDirection = 'column';
       wrap.style.gap = '0.75rem';
 
+      let displayedCount = 0;
       for (const pkg of currentImportResults) {
         const title = normalizeText(pkg.title) || pkg.name || '(no title)';
         const notes = normalizeText(pkg.notes) || '';
@@ -2044,9 +2040,62 @@
 
         card.appendChild(list);
         wrap.appendChild(card);
+        displayedCount++;
       }
 
+      const start = data.start || 0;
+      currentImportStart = start;
+      const step = currentImportResults.length || 100;
+
+      const countEl = document.createElement('p');
+      countEl.className = 'hint';
+      if (displayedCount === 0) {
+        countEl.textContent = `全 ${data.count || 0} 件ヒットしましたが、選択形式に一致するデータセットはありません。`;
+        container.appendChild(countEl);
+
+        const nav = document.createElement('div');
+        nav.style.display = 'flex';
+        nav.style.gap = '0.5rem';
+        nav.style.marginTop = '1rem';
+        if (start > 0) {
+          const prevBtn = document.createElement('button');
+          prevBtn.type = 'button';
+          prevBtn.textContent = '前へ';
+          prevBtn.addEventListener('click', () => doImportSearch(Math.max(0, start - step)));
+          nav.appendChild(prevBtn);
+        }
+        container.appendChild(nav);
+        document.getElementById('importDownloadBtn').disabled = true;
+        return;
+      }
+
+      const startNum = start + 1;
+      const endNum = start + displayedCount;
+      const remaining = Math.max(0, (data.count || 0) - endNum);
+      countEl.textContent = `全 ${data.count || 0} 件中、選択形式に一致する ${displayedCount} 件を表示（${startNum}〜${endNum} 件目）、未取得 ${remaining} 件`;
+      container.appendChild(countEl);
       container.appendChild(wrap);
+
+      const nav = document.createElement('div');
+      nav.style.display = 'flex';
+      nav.style.gap = '0.5rem';
+      nav.style.marginTop = '1rem';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.type = 'button';
+      prevBtn.textContent = '前へ';
+      prevBtn.disabled = start === 0;
+      prevBtn.addEventListener('click', () => doImportSearch(Math.max(0, start - step)));
+
+      const nextBtn = document.createElement('button');
+      nextBtn.type = 'button';
+      nextBtn.textContent = '次へ';
+      nextBtn.disabled = endNum >= (data.count || 0);
+      nextBtn.addEventListener('click', () => doImportSearch(start + step));
+
+      nav.appendChild(prevBtn);
+      nav.appendChild(nextBtn);
+      container.appendChild(nav);
       document.getElementById('importDownloadBtn').disabled = true;
     }
 
@@ -2058,7 +2107,6 @@
 
     function resetImportSearch() {
       setValue('importQuery', '');
-      setValue('importRows', '20');
       document.querySelectorAll('#importCategories input[type="checkbox"]').forEach(cb => cb.checked = false);
       document.querySelectorAll('.format-filter-options input[type="checkbox"]').forEach(cb => cb.checked = false);
       document.querySelectorAll('.format-filter-custom').forEach(input => input.value = '');
@@ -2075,10 +2123,11 @@
 
     document.getElementById('importResetBtn').addEventListener('click', resetImportSearch);
 
-    document.getElementById('importSearchBtn').addEventListener('click', async () => {
+    async function doImportSearch(start = 0) {
+      currentImportStart = start;
       const apiUrl = document.getElementById('importCatalog').value;
       const query = getValue('importQuery');
-      const rows = parseInt(getValue('importRows'), 10) || 20;
+      const rows = 1000;
       const status = document.getElementById('importSearchStatus');
       const btn = document.getElementById('importSearchBtn');
       btn.disabled = true;
@@ -2089,11 +2138,13 @@
         const res = await fetch('/api/import/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_url: apiUrl, query: query, rows: rows, groups: getImportGroups() }),
+          body: JSON.stringify({ api_url: apiUrl, query: query, rows: rows, start: start, groups: getImportGroups() }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
-        status.textContent = `${data.count} 件ヒット`;
+        const resultStart = (data.start || 0) + 1;
+        const resultEnd = (data.start || 0) + (data.results || []).length;
+        status.textContent = `${data.count} 件中 ${resultStart}〜${resultEnd} 件取得`;
         status.className = 'status completed';
         renderImportResults(data);
         document.querySelector('#import .tab-btn[data-import-tab="import-results"]').click();
@@ -2104,7 +2155,9 @@
       } finally {
         btn.disabled = false;
       }
-    });
+    }
+
+    document.getElementById('importSearchBtn').addEventListener('click', () => doImportSearch(0));
 
     document.getElementById('importDownloadBtn').addEventListener('click', async () => {
       const checked = document.querySelectorAll('#importResults input[type="checkbox"]:checked');

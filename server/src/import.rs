@@ -33,12 +33,14 @@ pub struct SearchRequest {
     pub api_url: String,
     pub query: String,
     pub rows: Option<i64>,
+    pub start: Option<i64>,
     pub groups: Option<Vec<String>>,
 }
 
 #[derive(Debug, Serialize)]
 pub struct SearchResponse {
     pub count: i64,
+    pub start: i64,
     pub results: Vec<Value>,
     pub search_url: String,
 }
@@ -202,7 +204,8 @@ pub async fn search_handler(Json(req): Json<SearchRequest>) -> impl IntoResponse
         return (StatusCode::BAD_GATEWAY, e).into_response();
     }
 
-    let rows = req.rows.unwrap_or(20).clamp(1, 100);
+    let rows = req.rows.unwrap_or(100).clamp(1, 1000);
+    let start = req.start.unwrap_or(0).max(0);
     let q = if req.query.trim().is_empty() {
         "*:*".to_string()
     } else {
@@ -211,12 +214,13 @@ pub async fn search_handler(Json(req): Json<SearchRequest>) -> impl IntoResponse
     let search_url = format!("{}action/package_search", api_url);
 
     let client = http_client();
-    let mut query_params: Vec<(&str, String)> = vec![("q", q), ("rows", rows.to_string())];
+    let mut query_params: Vec<(&str, String)> = vec![("q", q), ("rows", rows.to_string()), ("start", start.to_string())];
     if let Some(groups) = &req.groups {
         if !groups.is_empty() {
             query_params.push(("fq", format!("groups:({})", groups.join(" OR "))));
         }
     }
+
     let result = client
         .get(&search_url)
         .query(&query_params)
@@ -240,6 +244,7 @@ pub async fn search_handler(Json(req): Json<SearchRequest>) -> impl IntoResponse
                         .unwrap_or_default();
                     Json(SearchResponse {
                         count,
+                        start,
                         results,
                         search_url,
                     })
