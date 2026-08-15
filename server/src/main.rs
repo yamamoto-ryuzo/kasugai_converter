@@ -115,6 +115,14 @@ struct ConvertBimcimRequest {
     extra_args: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct AutoConvertRequest {
+    input: String,
+    output: String,
+    output_format: Option<String>,
+    input_format: Option<String>,
+}
+
 #[tokio::main]
 async fn main() {
     let open_browser = std::env::args().any(|a| a == "--open-browser");
@@ -157,12 +165,16 @@ async fn main() {
 
     let api = Router::new()
         .route("/v1/server/stop", post(stop_handler))
+        .route("/v1/server/version", get(version_handler))
+        .route("/v1/server/update-check", get(update_check_handler))
         .route("/convert", post(convert_handler))
         .route("/convert/py3dtiles", post(convert_py3dtiles_handler))
         .route("/convert/pg2b3dm", post(convert_pg2b3dm_handler))
         .route("/convert/gocesiumtiler", post(convert_gocesiumtiler_handler))
         .route("/run/preprocess", post(preprocess_handler))
         .route("/convert/bimcim", post(convert_bimcim_handler))
+        .route("/convert/auto", post(convert_auto_handler))
+        .route("/open-folder", post(open_folder_handler))
         .route("/install/{name}", post(install_handler))
         .route("/jobs/{id}", get(get_job))
         .route("/jobs", get(list_jobs))
@@ -213,6 +225,51 @@ async fn stop_handler() -> impl IntoResponse {
         std::process::exit(0);
     });
     "shutting down"
+}
+
+async fn version_handler() -> impl IntoResponse {
+    Json(serde_json::json!({ "version": env!("CARGO_PKG_VERSION") })).into_response()
+}
+
+#[derive(Debug, Deserialize)]
+struct LatestRelease {
+    version: String,
+    notes: String,
+    platforms: HashMap<String, PlatformRelease>,
+}
+
+#[derive(Debug, Deserialize)]
+struct PlatformRelease {
+    url: String,
+}
+
+async fn update_check_handler() -> impl IntoResponse {
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    let remote =
+        "https://raw.githubusercontent.com/yamamoto-ryuzo/kasuga_converter/main/download/latest.json";
+    match reqwest::get(remote).await {
+        Ok(resp) if resp.status().is_success() => {
+            if let Ok(text) = resp.text().await {
+                if let Ok(release) = serde_json::from_str::<LatestRelease>(&text) {
+                    let update_available = release.version != current;
+                    let url = release
+                        .platforms
+                        .get("windows-x86_64")
+                        .map(|p| p.url.clone());
+                    return Json(serde_json::json!({
+                        "current": current,
+                        "latest": release.version,
+                        "url": url,
+                        "update_available": update_available,
+                        "notes": release.notes,
+                    }))
+                    .into_response();
+                }
+            }
+        }
+        _ => {}
+    }
+    (axum::http::StatusCode::SERVICE_UNAVAILABLE, "update check failed").into_response()
 }
 
 async fn serve_index() -> impl IntoResponse {
@@ -863,6 +920,99 @@ async fn convert_bimcim_handler(
     });
 
     Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
+async fn convert_auto_handler(
+    State(state): State<AppState>,
+    Json(req): Json<AutoConvertRequest>,
+) -> impl IntoResponse {
+    if req.input.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "input is required").into_response();
+    }
+    if req.output.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "output is required").into_response();
+    }
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
+    }
+
+    let response_id = job_id.clone();
+    let input = req.input.trim().to_string();
+    let output_format = req
+        .output_format
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let input_format = req
+        .input_format
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let state_spawn = state.clone();
+    tokio::spawn(async move {
+        {
+            let mut jobs = state_spawn.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Running;
+            }
+        }
+
+        tokio::time::sleep(Duration::from_millis(50)).await;
+
+        let mut message = format!("auto converter not yet implemented: {}", input);
+        if let Some(fmt) = output_format {
+            message.push_str(&format!(", output_format: {}", fmt));
+        }
+        if let Some(fmt) = input_format {
+            message.push_str(&format!(", input_format: {}", fmt));
+        }
+        let mut jobs = state_spawn.jobs.lock().await;
+        if let Some(job) = jobs.get_mut(&job_id) {
+            job.status = JobStatus::Completed;
+            job.exit_code = Some(0);
+            job.output = message;
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenFolderRequest {
+    path: String,
+}
+
+async fn open_folder_handler(Json(req): Json<OpenFolderRequest>) -> impl IntoResponse {
+    let path = req.path.trim();
+    if path.is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "path is required").into_response();
+    }
+    match opener::open(path) {
+        Ok(_) => (axum::http::StatusCode::OK, "opened").into_response(),
+        Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
 }
 
 async fn install_handler(

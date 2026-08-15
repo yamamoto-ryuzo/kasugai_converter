@@ -2,5 +2,8 @@ target/
 server/tools/
 download/*
 !download/latest.json
+!download/kasugai_converter.zip
+!download/kasugai_converter_setup.zip
+!download/kasugai_converter_setup.exe
 dist/
 __pycache__/

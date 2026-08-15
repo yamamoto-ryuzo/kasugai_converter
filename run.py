@@ -75,7 +75,7 @@ def build_installer():
         print("[Kasugai] makensis not found. Install NSIS to build the installer.")
         return 1
 
-    rc = run_command(["makensis", str(nsi)], cwd=PROJECT_ROOT / "installer")
+    rc = run_command(["makensis", "-INPUTCHARSET", "UTF8", str(nsi)], cwd=PROJECT_ROOT / "installer")
     if rc != 0:
         return rc
 

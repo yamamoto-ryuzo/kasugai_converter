@@ -2,7 +2,7 @@
 ; icon.ico は 16x16 から 256x256 までのマルチサイズ ICO を含む
 Unicode True
 SetCompressor /SOLID lzma
-SetDPIAware 1
+ManifestDPIAware true
 RequestExecutionLevel user
 
 !include "MUI2.nsh"
@@ -22,11 +22,10 @@ VIAddVersionKey "LegalCopyright" "Copyright (c) ${PUBLISHER}"
 
 !define MUI_ICON "icon.ico"
 !define MUI_UNICON "icon.ico"
-!define MUI_WELCOMEFINISHPAGE_BITMAP ""
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP ""
+; カスタム画像は使用しないため、既定の MUI 画像を使用
 
 ; デフォルトインストール先: ユーザー書き込み可能
-InstallDir "$LOCALAPPDATA\Kasugai\KasugaiConverter"
+InstallDir "C:\kasugai\kasugai_converter"
 Name "${APP_NAME_DISPLAY} ${APP_VERSION}"
 OutFile "..\download\kasugai_converter_setup.exe"
 
@@ -48,8 +47,8 @@ OutFile "..\download\kasugai_converter_setup.exe"
 !insertmacro MUI_LANGUAGE "Japanese"
 
 Function .onInit
-  ; 既定のインストール先をユーザー書き込み可能にする
-  CreateDirectory "$LOCALAPPDATA\Kasugai"
+  ; 既定のインストール先の親ディレクトリを作成
+  CreateDirectory "C:\kasugai"
 FunctionEnd
 
 Function CreateDesktopShortcut

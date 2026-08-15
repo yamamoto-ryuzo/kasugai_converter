@@ -34,6 +34,31 @@
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
     .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
 
+    .top-tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+      border-bottom: 2px solid var(--border);
+    }
+    .top-tab-btn {
+      background: #e5e7eb;
+      color: #374151;
+      border: none;
+      padding: 0.75rem 1.4rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+    .top-tab-btn:hover { background: #d1d5db; }
+    .top-tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+    }
+    .top-tab-content { display: none; }
+    .top-tab-content.active { display: block; }
+
     .tabs {
       display: flex;
       gap: 0.25rem;
@@ -91,6 +116,9 @@
       box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
     }
     .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+    .input-row { display: flex; gap: 0.5rem; align-items: stretch; }
+    .input-row input { flex: 1; }
+    .input-row button { padding: 0.5rem 0.75rem; }
     .actions { display: flex; gap: 0.75rem; align-items: center; margin-top: 1rem; flex-wrap: wrap; }
     button {
       background: var(--primary);
@@ -117,7 +145,7 @@
     .status.pending { background: #fef3c7; color: #92400e; }
     .status.running { background: #dbeafe; color: #1e40af; }
     .status.completed { background: #d1fae5; color: #065f46; }
-    .status.failed { background: #fee2e2; color: #991b1b; }
+    .status.failed, .status.error { background: #fee2e2; color: #991b1b; }
     .log {
       white-space: pre-wrap;
       font-family: "Consolas", "Menlo", monospace;
@@ -150,463 +178,575 @@
     @media (max-width: 640px) {
       .grid { grid-template-columns: 1fr; }
       .tabs { flex-wrap: wrap; }
+      .top-tabs { flex-wrap: wrap; }
     }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Kasuga Converter</h1>
-    <p class="subtitle">GIS データ → 3D Tiles 自前変換システム</p>
+    <p class="subtitle">GIS データ → 2D / 3D タイル 変換システム</p>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="mago">mago-3d-tiler</button>
-      <button class="tab-btn" data-tab="py3dtiles">Py3DTiles</button>
-      <button class="tab-btn" data-tab="pg2b3dm">pg2b3dm</button>
-      <button class="tab-btn" data-tab="gocesiumtiler">gocesiumtiler</button>
-      <button class="tab-btn" data-tab="preprocess">GDAL/PDAL</button>
-      <button class="tab-btn" data-tab="terrain">Cesium Terrain</button>
-      <button class="tab-btn" data-tab="tiles11">3D Tiles 1.1</button>
-      <button class="tab-btn" data-tab="bimcim">BIM/CIM</button>
-      <button class="tab-btn" data-tab="imagery">Imagery</button>
-      <button class="tab-btn" data-tab="gltfopt">glTF 最適化</button>
-      <button class="tab-btn" data-tab="systems">関連システム</button>
+    <div class="top-tabs">
+      <button class="top-tab-btn active" data-top-tab="auto">自動変換</button>
+      <button class="top-tab-btn" data-top-tab="individual">個別コンバータ</button>
+      <button class="top-tab-btn" data-top-tab="systems">関連システム</button>
+      <button class="top-tab-btn" data-top-tab="settings">設定</button>
     </div>
 
-    <div id="mago" class="tab-content active">
-      <div class="card">
-        <h2>mago-3d-tiler</h2>
-        <form id="convertForm" class="grid">
-          <div>
-            <label for="input">入力ディレクトリ</label>
-            <input type="text" id="input" placeholder="C:\data\input" required />
-          </div>
-          <div>
-            <label for="output">出力ディレクトリ</label>
-            <input type="text" id="output" placeholder="C:\data\output" required />
-          </div>
+    <div id="individual" class="top-tab-content">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="mago">mago-3d-tiler</button>
+        <button class="tab-btn" data-tab="py3dtiles">Py3DTiles</button>
+        <button class="tab-btn" data-tab="pg2b3dm">pg2b3dm</button>
+        <button class="tab-btn" data-tab="gocesiumtiler">gocesiumtiler</button>
+        <button class="tab-btn" data-tab="preprocess">GDAL/PDAL</button>
+        <button class="tab-btn" data-tab="terrain">Cesium Terrain</button>
+        <button class="tab-btn" data-tab="tiles11">3D Tiles 1.1</button>
+        <button class="tab-btn" data-tab="bimcim">BIM/CIM</button>
+        <button class="tab-btn" data-tab="imagery">2D 画像タイル</button>
+        <button class="tab-btn" data-tab="gltfopt">glTF 最適化</button>
+      </div>
 
-          <div>
-            <label for="inputType">入力形式</label>
-            <select id="inputType">
-              <option value="">自動判定</option>
-              <option value="shp">Shapefile (shp)</option>
-              <option value="geojson">GeoJSON</option>
-              <option value="gpkg">GeoPackage</option>
-              <option value="kml">KML</option>
-              <option value="citygml">CityGML</option>
-              <option value="indoorgml">IndoorGML</option>
-              <option value="obj">OBJ</option>
-              <option value="fbx">FBX</option>
-              <option value="3ds">3DS</option>
-              <option value="gltf/glb">glTF/GLB</option>
-              <option value="las/laz">LAS/LAZ</option>
-            </select>
-          </div>
-          <div>
-            <label for="outputType">出力形式</label>
-            <select id="outputType">
-              <option value="">デフォルト</option>
-              <option value="b3dm">Batched 3D Model (b3dm)</option>
-              <option value="i3dm">Instanced 3D Model (i3dm)</option>
-              <option value="pnts">Point Cloud (pnts)</option>
-            </select>
-          </div>
+      <div id="mago" class="tab-content active">
+        <div class="card">
+          <h2>mago-3d-tiler</h2>
+          <form id="convertForm" class="grid">
+            <div>
+              <label for="input">入力ディレクトリ</label>
+              <input type="text" id="input" placeholder="C:\data\input" required />
+            </div>
+            <div>
+              <label for="output">出力ディレクトリ</label>
+              <input type="text" id="output" placeholder="C:\data\output" required />
+            </div>
 
-          <div>
-            <label for="crs">座標参照系 (EPSG)</label>
-            <input type="text" id="crs" placeholder="例: 5186, 4326, 3857" />
-          </div>
+            <div>
+              <label for="inputType">入力形式</label>
+              <select id="inputType">
+                <option value="">自動判定</option>
+                <option value="shp">Shapefile (shp)</option>
+                <option value="geojson">GeoJSON</option>
+                <option value="gpkg">GeoPackage</option>
+                <option value="kml">KML</option>
+                <option value="citygml">CityGML</option>
+                <option value="indoorgml">IndoorGML</option>
+                <option value="obj">OBJ</option>
+                <option value="fbx">FBX</option>
+                <option value="3ds">3DS</option>
+                <option value="gltf/glb">glTF/GLB</option>
+                <option value="las/laz">LAS/LAZ</option>
+              </select>
+            </div>
+            <div>
+              <label for="outputType">出力形式</label>
+              <select id="outputType">
+                <option value="">デフォルト</option>
+                <option value="b3dm">Batched 3D Model (b3dm)</option>
+                <option value="i3dm">Instanced 3D Model (i3dm)</option>
+                <option value="pnts">Point Cloud (pnts)</option>
+              </select>
+            </div>
 
-          <div>
-            <label for="javaPath">Java 実行ファイル</label>
-            <input type="text" id="javaPath" placeholder="java" value="java" />
-          </div>
-          <div>
-            <label for="jarPath">mago-3d-tiler JAR パス</label>
-            <input type="text" id="jarPath" placeholder="tools/mago-3d-tiler.jar" value="tools/mago-3d-tiler.jar" />
-          </div>
+            <div>
+              <label for="crs">座標参照系 (EPSG)</label>
+              <input type="text" id="crs" placeholder="例: 5186, 4326, 3857" />
+            </div>
 
-          <div>
-            <label for="jvmOptions">JVM オプション</label>
-            <input type="text" id="jvmOptions" placeholder="-Xms1g -Xmx4g" value="-Xms1g -Xmx4g" />
-          </div>
-          <div>
-            <label for="extraArgs">追加オプション</label>
-            <input type="text" id="extraArgs" placeholder="--heightColumn height --quantize" />
-          </div>
-        </form>
+            <div>
+              <label for="javaPath">Java 実行ファイル</label>
+              <input type="text" id="javaPath" placeholder="java" value="java" />
+            </div>
+            <div>
+              <label for="jarPath">mago-3d-tiler JAR パス</label>
+              <input type="text" id="jarPath" placeholder="tools/mago-3d-tiler.jar" value="tools/mago-3d-tiler.jar" />
+            </div>
 
-        <div class="actions">
-          <button id="runBtn" type="button">変換開始</button>
+            <div>
+              <label for="jvmOptions">JVM オプション</label>
+              <input type="text" id="jvmOptions" placeholder="-Xms1g -Xmx4g" value="-Xms1g -Xmx4g" />
+            </div>
+            <div>
+              <label for="extraArgs">追加オプション</label>
+              <input type="text" id="extraArgs" placeholder="--heightColumn height --quantize" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="runBtn" type="button">変換開始</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="py3dtiles" class="tab-content">
+        <div class="card">
+          <h2>Py3DTiles</h2>
+          <form id="py3dtilesForm" class="grid">
+            <div class="full">
+              <label for="pyInput">入力ファイル/ディレクトリ</label>
+              <input type="text" id="pyInput" placeholder="C:\data\pointcloud.las" required />
+            </div>
+            <div class="full">
+              <label for="pyOutput">出力ディレクトリ</label>
+              <input type="text" id="pyOutput" placeholder="C:\data\py3dtiles-out" required />
+            </div>
+            <div>
+              <label for="pySrsIn">入力 SRS</label>
+              <input type="text" id="pySrsIn" placeholder="例: 6677" />
+            </div>
+            <div>
+              <label for="pySrsOut">出力 SRS</label>
+              <input type="text" id="pySrsOut" placeholder="例: 4326" />
+            </div>
+            <div>
+              <label for="pyCommand">コマンドパス</label>
+              <input type="text" id="pyCommand" placeholder="py3dtiles" value="py3dtiles" />
+            </div>
+            <div>
+              <label for="pyExtraArgs">追加オプション</label>
+              <input type="text" id="pyExtraArgs" placeholder="--rgb" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="pyRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="pg2b3dm" class="tab-content">
+        <div class="card">
+          <h2>pg2b3dm（PostGIS → 3D Tiles）</h2>
+          <form id="pg2b3dmForm" class="grid">
+            <div class="full">
+              <label for="pgConn">接続文字列</label>
+              <input type="text" id="pgConn" placeholder='Host=localhost;Username=postgres;Database=postgres;CommandTimeOut=0' required />
+            </div>
+            <div>
+              <label for="pgTable">テーブル名</label>
+              <input type="text" id="pgTable" placeholder="public.buildings" required />
+            </div>
+            <div>
+              <label for="pgColumn">ジオメトリ列</label>
+              <input type="text" id="pgColumn" placeholder="geom" value="geom" />
+            </div>
+            <div>
+              <label for="pgOutput">出力ディレクトリ</label>
+              <input type="text" id="pgOutput" placeholder="output" value="output" />
+            </div>
+            <div>
+              <label for="pgAttrColumns">属性列</label>
+              <input type="text" id="pgAttrColumns" placeholder="id,name" />
+            </div>
+            <div>
+              <label for="pgShaderColumn">シェーダ列</label>
+              <input type="text" id="pgShaderColumn" placeholder="shaders" />
+            </div>
+            <div>
+              <label for="pgGeoErrors">Geometric Errors</label>
+              <input type="text" id="pgGeoErrors" placeholder="1000,500,0" />
+            </div>
+            <div>
+              <label for="pgQuery">クエリ</label>
+              <input type="text" id="pgQuery" placeholder="type='building'" />
+            </div>
+            <div>
+              <label for="pgCommand">コマンドパス</label>
+              <input type="text" id="pgCommand" placeholder="pg2b3dm" value="pg2b3dm" />
+            </div>
+            <div>
+              <label for="pgExtraArgs">追加オプション</label>
+              <input type="text" id="pgExtraArgs" placeholder="--double_sided false" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="pgRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="gocesiumtiler" class="tab-content">
+        <div class="card">
+          <h2>gocesiumtiler（点群 LAS → 3D Tiles）</h2>
+          <form id="gocesiumtilerForm" class="grid">
+            <div class="full">
+              <label for="gocesiumInput">入力 LAS/LAZ</label>
+              <input type="text" id="gocesiumInput" placeholder="C:\data\pointcloud.las" required />
+            </div>
+            <div class="full">
+              <label for="gocesiumOutput">出力ディレクトリ</label>
+              <input type="text" id="gocesiumOutput" placeholder="C:\data\gocesium-out" required />
+            </div>
+            <div>
+              <label for="gocesiumEpsg">EPSG / CRS</label>
+              <input type="text" id="gocesiumEpsg" placeholder="例: 6677" />
+            </div>
+            <div>
+              <label for="gocesiumResolution">Resolution</label>
+              <input type="text" id="gocesiumResolution" placeholder="1" />
+            </div>
+            <div>
+              <label for="gocesiumDepth">Depth</label>
+              <input type="text" id="gocesiumDepth" placeholder="10" />
+            </div>
+            <div>
+              <label for="gocesiumMinPoints">Min Points per Tile</label>
+              <input type="text" id="gocesiumMinPoints" placeholder="5000" />
+            </div>
+            <div>
+              <label for="gocesiumVersion">3D Tiles バージョン</label>
+              <input type="text" id="gocesiumVersion" placeholder="1.0" value="1.0" />
+            </div>
+            <div>
+              <label for="gocesiumCommand">コマンドパス</label>
+              <input type="text" id="gocesiumCommand" placeholder="gocesiumtiler" value="gocesiumtiler" />
+            </div>
+            <div>
+              <label for="gocesiumExtraArgs">追加オプション</label>
+              <input type="text" id="gocesiumExtraArgs" placeholder="--zoffset 60" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="gocesiumRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="preprocess" class="tab-content">
+        <div class="card">
+          <h2>GDAL/PDAL 前処理</h2>
+          <p class="hint">gdalwarp、pdal translate、ogr2ogr などを実行して入力を整形します。</p>
+          <form id="preprocessForm" class="grid">
+            <div class="full">
+              <label for="preprocessProgram">プログラム</label>
+              <input type="text" id="preprocessProgram" placeholder="gdalwarp" value="gdalwarp" required />
+            </div>
+            <div class="full">
+              <label for="preprocessInput">入力</label>
+              <input type="text" id="preprocessInput" placeholder="C:\data\input.las" />
+            </div>
+            <div class="full">
+              <label for="preprocessOutput">出力</label>
+              <input type="text" id="preprocessOutput" placeholder="C:\data\output.laz" />
+            </div>
+            <div class="full">
+              <label for="preprocessExtraArgs">追加オプション</label>
+              <input type="text" id="preprocessExtraArgs" placeholder="-t_srs EPSG:4326" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="preprocessRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="terrain" class="tab-content">
+        <div class="card">
+          <h2>Cesium Terrain（DEM → quantized-mesh）</h2>
+          <p class="hint">Cesium Terrain Builder または tin-terrain を使用して DEM ラスターを Cesium 用 terrain タイルに変換します。</p>
+          <form id="terrainForm" class="grid">
+            <div class="full">
+              <label for="terrainProgram">コマンド</label>
+              <input type="text" id="terrainProgram" placeholder="ctb-tile" value="ctb-tile" required />
+            </div>
+            <div class="full">
+              <label for="terrainInput">入力 DEM（GeoTIFF/VRT）</label>
+              <input type="text" id="terrainInput" placeholder="C:\data\dem.tif" required />
+            </div>
+            <div class="full">
+              <label for="terrainOutput">出力ディレクトリ</label>
+              <input type="text" id="terrainOutput" placeholder="C:\data\terrain" required />
+            </div>
+            <div>
+              <label for="terrainFormat">出力形式</label>
+              <input type="text" id="terrainFormat" placeholder="Terrain" value="Terrain" />
+            </div>
+            <div>
+              <label for="terrainProfile">プロファイル</label>
+              <input type="text" id="terrainProfile" placeholder="geodetic" value="geodetic" />
+            </div>
+            <div>
+              <label for="terrainStartZoom">開始ズーム</label>
+              <input type="text" id="terrainStartZoom" placeholder="0" />
+            </div>
+            <div>
+              <label for="terrainEndZoom">終了ズーム</label>
+              <input type="text" id="terrainEndZoom" placeholder="" />
+            </div>
+            <div>
+              <label for="terrainExtraArgs">追加オプション</label>
+              <input type="text" id="terrainExtraArgs" placeholder="-N -C" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="terrainRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="tiles11" class="tab-content">
+        <div class="card">
+          <h2>3D Tiles 1.1 後処理</h2>
+          <p class="hint">3d-tiles-tools を使って 3D Tiles 1.0 を 1.1 GLB 化、または b3dm/i3dm から glb を取り出します。</p>
+          <form id="tiles11Form" class="grid">
+            <div class="full">
+              <label for="tdtCommand">コマンド</label>
+              <input type="text" id="tdtCommand" placeholder="3d-tiles-tools または npx 3d-tiles-tools" value="3d-tiles-tools" required />
+            </div>
+            <div class="full">
+              <label for="tdtTool">処理</label>
+              <input type="text" id="tdtTool" placeholder="upgrade" value="upgrade" required />
+            </div>
+            <div class="full">
+              <label for="tdtInput">入力</label>
+              <input type="text" id="tdtInput" placeholder="C:\data\tileset.json または C:\data\input.b3dm" required />
+            </div>
+            <div class="full">
+              <label for="tdtOutput">出力</label>
+              <input type="text" id="tdtOutput" placeholder="C:\data\out" required />
+            </div>
+            <div class="full">
+              <label for="tdtExtraArgs">追加オプション</label>
+              <input type="text" id="tdtExtraArgs" placeholder="--targetVersion 1.1" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="tdtRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="bimcim" class="tab-content">
+        <div class="card">
+          <h2>BIM/CIM 前処理</h2>
+          <p class="hint">IFC や CityJSON を glTF/GLB や CityGML/OBJ に変換します。変換後、mago-3d-tiler タブで 3D Tiles 化できます。</p>
+          <form id="bimcimForm" class="grid">
+            <div class="full">
+              <label for="bimcimTool">ツール</label>
+              <select id="bimcimTool">
+                <option value="ifcconvert">IfcConvert（IFC → OBJ/GLB）</option>
+                <option value="cjio">cjio（CityJSON → GLB/OBJ/CityGML）</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="bimcimInput">入力ファイル</label>
+              <input type="text" id="bimcimInput" placeholder="C:\data\building.ifc または C:\data\city.json" required />
+            </div>
+            <div class="full">
+              <label for="bimcimOutput">出力ファイル</label>
+              <input type="text" id="bimcimOutput" placeholder="C:\data\building.glb" required />
+            </div>
+            <div>
+              <label for="bimcimFormat">出力形式（cjio）</label>
+              <input type="text" id="bimcimFormat" placeholder="glb" />
+            </div>
+            <div>
+              <label for="bimcimCommand">コマンドパス</label>
+              <input type="text" id="bimcimCommand" placeholder="" />
+            </div>
+            <div class="full">
+              <label for="bimcimExtraArgs">追加オプション</label>
+              <input type="text" id="bimcimExtraArgs" placeholder="--use-world-ids" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="bimcimRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="imagery" class="tab-content">
+        <div class="card">
+          <h2>2D 画像タイル</h2>
+          <p class="hint">gdal2tiles.py または ctb-tile を使って、衛星写真や航空写真を XYZ/TMS 形式の 2D 画像タイルに変換します。</p>
+          <form id="imageryForm" class="grid">
+            <div class="full">
+              <label for="imageryProgram">コマンド</label>
+              <input type="text" id="imageryProgram" placeholder="gdal2tiles.py" value="gdal2tiles.py" required />
+            </div>
+            <div class="full">
+              <label for="imageryInput">入力画像</label>
+              <input type="text" id="imageryInput" placeholder="C:\data\ortho.tif" required />
+            </div>
+            <div class="full">
+              <label for="imageryOutput">出力ディレクトリ</label>
+              <input type="text" id="imageryOutput" placeholder="C:\data\imagery" required />
+            </div>
+            <div>
+              <label for="imageryProfile">プロファイル</label>
+              <input type="text" id="imageryProfile" placeholder="mercator" value="mercator" />
+            </div>
+            <div>
+              <label for="imageryZoom">ズーム範囲</label>
+              <input type="text" id="imageryZoom" placeholder="5-18" value="5-18" />
+            </div>
+            <div>
+              <label for="imageryFormat">画像形式</label>
+              <input type="text" id="imageryFormat" placeholder="png" value="png" />
+            </div>
+            <div>
+              <label for="imageryThreads">スレッド数</label>
+              <input type="text" id="imageryThreads" placeholder="4" />
+            </div>
+            <div class="full">
+              <label for="imageryExtraArgs">追加オプション</label>
+              <input type="text" id="imageryExtraArgs" placeholder="--processes 4" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="imageryRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="gltfopt" class="tab-content">
+        <div class="card">
+          <h2>glTF 最適化</h2>
+          <p class="hint">gltf-pipeline を使って glTF/GLB を最適化（Draco 圧縮、KHR_texture_transform 追加など）します。</p>
+          <form id="gltfoptForm" class="grid">
+            <div class="full">
+              <label for="gltfoptCommand">コマンド</label>
+              <input type="text" id="gltfoptCommand" placeholder="gltf-pipeline" value="gltf-pipeline" required />
+            </div>
+            <div class="full">
+              <label for="gltfoptInput">入力 glTF/GLB</label>
+              <input type="text" id="gltfoptInput" placeholder="C:\data\input.glb" required />
+            </div>
+            <div class="full">
+              <label for="gltfoptOutput">出力 glTF/GLB</label>
+              <input type="text" id="gltfoptOutput" placeholder="C:\data\output.glb" required />
+            </div>
+            <div>
+              <label for="gltfoptDraco">Draco 圧縮</label>
+              <select id="gltfoptDraco">
+                <option value="false">無効</option>
+                <option value="true">有効</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="gltfoptExtraArgs">追加オプション</label>
+              <input type="text" id="gltfoptExtraArgs" placeholder="--keepUnusedElements --textureCompression etc1s" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="gltfoptRunBtn" type="button">実行</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <div id="py3dtiles" class="tab-content">
+    <div id="auto" class="top-tab-content active">
       <div class="card">
-        <h2>Py3DTiles</h2>
-        <form id="py3dtilesForm" class="grid">
+        <h2>自動変換</h2>
+        <p class="hint">入力パスを自動判別し、最適なコンバータを選択して変換します。</p>
+        <form id="autoForm" class="grid">
           <div class="full">
-            <label for="pyInput">入力ファイル/ディレクトリ</label>
-            <input type="text" id="pyInput" placeholder="C:\data\pointcloud.las" required />
+            <label for="autoInput">入力</label>
+            <div class="input-row">
+              <input type="text" id="autoInput" value="c:\kasugai\data\input" required />
+              <button type="button" id="openInputBtn" class="secondary" title="フォルダを開く">開く</button>
+            </div>
           </div>
           <div class="full">
-            <label for="pyOutput">出力ディレクトリ</label>
-            <input type="text" id="pyOutput" placeholder="C:\data\py3dtiles-out" required />
+            <label for="autoOutput">出力</label>
+            <div class="input-row">
+              <input type="text" id="autoOutput" value="c:\kasugai\data\output" required />
+              <button type="button" id="openOutputBtn" class="secondary" title="フォルダを開く">開く</button>
+            </div>
           </div>
-          <div>
-            <label for="pySrsIn">入力 SRS</label>
-            <input type="text" id="pySrsIn" placeholder="例: 6677" />
+          <div class="full">
+            <label>出力形式カテゴリ</label>
+            <div class="tabs" style="margin-bottom:0.5rem;">
+              <button class="tab-btn active" data-tab="2d-vector-out" type="button">2D ベクター</button>
+              <button class="tab-btn" data-tab="2d-tile-out" type="button">2D タイル</button>
+              <button class="tab-btn" data-tab="3d-model-out" type="button">3D モデル</button>
+              <button class="tab-btn" data-tab="3d-tile-out" type="button">3D タイル</button>
+              <button class="tab-btn" data-tab="pointcloud-out" type="button">点群</button>
+              <button class="tab-btn" data-tab="terrain-out" type="button">地形</button>
+            </div>
+            <div id="2d-vector-out" class="tab-content active">
+              <label for="autoOutputFormat2dVector">2D ベクター</label>
+              <select id="autoOutputFormat2dVector" class="auto-platform-format">
+                <option value="">自動判定</option>
+                <option value="geojson">GeoJSON（Cesium / QGIS / ArcGIS）</option>
+                <option value="kml">KML / KMZ（Cesium / QGIS / ArcGIS）</option>
+                <option value="gpkg">GeoPackage（QGIS / ArcGIS）</option>
+                <option value="shp">Shapefile（QGIS / ArcGIS）</option>
+                <option value="fgdb">File Geodatabase / FGDB（ArcGIS / QGIS）</option>
+                <option value="spatialite">SpatiaLite（QGIS）</option>
+              </select>
+            </div>
+            <div id="2d-tile-out" class="tab-content">
+              <label for="autoOutputFormat2dTile">2D タイル</label>
+              <select id="autoOutputFormat2dTile" class="auto-platform-format">
+                <option value="">自動判定</option>
+                <option value="xyz">XYZ / TMS（Cesium / QGIS / ArcGIS）</option>
+                <option value="mvt">MVT（Cesium / QGIS / ArcGIS）</option>
+              </select>
+            </div>
+            <div id="3d-model-out" class="tab-content">
+              <label for="autoOutputFormat3dModel">3D モデル</label>
+              <select id="autoOutputFormat3dModel" class="auto-platform-format">
+                <option value="">自動判定</option>
+                <option value="gltf">glTF（Cesium / QGIS / ArcGIS）</option>
+                <option value="obj">OBJ（Cesium / QGIS / ArcGIS）</option>
+                <option value="fbx">FBX（Cesium / ArcGIS）</option>
+                <option value="dae">DAE（Cesium / QGIS / ArcGIS）</option>
+              </select>
+            </div>
+            <div id="3d-tile-out" class="tab-content">
+              <label for="autoOutputFormat3dTile">3D タイル</label>
+              <select id="autoOutputFormat3dTile" class="auto-platform-format">
+                <option value="">自動判定</option>
+                <option value="b3dm">b3dm（Cesium / QGIS / ArcGIS）</option>
+                <option value="i3dm">i3dm（Cesium）</option>
+                <option value="pnts">pnts（Cesium）</option>
+                <option value="3dtiles-1-1-glb">glb (3D Tiles 1.1)（Cesium / QGIS / ArcGIS）</option>
+              </select>
+            </div>
+            <div id="pointcloud-out" class="tab-content">
+              <label for="autoOutputFormatPointcloud">点群</label>
+              <select id="autoOutputFormatPointcloud" class="auto-platform-format">
+                <option value="">自動判定</option>
+                <option value="pnts">pnts（Cesium）</option>
+                <option value="laz">LAZ（QGIS / ArcGIS）</option>
+              </select>
+            </div>
+            <div id="terrain-out" class="tab-content">
+              <label for="autoOutputFormatTerrain">地形</label>
+              <select id="autoOutputFormatTerrain" class="auto-platform-format">
+                <option value="">自動判定</option>
+                <option value="quantized-mesh">quantized-mesh（Cesium）</option>
+                <option value="dem">DEM / GeoTIFF（QGIS / ArcGIS）</option>
+                <option value="terrain-rgb">terrain-rgb（QGIS / ArcGIS）</option>
+              </select>
+            </div>
+            <input type="hidden" id="autoOutputFormat" />
           </div>
-          <div>
-            <label for="pySrsOut">出力 SRS</label>
-            <input type="text" id="pySrsOut" placeholder="例: 4326" />
-          </div>
-          <div>
-            <label for="pyCommand">コマンドパス</label>
-            <input type="text" id="pyCommand" placeholder="py3dtiles" value="py3dtiles" />
-          </div>
-          <div>
-            <label for="pyExtraArgs">追加オプション</label>
-            <input type="text" id="pyExtraArgs" placeholder="--rgb" />
+          <div class="full">
+            <label>入力可能形式</label>
+            <ul id="inputFormatList" class="hint" style="display:flex; flex-wrap:wrap; gap:0.5rem; list-style:none; margin:0.25rem 0; padding:0;">
+              <li>出力形式を選ぶと表示されます</li>
+            </ul>
+            <small>入力ディレクトリ内のファイルから自動判定します。</small>
           </div>
         </form>
 
         <div class="actions">
-          <button id="pyRunBtn" type="button">実行</button>
+          <button id="autoRunBtn" type="button">自動変換開始</button>
         </div>
       </div>
     </div>
 
-    <div id="pg2b3dm" class="tab-content">
-      <div class="card">
-        <h2>pg2b3dm（PostGIS → 3D Tiles）</h2>
-        <form id="pg2b3dmForm" class="grid">
-          <div class="full">
-            <label for="pgConn">接続文字列</label>
-            <input type="text" id="pgConn" placeholder='Host=localhost;Username=postgres;Database=postgres;CommandTimeOut=0' required />
-          </div>
-          <div>
-            <label for="pgTable">テーブル名</label>
-            <input type="text" id="pgTable" placeholder="public.buildings" required />
-          </div>
-          <div>
-            <label for="pgColumn">ジオメトリ列</label>
-            <input type="text" id="pgColumn" placeholder="geom" value="geom" />
-          </div>
-          <div>
-            <label for="pgOutput">出力ディレクトリ</label>
-            <input type="text" id="pgOutput" placeholder="output" value="output" />
-          </div>
-          <div>
-            <label for="pgAttrColumns">属性列</label>
-            <input type="text" id="pgAttrColumns" placeholder="id,name" />
-          </div>
-          <div>
-            <label for="pgShaderColumn">シェーダ列</label>
-            <input type="text" id="pgShaderColumn" placeholder="shaders" />
-          </div>
-          <div>
-            <label for="pgGeoErrors">Geometric Errors</label>
-            <input type="text" id="pgGeoErrors" placeholder="1000,500,0" />
-          </div>
-          <div>
-            <label for="pgQuery">クエリ</label>
-            <input type="text" id="pgQuery" placeholder="type='building'" />
-          </div>
-          <div>
-            <label for="pgCommand">コマンドパス</label>
-            <input type="text" id="pgCommand" placeholder="pg2b3dm" value="pg2b3dm" />
-          </div>
-          <div>
-            <label for="pgExtraArgs">追加オプション</label>
-            <input type="text" id="pgExtraArgs" placeholder="--double_sided false" />
-          </div>
-        </form>
-
-        <div class="actions">
-          <button id="pgRunBtn" type="button">実行</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="gocesiumtiler" class="tab-content">
-      <div class="card">
-        <h2>gocesiumtiler（点群 LAS → 3D Tiles）</h2>
-        <form id="gocesiumtilerForm" class="grid">
-          <div class="full">
-            <label for="gocesiumInput">入力 LAS/LAZ</label>
-            <input type="text" id="gocesiumInput" placeholder="C:\data\pointcloud.las" required />
-          </div>
-          <div class="full">
-            <label for="gocesiumOutput">出力ディレクトリ</label>
-            <input type="text" id="gocesiumOutput" placeholder="C:\data\gocesium-out" required />
-          </div>
-          <div>
-            <label for="gocesiumEpsg">EPSG / CRS</label>
-            <input type="text" id="gocesiumEpsg" placeholder="例: 6677" />
-          </div>
-          <div>
-            <label for="gocesiumResolution">Resolution</label>
-            <input type="text" id="gocesiumResolution" placeholder="1" />
-          </div>
-          <div>
-            <label for="gocesiumDepth">Depth</label>
-            <input type="text" id="gocesiumDepth" placeholder="10" />
-          </div>
-          <div>
-            <label for="gocesiumMinPoints">Min Points per Tile</label>
-            <input type="text" id="gocesiumMinPoints" placeholder="5000" />
-          </div>
-          <div>
-            <label for="gocesiumVersion">3D Tiles バージョン</label>
-            <input type="text" id="gocesiumVersion" placeholder="1.0" value="1.0" />
-          </div>
-          <div>
-            <label for="gocesiumCommand">コマンドパス</label>
-            <input type="text" id="gocesiumCommand" placeholder="gocesiumtiler" value="gocesiumtiler" />
-          </div>
-          <div>
-            <label for="gocesiumExtraArgs">追加オプション</label>
-            <input type="text" id="gocesiumExtraArgs" placeholder="--zoffset 60" />
-          </div>
-        </form>
-
-        <div class="actions">
-          <button id="gocesiumRunBtn" type="button">実行</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="preprocess" class="tab-content">
-      <div class="card">
-        <h2>GDAL/PDAL 前処理</h2>
-        <p class="hint">gdalwarp、pdal translate、ogr2ogr などを実行して入力を整形します。</p>
-        <form id="preprocessForm" class="grid">
-          <div class="full">
-            <label for="preprocessProgram">プログラム</label>
-            <input type="text" id="preprocessProgram" placeholder="gdalwarp" value="gdalwarp" required />
-          </div>
-          <div class="full">
-            <label for="preprocessInput">入力</label>
-            <input type="text" id="preprocessInput" placeholder="C:\data\input.las" />
-          </div>
-          <div class="full">
-            <label for="preprocessOutput">出力</label>
-            <input type="text" id="preprocessOutput" placeholder="C:\data\output.laz" />
-          </div>
-          <div class="full">
-            <label for="preprocessExtraArgs">追加オプション</label>
-            <input type="text" id="preprocessExtraArgs" placeholder="-t_srs EPSG:4326" />
-          </div>
-        </form>
-
-        <div class="actions">
-          <button id="preprocessRunBtn" type="button">実行</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="terrain" class="tab-content">
-      <div class="card">
-        <h2>Cesium Terrain（DEM → quantized-mesh）</h2>
-        <p class="hint">Cesium Terrain Builder または tin-terrain を使用して DEM ラスターを Cesium 用 terrain タイルに変換します。</p>
-        <form id="terrainForm" class="grid">
-          <div class="full">
-            <label for="terrainProgram">コマンド</label>
-            <input type="text" id="terrainProgram" placeholder="ctb-tile" value="ctb-tile" required />
-          </div>
-          <div class="full">
-            <label for="terrainInput">入力 DEM（GeoTIFF/VRT）</label>
-            <input type="text" id="terrainInput" placeholder="C:\data\dem.tif" required />
-          </div>
-          <div class="full">
-            <label for="terrainOutput">出力ディレクトリ</label>
-            <input type="text" id="terrainOutput" placeholder="C:\data\terrain" required />
-          </div>
-          <div>
-            <label for="terrainFormat">出力形式</label>
-            <input type="text" id="terrainFormat" placeholder="Terrain" value="Terrain" />
-          </div>
-          <div>
-            <label for="terrainProfile">プロファイル</label>
-            <input type="text" id="terrainProfile" placeholder="geodetic" value="geodetic" />
-          </div>
-          <div>
-            <label for="terrainStartZoom">開始ズーム</label>
-            <input type="text" id="terrainStartZoom" placeholder="0" />
-          </div>
-          <div>
-            <label for="terrainEndZoom">終了ズーム</label>
-            <input type="text" id="terrainEndZoom" placeholder="" />
-          </div>
-          <div>
-            <label for="terrainExtraArgs">追加オプション</label>
-            <input type="text" id="terrainExtraArgs" placeholder="-N -C" />
-          </div>
-        </form>
-
-        <div class="actions">
-          <button id="terrainRunBtn" type="button">実行</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="tiles11" class="tab-content">
-      <div class="card">
-        <h2>3D Tiles 1.1 後処理</h2>
-        <p class="hint">3d-tiles-tools を使って 3D Tiles 1.0 を 1.1 GLB 化、または b3dm/i3dm から glb を取り出します。</p>
-        <form id="tiles11Form" class="grid">
-          <div class="full">
-            <label for="tdtCommand">コマンド</label>
-            <input type="text" id="tdtCommand" placeholder="3d-tiles-tools または npx 3d-tiles-tools" value="3d-tiles-tools" required />
-          </div>
-          <div class="full">
-            <label for="tdtTool">処理</label>
-            <input type="text" id="tdtTool" placeholder="upgrade" value="upgrade" required />
-          </div>
-          <div class="full">
-            <label for="tdtInput">入力</label>
-            <input type="text" id="tdtInput" placeholder="C:\data\tileset.json または C:\data\input.b3dm" required />
-          </div>
-          <div class="full">
-            <label for="tdtOutput">出力</label>
-            <input type="text" id="tdtOutput" placeholder="C:\data\out" required />
-          </div>
-          <div class="full">
-            <label for="tdtExtraArgs">追加オプション</label>
-            <input type="text" id="tdtExtraArgs" placeholder="--targetVersion 1.1" />
-          </div>
-        </form>
-
-        <div class="actions">
-          <button id="tdtRunBtn" type="button">実行</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="bimcim" class="tab-content">
-      <div class="card">
-        <h2>BIM/CIM 前処理</h2>
-        <p class="hint">IFC や CityJSON を glTF/GLB や CityGML/OBJ に変換します。変換後、mago-3d-tiler タブで 3D Tiles 化できます。</p>
-        <form id="bimcimForm" class="grid">
-          <div class="full">
-            <label for="bimcimTool">ツール</label>
-            <select id="bimcimTool">
-              <option value="ifcconvert">IfcConvert（IFC → OBJ/GLB）</option>
-              <option value="cjio">cjio（CityJSON → GLB/OBJ/CityGML）</option>
-            </select>
-          </div>
-          <div class="full">
-            <label for="bimcimInput">入力ファイル</label>
-            <input type="text" id="bimcimInput" placeholder="C:\data\building.ifc または C:\data\city.json" required />
-          </div>
-          <div class="full">
-            <label for="bimcimOutput">出力ファイル</label>
-            <input type="text" id="bimcimOutput" placeholder="C:\data\building.glb" required />
-          </div>
-          <div>
-            <label for="bimcimFormat">出力形式（cjio）</label>
-            <input type="text" id="bimcimFormat" placeholder="glb" />
-          </div>
-          <div>
-            <label for="bimcimCommand">コマンドパス</label>
-            <input type="text" id="bimcimCommand" placeholder="" />
-          </div>
-          <div class="full">
-            <label for="bimcimExtraArgs">追加オプション</label>
-            <input type="text" id="bimcimExtraArgs" placeholder="--use-world-ids" />
-          </div>
-        </form>
-
-        <div class="actions">
-          <button id="bimcimRunBtn" type="button">実行</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="imagery" class="tab-content">
-      <div class="card">
-        <h2>Imagery（ラスター → 画像タイル）</h2>
-        <p class="hint">gdal2tiles.py または ctb-tile を使って、衛星写真や航空写真を XYZ/TMS 画像タイルに変換します。</p>
-        <form id="imageryForm" class="grid">
-          <div class="full">
-            <label for="imageryProgram">コマンド</label>
-            <input type="text" id="imageryProgram" placeholder="gdal2tiles.py" value="gdal2tiles.py" required />
-          </div>
-          <div class="full">
-            <label for="imageryInput">入力画像</label>
-            <input type="text" id="imageryInput" placeholder="C:\data\ortho.tif" required />
-          </div>
-          <div class="full">
-            <label for="imageryOutput">出力ディレクトリ</label>
-            <input type="text" id="imageryOutput" placeholder="C:\data\imagery" required />
-          </div>
-          <div>
-            <label for="imageryProfile">プロファイル</label>
-            <input type="text" id="imageryProfile" placeholder="mercator" value="mercator" />
-          </div>
-          <div>
-            <label for="imageryZoom">ズーム範囲</label>
-            <input type="text" id="imageryZoom" placeholder="5-18" value="5-18" />
-          </div>
-          <div>
-            <label for="imageryFormat">画像形式</label>
-            <input type="text" id="imageryFormat" placeholder="png" value="png" />
-          </div>
-          <div>
-            <label for="imageryThreads">スレッド数</label>
-            <input type="text" id="imageryThreads" placeholder="4" />
-          </div>
-          <div class="full">
-            <label for="imageryExtraArgs">追加オプション</label>
-            <input type="text" id="imageryExtraArgs" placeholder="--processes 4" />
-          </div>
-        </form>
-
-        <div class="actions">
-          <button id="imageryRunBtn" type="button">実行</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="gltfopt" class="tab-content">
-      <div class="card">
-        <h2>glTF 最適化</h2>
-        <p class="hint">gltf-pipeline を使って glTF/GLB を最適化（Draco 圧縮、KHR_texture_transform 追加など）します。</p>
-        <form id="gltfoptForm" class="grid">
-          <div class="full">
-            <label for="gltfoptCommand">コマンド</label>
-            <input type="text" id="gltfoptCommand" placeholder="gltf-pipeline" value="gltf-pipeline" required />
-          </div>
-          <div class="full">
-            <label for="gltfoptInput">入力 glTF/GLB</label>
-            <input type="text" id="gltfoptInput" placeholder="C:\data\input.glb" required />
-          </div>
-          <div class="full">
-            <label for="gltfoptOutput">出力 glTF/GLB</label>
-            <input type="text" id="gltfoptOutput" placeholder="C:\data\output.glb" required />
-          </div>
-          <div>
-            <label for="gltfoptDraco">Draco 圧縮</label>
-            <select id="gltfoptDraco">
-              <option value="false">無効</option>
-              <option value="true">有効</option>
-            </select>
-          </div>
-          <div class="full">
-            <label for="gltfoptExtraArgs">追加オプション</label>
-            <input type="text" id="gltfoptExtraArgs" placeholder="--keepUnusedElements --textureCompression etc1s" />
-          </div>
-        </form>
-
-        <div class="actions">
-          <button id="gltfoptRunBtn" type="button">実行</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="systems" class="tab-content">
+    <div id="systems" class="top-tab-content">
       <div class="card">
         <h2>関連システム</h2>
         <p class="hint">ここで JDK など、変換に必要な外部ツールの状態を確認・インストールできます。</p>
@@ -638,7 +778,6 @@
               <button class="secondary" id="useMagoBtn" type="button" style="display:none;">この JAR を使う</button>
             </div>
           </div>
-        </div>
 
           <div class="system-item">
             <div class="system-title">Python <span id="pythonStatusTag" class="tag ng">未検出</span></div>
@@ -724,6 +863,27 @@
       </div>
     </div>
 
+    <div id="settings" class="top-tab-content">
+      <div class="card">
+        <h2>設定</h2>
+        <p class="hint">アプリケーションの制御とバージョン情報を確認します。</p>
+
+        <div class="system-item">
+          <div class="system-title">バージョン情報</div>
+          <div class="system-meta">
+            現在のバージョン: <span id="appVersion"><version></span>
+          </div>
+          <div class="system-actions">
+            <button class="secondary" id="checkUpdateBtn" type="button">更新確認</button>
+            <button class="secondary" id="reloadPageBtn" type="button">ページを再読み込み</button>
+            <button class="secondary" id="openBrowserBtn" type="button">ブラウザを開く</button>
+            <button class="secondary" id="stopServerBtn" type="button" style="background:#dc2626; color:#fff;">サーバーを停止</button>
+          </div>
+        </div>
+        <div id="updateResult" class="system-meta" style="margin-top:1rem; display:none;"></div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="actions" style="margin-top:0; margin-bottom:0.75rem;">
         <span id="status" class="status">待機中</span>
@@ -743,15 +903,90 @@
       statusEl.className = 'status ' + (cls || '');
     }
 
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.top-tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        const target = btn.dataset.topTab;
+        document.querySelectorAll('.top-tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.top-tab-content').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById(btn.dataset.tab).classList.add('active');
-        if (btn.dataset.tab === 'systems') loadSystemEnv();
+        document.getElementById(target).classList.add('active');
+        if (target === 'systems') loadSystemEnv();
       });
     });
+
+    document.getElementById('individual').querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const container = document.getElementById('individual');
+        container.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        container.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // 自動変換のプラットフォームタブ
+    const outputToInputs = {
+      'geojson': ['shp', 'geojson', 'gpkg', 'kml', 'fgdb', 'spatialite', 'gml', 'citygml', 'dxf', 'csv'],
+      'kml': ['shp', 'geojson', 'gpkg', 'kml', 'fgdb', 'spatialite', 'gml', 'citygml'],
+      'gpkg': ['shp', 'geojson', 'gpkg', 'kml', 'fgdb', 'spatialite', 'gml', 'citygml', 'csv', 'dxf'],
+      'shp': ['shp', 'geojson', 'gpkg', 'kml', 'fgdb', 'spatialite', 'gml', 'citygml', 'csv', 'dxf'],
+      'fgdb': ['shp', 'geojson', 'gpkg', 'kml', 'fgdb', 'spatialite', 'gml', 'citygml', 'csv', 'dxf'],
+      'spatialite': ['shp', 'geojson', 'gpkg', 'kml', 'fgdb', 'spatialite', 'gml', 'citygml'],
+      'xyz': ['tif', 'tiff', 'png', 'jpg', 'gpkg', 'shp', 'geojson', 'kml'],
+      'mvt': ['shp', 'geojson', 'gpkg', 'kml', 'gml', 'citygml'],
+      'gltf': ['ifc', 'cityjson', 'citygml', 'obj', 'fbx', '3ds', 'gltf', 'glb', 'b3dm'],
+      'obj': ['ifc', 'cityjson', 'citygml', 'gltf', 'glb', 'obj', 'fbx', '3ds'],
+      'fbx': ['ifc', 'cityjson', 'citygml', 'gltf', 'glb', 'obj', 'fbx', '3ds'],
+      'dae': ['ifc', 'cityjson', 'citygml', 'gltf', 'glb', 'obj', 'fbx', '3ds'],
+      'b3dm': ['shp', 'geojson', 'gpkg', 'kml', 'gml', 'citygml', 'igml', 'obj', 'fbx', '3ds', 'gltf', 'glb'],
+      'i3dm': ['gltf', 'glb', 'obj', 'fbx', '3ds'],
+      'pnts': ['las', 'laz', 'csv'],
+      '3dtiles-1-1-glb': ['gltf', 'glb', 'obj', 'fbx', '3ds', 'ifc', 'cityjson', 'citygml', 'b3dm'],
+      'laz': ['las', 'laz'],
+      'quantized-mesh': ['tif', 'tiff', 'dem', 'asc'],
+      'dem': ['tif', 'tiff', 'dem', 'asc'],
+      'terrain-rgb': ['tif', 'tiff', 'dem', 'asc'],
+    };
+
+    function updateAutoOutputFormat() {
+      const auto = document.getElementById('auto');
+      const activeContent = auto.querySelector('.tab-content.active');
+      if (!activeContent) return;
+      const select = activeContent.querySelector('.auto-platform-format');
+      if (!select) return;
+      const current = document.getElementById('autoOutputFormat').value;
+      if (current && [...select.options].some(o => o.value === current)) {
+        select.value = current;
+      }
+      document.getElementById('autoOutputFormat').value = select.value;
+      updateInputFormatList();
+    }
+
+    function updateInputFormatList() {
+      const output = document.getElementById('autoOutputFormat').value;
+      const list = document.getElementById('inputFormatList');
+      const inputs = outputToInputs[output] || [];
+      if (inputs.length === 0) {
+        list.innerHTML = '<li>出力形式を選ぶと、変換可能な入力形式が表示されます</li>';
+      } else {
+        list.innerHTML = inputs.map(i => '<li>' + i + '</li>').join('');
+      }
+    }
+
+    document.getElementById('auto').querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const auto = document.getElementById('auto');
+        auto.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        auto.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+        updateAutoOutputFormat();
+      });
+    });
+    document.getElementById('auto').querySelectorAll('.auto-platform-format').forEach(sel => {
+      sel.addEventListener('change', updateAutoOutputFormat);
+    });
+    updateAutoOutputFormat();
 
     async function startJob(endpoint, payload, button) {
       button.disabled = true;
@@ -917,6 +1152,32 @@
       };
       startJob('/api/run/preprocess', payload, document.getElementById('tdtRunBtn'));
     });
+
+    // auto
+    document.getElementById('autoRunBtn').addEventListener('click', () => {
+      const payload = {
+        input: getValue('autoInput'),
+        output: getValue('autoOutput'),
+        output_format: getValue('autoOutputFormat') || undefined,
+      };
+      startJob('/api/convert/auto', payload, document.getElementById('autoRunBtn'));
+    });
+
+    async function openFolder(path) {
+      if (!path) return;
+      try {
+        const res = await fetch('/api/open-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+      } catch (e) {
+        setStatus(e.message, 'error');
+      }
+    }
+    document.getElementById('openInputBtn').addEventListener('click', () => openFolder(getValue('autoInput')));
+    document.getElementById('openOutputBtn').addEventListener('click', () => openFolder(getValue('autoOutput')));
 
     // systems
     let currentJavaPath = null;
@@ -1131,13 +1392,15 @@
     document.getElementById('useJdkBtn').addEventListener('click', () => {
       if (currentJavaPath) {
         setValue('javaPath', currentJavaPath);
-        document.querySelector('[data-tab="mago"]').click();
+        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('#individual [data-tab="mago"]').click();
       }
     });
     document.getElementById('useMagoBtn').addEventListener('click', () => {
       if (currentMagoPath) {
         setValue('jarPath', currentMagoPath);
-        document.querySelector('[data-tab="mago"]').click();
+        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('#individual [data-tab="mago"]').click();
       }
     });
 
@@ -1164,13 +1427,15 @@
     document.getElementById('usePy3dtilesBtn').addEventListener('click', () => {
       if (currentPy3dtilesPath) {
         setValue('pyCommand', currentPy3dtilesPath);
-        document.querySelector('[data-tab="py3dtiles"]').click();
+        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('#individual [data-tab="py3dtiles"]').click();
       }
     });
     document.getElementById('usePg2b3dmBtn').addEventListener('click', () => {
       if (currentPg2b3dmPath) {
         setValue('pgCommand', currentPg2b3dmPath);
-        document.querySelector('[data-tab="pg2b3dm"]').click();
+        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('#individual [data-tab="pg2b3dm"]').click();
       }
     });
 
@@ -1183,7 +1448,8 @@
     document.getElementById('useGocesiumtilerBtn').addEventListener('click', () => {
       if (currentGocesiumtilerPath) {
         setValue('gocesiumCommand', currentGocesiumtilerPath);
-        document.querySelector('[data-tab="gocesiumtiler"]').click();
+        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('#individual [data-tab="gocesiumtiler"]').click();
       }
     });
 
@@ -1250,6 +1516,41 @@
         extra_args: parts.join(' '),
       };
       startJob('/api/run/preprocess', payload, document.getElementById('gltfoptRunBtn'));
+    });
+
+    // settings
+    document.getElementById('stopServerBtn').addEventListener('click', async () => {
+      if (!confirm('サーバーを停止しますか？')) return;
+      try {
+        await fetch('/api/v1/server/stop', { method: 'POST' });
+        setStatus('サーバーを停止しました', 'completed');
+        logEl.textContent = 'ブラウザを閉じても問題ありません。';
+      } catch (e) {
+        setStatus('停止エラー', 'failed');
+      }
+    });
+    document.getElementById('reloadPageBtn').addEventListener('click', () => {
+      location.reload();
+    });
+    document.getElementById('openBrowserBtn').addEventListener('click', () => {
+      window.open('http://127.0.0.1:8590/', '_blank');
+    });
+    document.getElementById('checkUpdateBtn').addEventListener('click', async () => {
+      const result = document.getElementById('updateResult');
+      result.style.display = 'block';
+      result.textContent = '確認中...';
+      try {
+        const res = await fetch('/api/v1/server/update-check');
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        if (data.update_available) {
+          result.innerHTML = `新しいバージョン ${data.latest} が利用可能です。<br>ダウンロード: <a href="${data.url}" target="_blank">${data.url}</a>`;
+        } else {
+          result.textContent = `お使いのバージョン ${data.current} は最新です。`;
+        }
+      } catch (e) {
+        result.textContent = '更新確認に失敗しました: ' + e.message;
+      }
     });
   </script>
 </body>
