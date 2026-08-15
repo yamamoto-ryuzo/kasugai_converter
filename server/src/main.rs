@@ -18,6 +18,8 @@ use tokio::process::Command;
 use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
 
+mod import;
+
 #[derive(Clone)]
 struct AppState {
     jobs: Arc<Mutex<HashMap<String, Job>>>,
@@ -186,6 +188,10 @@ async fn main() {
         .route("/env/gocesiumtiler", get(get_gocesiumtiler_env))
         .route("/env/ifcopenshell", get(get_ifcopenshell_env))
         .route("/env/cjio", get(get_cjio_env))
+        .route("/import/servers", get(import::get_servers_handler))
+        .route("/import/search", post(import::search_handler))
+        .route("/import/groups", get(import::groups_handler))
+        .route("/import/download", post(import::download_handler))
         .with_state(state);
 
     let app = Router::new()
