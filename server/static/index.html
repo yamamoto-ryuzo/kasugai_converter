@@ -27,9 +27,9 @@
       line-height: 1.6;
     }
     .container {
-      max-width: 960px;
-      margin: 2rem auto;
-      padding: 0 1rem;
+      max-width: none;
+      margin: 1rem auto;
+      padding: 0 1.5rem;
     }
     h1 { font-size: 1.5rem; margin-bottom: 0.25rem; }
     .subtitle { color: var(--muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
@@ -83,11 +83,40 @@
     .tab-content { display: none; }
     .tab-content.active { display: block; }
 
+    .import-search-layout {
+      display: grid;
+      grid-template-columns: 330px 1fr;
+      gap: 1rem;
+      align-items: start;
+    }
+    .import-categories strong {
+      display: block;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+    }
+    .category-list {
+      max-height: 18rem;
+      overflow-y: auto;
+      border: 1px solid var(--border);
+      border-radius: 0.375rem;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+    .category-list label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .category-list input { width: auto; }
     .card {
       background: var(--card);
       border-radius: 0.75rem;
       box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-      padding: 1.5rem;
+      padding: 0 1.5rem 1rem;
       margin-bottom: 1rem;
     }
     .grid {
@@ -115,7 +144,7 @@
       border-color: var(--primary);
       box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
     }
-    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin: 0 0 0.5rem; }
     .input-row { display: flex; gap: 0.5rem; align-items: stretch; }
     .input-row input { flex: 1; }
     .input-row button { padding: 0.5rem 0.75rem; }
@@ -177,6 +206,7 @@
 
     @media (max-width: 640px) {
       .grid { grid-template-columns: 1fr; }
+      .import-search-layout { grid-template-columns: 1fr; }
       .tabs { flex-wrap: wrap; }
       .top-tabs { flex-wrap: wrap; }
     }
@@ -185,16 +215,21 @@
 <body>
   <div class="container">
     <h1>Kasuga Converter</h1>
-    <p class="subtitle">GIS データ → 2D / 3D タイル 変換システム</p>
 
     <div class="top-tabs">
-      <button class="top-tab-btn active" data-top-tab="auto">自動変換</button>
-      <button class="top-tab-btn" data-top-tab="individual">個別コンバータ</button>
-      <button class="top-tab-btn" data-top-tab="systems">関連システム</button>
+      <button class="top-tab-btn active" data-top-tab="data-get">データ取得</button>
+      <button class="top-tab-btn" data-top-tab="data-convert">データ変換</button>
       <button class="top-tab-btn" data-top-tab="settings">設定</button>
     </div>
 
-    <div id="individual" class="top-tab-content">
+    <div id="data-convert" class="top-tab-content">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="auto">自動変換</button>
+        <button class="tab-btn" data-tab="individual">個別コンバータ</button>
+        <button class="tab-btn" data-tab="systems">関連システム</button>
+      </div>
+
+      <div id="individual" class="tab-content">
       <div class="tabs">
         <button class="tab-btn active" data-tab="mago">mago-3d-tiler</button>
         <button class="tab-btn" data-tab="py3dtiles">Py3DTiles</button>
@@ -643,7 +678,7 @@
       </div>
     </div>
 
-    <div id="auto" class="top-tab-content active">
+    <div id="auto" class="tab-content active">
       <div class="card">
         <h2>自動変換</h2>
         <p class="hint">入力パスを自動判別し、最適なコンバータを選択して変換します。</p>
@@ -746,7 +781,7 @@
       </div>
     </div>
 
-    <div id="systems" class="top-tab-content">
+    <div id="systems" class="tab-content">
       <div class="card">
         <h2>関連システム</h2>
         <p class="hint">ここで JDK など、変換に必要な外部ツールの状態を確認・インストールできます。</p>
@@ -863,6 +898,8 @@
       </div>
     </div>
 
+    </div>
+
     <div id="settings" class="top-tab-content">
       <div class="card">
         <h2>設定</h2>
@@ -884,11 +921,66 @@
       </div>
     </div>
 
+    <div id="data-get" class="top-tab-content active">
+      <div id="import" class="tab-content active">
+        <div class="card">
+        <p class="hint">CKAN カタログからデータセットを検索し、選択したリソースを <code id="importDirHint">C:\\kasugai\\data\\import</code> に保存します。</p>
+        <div class="tabs">
+          <button class="tab-btn active" data-import-tab="import-search">カタログ検索</button>
+          <button class="tab-btn" data-import-tab="import-results">検索結果</button>
+        </div>
+        <div id="import-search" class="tab-content active">
+          <div class="import-search-layout">
+            <div class="import-categories">
+              <strong>カテゴリで制限</strong>
+              <div id="importCategories" class="category-list">
+                <p class="hint">カタログを選択するとカテゴリが表示されます</p>
+              </div>
+            </div>
+            <div class="import-search-form">
+              <div class="grid">
+                <div class="full">
+                  <label for="importCatalog">カタログ</label>
+                  <select id="importCatalog"></select>
+                </div>
+                <div class="full">
+                  <label for="importQuery">検索語</label>
+                  <input type="text" id="importQuery" placeholder="例: 土地利用 境界 建物" />
+                </div>
+                <div>
+                  <label for="importFormatFilter">形式フィルタ（省略可）</label>
+                  <input type="text" id="importFormatFilter" placeholder="例: geojson, shp, las" />
+                </div>
+                <div>
+                  <label for="importRows">取得件数</label>
+                  <input type="number" id="importRows" value="20" min="1" max="100" />
+                </div>
+              </div>
+              <div class="actions">
+                <button type="button" id="importSearchBtn">検索</button>
+                <span id="importSearchStatus" class="status" style="display:none;"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="import-results" class="tab-content">
+        <div id="importResults" style="margin-top:1rem; max-height: 24rem; overflow-y: auto;"></div>
+
+        <div class="actions" style="margin-top:1rem;">
+          <button type="button" id="importDownloadBtn" disabled>選択リソースをダウンロード</button>
+          <button type="button" id="importConvertBtn" disabled>ダウンロード後に自動変換へ</button>
+        </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
     <div class="card">
       <div class="actions" style="margin-top:0; margin-bottom:0.75rem;">
         <span id="status" class="status">待機中</span>
       </div>
-      <pre id="log" class="log"></pre>
+      <pre id="log" class="log" style="display:none;"></pre>
     </div>
   </div>
 
@@ -910,9 +1002,22 @@
         document.querySelectorAll('.top-tab-content').forEach(c => c.classList.remove('active'));
         btn.classList.add('active');
         document.getElementById(target).classList.add('active');
-        if (target === 'systems') loadSystemEnv();
       });
     });
+
+    const convertTabBar = document.querySelector('#data-convert > .tabs');
+    if (convertTabBar) {
+      convertTabBar.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = btn.dataset.tab;
+          convertTabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          document.querySelectorAll('#data-convert > .tab-content').forEach(c => c.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById(target).classList.add('active');
+          if (target === 'systems') loadSystemEnv();
+        });
+      });
+    }
 
     document.getElementById('individual').querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -987,6 +1092,16 @@
       sel.addEventListener('change', updateAutoOutputFormat);
     });
     updateAutoOutputFormat();
+
+    document.getElementById('import').querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const importCard = document.getElementById('import');
+        importCard.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        importCard.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.importTab).classList.add('active');
+      });
+    });
 
     async function startJob(endpoint, payload, button) {
       button.disabled = true;
@@ -1392,14 +1507,16 @@
     document.getElementById('useJdkBtn').addEventListener('click', () => {
       if (currentJavaPath) {
         setValue('javaPath', currentJavaPath);
-        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('[data-top-tab="data-convert"]').click();
+        document.querySelector('#data-convert [data-tab="individual"]').click();
         document.querySelector('#individual [data-tab="mago"]').click();
       }
     });
     document.getElementById('useMagoBtn').addEventListener('click', () => {
       if (currentMagoPath) {
         setValue('jarPath', currentMagoPath);
-        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('[data-top-tab="data-convert"]').click();
+        document.querySelector('#data-convert [data-tab="individual"]').click();
         document.querySelector('#individual [data-tab="mago"]').click();
       }
     });
@@ -1427,14 +1544,16 @@
     document.getElementById('usePy3dtilesBtn').addEventListener('click', () => {
       if (currentPy3dtilesPath) {
         setValue('pyCommand', currentPy3dtilesPath);
-        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('[data-top-tab="data-convert"]').click();
+        document.querySelector('#data-convert [data-tab="individual"]').click();
         document.querySelector('#individual [data-tab="py3dtiles"]').click();
       }
     });
     document.getElementById('usePg2b3dmBtn').addEventListener('click', () => {
       if (currentPg2b3dmPath) {
         setValue('pgCommand', currentPg2b3dmPath);
-        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('[data-top-tab="data-convert"]').click();
+        document.querySelector('#data-convert [data-tab="individual"]').click();
         document.querySelector('#individual [data-tab="pg2b3dm"]').click();
       }
     });
@@ -1448,7 +1567,8 @@
     document.getElementById('useGocesiumtilerBtn').addEventListener('click', () => {
       if (currentGocesiumtilerPath) {
         setValue('gocesiumCommand', currentGocesiumtilerPath);
-        document.querySelector('[data-top-tab="individual"]').click();
+        document.querySelector('[data-top-tab="data-convert"]').click();
+        document.querySelector('#data-convert [data-tab="individual"]').click();
         document.querySelector('#individual [data-tab="gocesiumtiler"]').click();
       }
     });
@@ -1552,6 +1672,258 @@
         result.textContent = '更新確認に失敗しました: ' + e.message;
       }
     });
+
+    // オープンデータ取り込み
+    let currentImportResults = [];
+    let lastImportedDir = null;
+
+    function normalizeText(value) {
+      if (typeof value === 'string') return value;
+      if (value && typeof value === 'object') return Object.values(value).filter(v => v).join(' / ');
+      return '';
+    }
+
+    async function loadImportServers() {
+      const select = document.getElementById('importCatalog');
+      select.disabled = true;
+      try {
+        const res = await fetch('/api/import/servers');
+        if (!res.ok) throw new Error(await res.text());
+        const servers = await res.json();
+        select.innerHTML = '';
+        let firstApi3Index = -1;
+        for (let i = 0; i < servers.length; i++) {
+          const s = servers[i];
+          const url = s['url-api'] || s.url_api || s.url || '';
+          const opt = document.createElement('option');
+          opt.value = url;
+          opt.textContent = s.title + (s.country ? ` (${s.country})` : '');
+          opt.dataset.title = s.title;
+          select.appendChild(opt);
+          if (firstApi3Index < 0 && url.includes('/api/3/')) {
+            firstApi3Index = i;
+          }
+        }
+        if (firstApi3Index >= 0) {
+          select.selectedIndex = firstApi3Index;
+        }
+        select.disabled = false;
+        loadImportCategories();
+        select.addEventListener('change', loadImportCategories);
+      } catch (e) {
+        setStatus('カタログ取得エラー: ' + e.message, 'failed');
+      }
+    }
+
+    async function loadImportCategories() {
+      const select = document.getElementById('importCatalog');
+      const container = document.getElementById('importCategories');
+      const apiUrl = select.value;
+      if (!apiUrl) {
+        container.innerHTML = '<p class="hint">カタログを選択してください</p>';
+        return;
+      }
+      container.innerHTML = '<p class="hint">カテゴリ読み込み中...</p>';
+      try {
+        const res = await fetch(`/api/import/groups?api_url=${encodeURIComponent(apiUrl)}`);
+        if (!res.ok) throw new Error(await res.text());
+        const groups = await res.json();
+        if (!groups.length) {
+          container.innerHTML = '<p class="hint">カテゴリがありません</p>';
+          return;
+        }
+        container.innerHTML = '';
+        for (const g of groups) {
+          const label = document.createElement('label');
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.dataset.name = g.name;
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(g.title || g.name));
+          container.appendChild(label);
+        }
+      } catch (e) {
+        container.innerHTML = '<p class="hint">カテゴリ取得に失敗しました: ' + e.message + '</p>';
+      }
+    }
+
+    function getImportGroups() {
+      return [...document.querySelectorAll('#importCategories input[type="checkbox"]:checked')].map(cb => cb.dataset.name).filter(Boolean);
+    }
+
+    function formatFilterMatch(resource, filterText) {
+      if (!filterText) return true;
+      const fmt = (resource.format || '').toLowerCase();
+      return filterText.split(/[,\s]+/).some(f => f && fmt.includes(f.toLowerCase()));
+    }
+
+    function renderImportResults(data) {
+      const container = document.getElementById('importResults');
+      const filter = getValue('importFormatFilter');
+      container.innerHTML = '';
+      currentImportResults = data.results || [];
+
+      if (!currentImportResults.length) {
+        container.innerHTML = '<p class="hint">該当するデータセットがありません。</p>';
+        document.getElementById('importDownloadBtn').disabled = true;
+        return;
+      }
+
+      const countEl = document.createElement('p');
+      countEl.className = 'hint';
+      countEl.textContent = `全 ${data.count || 0} 件ヒット`;
+      container.appendChild(countEl);
+
+      const wrap = document.createElement('div');
+      wrap.style.display = 'flex';
+      wrap.style.flexDirection = 'column';
+      wrap.style.gap = '0.75rem';
+
+      for (const pkg of currentImportResults) {
+        const title = normalizeText(pkg.title) || pkg.name || '(no title)';
+        const notes = normalizeText(pkg.notes) || '';
+        const resources = (pkg.resources || []).filter(r => formatFilterMatch(r, filter));
+        if (!resources.length) continue;
+
+        const card = document.createElement('div');
+        card.style.border = '1px solid var(--border)';
+        card.style.borderRadius = '0.5rem';
+        card.style.padding = '0.75rem';
+
+        const heading = document.createElement('strong');
+        heading.textContent = title;
+        card.appendChild(heading);
+
+        if (notes) {
+          const p = document.createElement('p');
+          p.className = 'hint';
+          p.style.marginTop = '0.25rem';
+          p.textContent = notes.slice(0, 200);
+          card.appendChild(p);
+        }
+
+        const list = document.createElement('ul');
+        list.style.listStyle = 'none';
+        list.style.padding = '0';
+        list.style.margin = '0.5rem 0 0';
+        list.style.display = 'flex';
+        list.style.flexDirection = 'column';
+        list.style.gap = '0.35rem';
+
+        for (const r of resources) {
+          const li = document.createElement('li');
+          const label = document.createElement('label');
+          label.style.display = 'flex';
+          label.style.alignItems = 'center';
+          label.style.gap = '0.5rem';
+
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.dataset.url = r.url || '';
+          cb.dataset.name = r.name || '';
+          cb.dataset.format = r.format || '';
+          cb.addEventListener('change', updateImportSelection);
+
+          const fmt = (r.format || 'no format').toUpperCase();
+          const url = r.url || '(no url)';
+          const text = `${fmt}: ${url}`;
+          label.appendChild(cb);
+          label.appendChild(document.createTextNode(text));
+          li.appendChild(label);
+          list.appendChild(li);
+        }
+
+        card.appendChild(list);
+        wrap.appendChild(card);
+      }
+
+      container.appendChild(wrap);
+      document.getElementById('importDownloadBtn').disabled = true;
+    }
+
+    function updateImportSelection() {
+      const checked = document.querySelectorAll('#importResults input[type="checkbox"]:checked').length;
+      document.getElementById('importDownloadBtn').disabled = checked === 0;
+      document.getElementById('importConvertBtn').disabled = true;
+    }
+
+    document.getElementById('importSearchBtn').addEventListener('click', async () => {
+      const apiUrl = document.getElementById('importCatalog').value;
+      const query = getValue('importQuery');
+      const rows = parseInt(getValue('importRows'), 10) || 20;
+      const status = document.getElementById('importSearchStatus');
+      const btn = document.getElementById('importSearchBtn');
+      btn.disabled = true;
+      status.style.display = 'inline-block';
+      status.textContent = '検索中...';
+      status.className = 'status running';
+      try {
+        const res = await fetch('/api/import/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_url: apiUrl, query: query, rows: rows, groups: getImportGroups() }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        status.textContent = `${data.count} 件ヒット`;
+        status.className = 'status completed';
+        renderImportResults(data);
+        document.querySelector('#import .tab-btn[data-import-tab="import-results"]').click();
+      } catch (e) {
+        status.textContent = 'エラー';
+        status.className = 'status failed';
+        setStatus('検索エラー: ' + e.message, 'failed');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('importDownloadBtn').addEventListener('click', async () => {
+      const checked = document.querySelectorAll('#importResults input[type="checkbox"]:checked');
+      const items = [];
+      for (const cb of checked) {
+        const url = cb.dataset.url;
+        const name = cb.dataset.name;
+        const format = cb.dataset.format;
+        if (!url) continue;
+        const filename = name ? `${name}.${format || 'bin'}`.replace(/[<>:\"\/\\\\|?*%#]/g, '_') : undefined;
+        items.push({ url: url, filename: filename });
+      }
+
+      const btn = document.getElementById('importDownloadBtn');
+      btn.disabled = true;
+      setStatus('ダウンロード中...', 'running');
+      logEl.textContent = '';
+
+      try {
+        const res = await fetch('/api/import/download', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: items }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        lastImportedDir = data.imported_dir;
+        logEl.textContent = data.results.map(r => `${r.status === 'ok' ? 'OK' : 'NG'}: ${r.path}`).join('\n');
+        setStatus('ダウンロード完了', 'completed');
+        document.getElementById('importConvertBtn').disabled = false;
+        setValue('autoInput', lastImportedDir);
+      } catch (e) {
+        setStatus('ダウンロードエラー: ' + e.message, 'failed');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    document.getElementById('importConvertBtn').addEventListener('click', () => {
+      if (!lastImportedDir) return;
+      setValue('autoInput', lastImportedDir);
+      document.querySelector('[data-top-tab="data-convert"]').click();
+      document.querySelector('#data-convert [data-tab="auto"]').click();
+      document.getElementById('autoRunBtn').click();
+    });
+
+    loadImportServers();
   </script>
 </body>
 </html>
