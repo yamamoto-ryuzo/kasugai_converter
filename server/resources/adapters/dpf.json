@@ -2,7 +2,7 @@
   "name": "mlit-dpf",
   "type": "graphql",
   "endpoint": "https://data-platform.mlit.go.jp/api/v1/",
-  "search_query": "query { search(term: \"{{term}}\", first: {{start}}, size: {{rows}}) { totalNumber searchResults { {{fields}} } } }",
+  "search_query": "query { search(term: \"{{term}}\", first: {{start}}, size: {{rows}}{{attribute_filter}}) { totalNumber searchResults { {{fields}} } } }",
   "search_fields": "id title lat lon year theme metadata dataset_id catalog_id hasThumbnail files { id original_path }",
   "count_json_path": "data.search.totalNumber",
   "results_json_path": "data.search.searchResults",

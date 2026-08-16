@@ -91,6 +91,15 @@ cargo run
 - **3d-tiles-tools** … `npm install -g 3d-tiles-tools`（Node.js が必要）
 - **gltf-pipeline** … `npm install -g gltf-pipeline`（Node.js が必要）
 
+## 更新履歴
+
+### v0.3.0
+
+- DPF（国土交通データプラットフォーム）検索で `Catalog ID` をカテゴリで絞り込めるようになりました
+- 選択リソースのダウンロード先を `C:\kasugai\data\import\カタログ名\データセット名\` の階層で保存するようになりました
+- ダウンロード後に保存先フォルダーをエクスプローラーで開くボタンを追加
+- DPF API キーの前後空白をトリムするよう修正
+
 ## リリースビルド
 
 ```powershell

@@ -1163,7 +1163,7 @@
                   <input type="number" id="importPageSize" value="20" min="1" max="100" />
                 </div>
                 <div class="full">
-                  <label>形式フィルタ（省略可）</label>
+                  <label>形式フィルタ（省略可：全件検索）</label>
                   <div class="format-filter-tabs">
                     <button class="format-filter-tab active" data-format-tab="filter-doc" type="button">文章</button>
                     <button class="format-filter-tab" data-format-tab="filter-raster" type="button">ラスター</button>
@@ -1299,6 +1299,7 @@
 
           <div class="actions" style="margin-top:1rem;">
             <button type="button" id="importDownloadBtn" disabled>選択リソースをダウンロード</button>
+            <button type="button" id="importOpenDirBtn" disabled>ダウンロード先を開く</button>
             <button type="button" id="importConvertBtn" disabled>ダウンロード後に自動変換へ</button>
           </div>
         </div>
@@ -2139,7 +2140,13 @@
       }
       container.innerHTML = '<p class="hint">カテゴリ読み込み中...</p>';
       try {
-        const res = await fetch(`/api/import/groups?api_url=${encodeURIComponent(apiUrl)}`);
+        let res;
+        if (currentCatalogType === 'dpf') {
+          const apiKey = getValue('importApiKey');
+          res = await fetch(`/api/import/groups?api_url=${encodeURIComponent(apiUrl)}&catalog_type=dpf&api_key=${encodeURIComponent(apiKey)}`);
+        } else {
+          res = await fetch(`/api/import/groups?api_url=${encodeURIComponent(apiUrl)}`);
+        }
         if (!res.ok) throw new Error(await res.text());
         const groups = await res.json();
         if (!groups.length) {
@@ -2307,6 +2314,10 @@
       }
 
       const title = normalizeText(pkg.title) || pkg.name || '(no title)';
+      const datasetTitle = title;
+      const selectedUrl = document.getElementById('importCatalog').value;
+      const catalogServer = allImportServers.find(s => (s['url-api'] || s.url_api || s.url || '') === selectedUrl);
+      const catalogTitle = catalogServer?.title || '';
       const notes = normalizeText(pkg.notes || pkg.metadata) || '';
       const org = getOrganizationName(pkg.organization);
       const author = normalizeText(pkg.author) || '';
@@ -2366,7 +2377,7 @@
           cb.addEventListener('change', (e) => {
             e.stopPropagation();
             if (cb.checked) {
-              selectedResourcesByUrl.set(r.url, { url: r.url, name: r.name, format: r.format });
+              selectedResourcesByUrl.set(r.url, { url: r.url, name: r.name, format: r.format, catalogTitle, datasetTitle });
             } else {
               selectedResourcesByUrl.delete(r.url);
             }
@@ -2414,7 +2425,7 @@
       selectAll.textContent = 'すべて選択';
       selectAll.addEventListener('click', () => {
         for (const r of resources) {
-          if (r.url) selectedResourcesByUrl.set(r.url, { url: r.url, name: r.name, format: r.format });
+          if (r.url) selectedResourcesByUrl.set(r.url, { url: r.url, name: r.name, format: r.format, catalogTitle, datasetTitle });
         }
         renderImportPage();
       });
@@ -2557,7 +2568,7 @@
         const format = cb.format;
         if (!url) continue;
         const filename = name ? `${name}.${format || 'bin'}`.replace(/[<>:\"\/\\\\|?*%#]/g, '_') : undefined;
-        items.push({ url: url, filename: filename });
+        items.push({ url: url, filename: filename, catalog_title: cb.catalogTitle || '', dataset_title: cb.datasetTitle || '' });
       }
 
       const btn = document.getElementById('importDownloadBtn');
@@ -2577,6 +2588,7 @@
         logEl.textContent = data.results.map(r => `${r.status === 'ok' ? 'OK' : 'NG'}: ${r.path}`).join('\n');
         setStatus('ダウンロード完了', 'completed');
         document.getElementById('importConvertBtn').disabled = false;
+        document.getElementById('importOpenDirBtn').disabled = false;
         setValue('autoInput', lastImportedDir);
       } catch (e) {
         setStatus('ダウンロードエラー: ' + e.message, 'failed');
@@ -2591,6 +2603,20 @@
       document.querySelector('[data-top-tab="data-convert"]').click();
       document.querySelector('#data-convert [data-tab="auto"]').click();
       document.getElementById('autoRunBtn').click();
+    });
+
+    document.getElementById('importOpenDirBtn').addEventListener('click', async () => {
+      if (!lastImportedDir) return;
+      try {
+        const res = await fetch('/api/open-folder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: lastImportedDir }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+      } catch (e) {
+        setStatus('フォルダを開けません: ' + e.message, 'failed');
+      }
     });
 
     document.querySelectorAll('#importCatalogTabs .catalog-tab').forEach(btn => {

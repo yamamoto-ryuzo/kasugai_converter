@@ -60,6 +60,7 @@ pub struct GroupsRequest {
     pub api_url: String,
     #[serde(default)]
     pub catalog_type: String,
+    pub api_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -72,6 +73,8 @@ pub struct GroupInfo {
 pub struct DownloadItem {
     pub url: String,
     pub filename: Option<String>,
+    pub catalog_title: Option<String>,
+    pub dataset_title: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -99,12 +102,6 @@ fn http_client() -> reqwest::Client {
         "User-Agent",
         reqwest::header::HeaderValue::from_static(
             "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/50.0.2661.102 Safari/537.36",
-        ),
-    );
-    headers.insert(
-        "Accept",
-        reqwest::header::HeaderValue::from_static(
-            "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         ),
     );
     headers.insert(
@@ -229,11 +226,13 @@ async fn load_instances() -> Result<Vec<CatalogInstance>, String> {
 
 fn dpf_api_key(req_key: Option<&str>) -> Result<String, String> {
     if let Some(k) = req_key {
+        let k = k.trim();
         if !k.is_empty() {
             return Ok(k.to_string());
         }
     }
     std::env::var("MLIT_DPF_API_KEY")
+        .map(|v| v.trim().to_string())
         .map_err(|_| "MLIT_DPF_API_KEY 環境変数が必要です".to_string())
 }
 
@@ -284,6 +283,22 @@ fn map_dpf_result(result: &Value, field_map: &HashMap<String, String>) -> Value 
     Value::Object(out)
 }
 
+fn dpf_catalog_filter(groups: &[String]) -> String {
+    if groups.is_empty() {
+        return String::new();
+    }
+    let parts: Vec<String> = groups
+        .iter()
+        .map(|id| {
+            let escaped = id.replace('"', "\\\"");
+            format!(r#"{{ attributeName: "DPF:catalog_id", is: "{escaped}" }}"#)
+        })
+        .collect();
+    format!(", attributeFilter: {{ OR: [ {} ] }}",
+        parts.join(", ")
+    )
+}
+
 async fn dpf_search(req: SearchRequest) -> impl IntoResponse {
     let adapter = match load_dpf_adapter().await {
         Ok(a) => a,
@@ -308,11 +323,13 @@ async fn dpf_search(req: SearchRequest) -> impl IntoResponse {
     let term = req.query.trim();
     let escaped_term = term.replace('"', "\\\"");
 
+    let attr_filter = dpf_catalog_filter(req.groups.as_deref().unwrap_or(&[]));
     let graph_query = adapter
         .search_query
         .replace("{{term}}", &escaped_term)
         .replace("{{start}}", &start.to_string())
         .replace("{{rows}}", &rows.to_string())
+        .replace("{{attribute_filter}}", &attr_filter)
         .replace("{{fields}}", &adapter.search_fields);
     let payload = serde_json::json!({ "query": graph_query });
 
@@ -395,8 +412,8 @@ pub async fn dpf_download_urls_handler(Json(req): Json<DpfDownloadUrlsRequest>) 
     if !api_url.ends_with('/') {
         api_url.push('/');
     }
-    let api_key = if !req.api_key.is_empty() {
-        req.api_key
+    let api_key = if !req.api_key.trim().is_empty() {
+        req.api_key.trim().to_string()
     } else {
         match dpf_api_key(None) {
             Ok(k) => k,
@@ -597,9 +614,66 @@ async fn ckan_search(req: SearchRequest) -> impl IntoResponse {
     }
 }
 
+async fn dpf_catalogs(api_url: &str, api_key: Option<&str>) -> Result<Vec<GroupInfo>, String> {
+    let api_key = dpf_api_key(api_key)?;
+    let mut url = api_url.trim().to_string();
+    if url.is_empty() {
+        url = "https://data-platform.mlit.go.jp/api/v1/".to_string();
+    }
+    if !url.ends_with('/') {
+        url.push('/');
+    }
+
+    let client = http_client();
+    let query = r#"query { dataCatalog(IDs: null) { id title } }"#;
+    let payload = serde_json::json!({ "query": query });
+
+    match client
+        .post(&url)
+        .header("apikey", &api_key)
+        .header("Accept", "application/json")
+        .json(&payload)
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().is_success() => match resp.json::<Value>().await {
+            Ok(json) => {
+                if let Some(errors) = json.get("errors") {
+                    return Err(format!("DPF GraphQL エラー: {}", errors));
+                }
+                let list = json
+                    .get("data")
+                    .and_then(|d| d.get("dataCatalog"))
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default();
+                let groups: Vec<GroupInfo> = list
+                    .iter()
+                    .filter_map(|v| {
+                        let name = v.get("id")?.as_str()?.to_string();
+                        let title = v
+                            .get("title")
+                            .and_then(Value::as_str)
+                            .unwrap_or(&name)
+                            .to_string();
+                        Some(GroupInfo { name, title })
+                    })
+                    .collect();
+                Ok(groups)
+            }
+            Err(e) => Err(format!("JSON パースエラー: {}", e)),
+        },
+        Ok(resp) => Err(format!("DPF サーバーエラー: {}", resp.status())),
+        Err(e) => Err(format!("リクエストエラー: {}", e)),
+    }
+}
+
 pub async fn groups_handler(Query(req): Query<GroupsRequest>) -> impl IntoResponse {
     if is_dpf_url(&req.api_url) || req.catalog_type == "dpf" {
-        return Json(Vec::<GroupInfo>::new()).into_response();
+        return match dpf_catalogs(&req.api_url, req.api_key.as_deref()).await {
+            Ok(groups) => Json(groups).into_response(),
+            Err(e) => (StatusCode::BAD_GATEWAY, e).into_response(),
+        };
     }
     let api_url = match validate_ckan_url(&req.api_url) {
         Ok(u) => u,
@@ -699,7 +773,29 @@ pub async fn download_handler(Json(req): Json<DownloadRequest>) -> impl IntoResp
             })
             .unwrap_or_else(|| filename_from_url(url, idx));
         let safe = sanitize_filename(&filename);
-        let path = base_dir.join(&safe);
+
+        let catalog = item
+            .catalog_title
+            .as_deref()
+            .map(sanitize_filename)
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "default".to_string());
+        let dataset = item
+            .dataset_title
+            .as_deref()
+            .map(sanitize_filename)
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "default".to_string());
+        let dir = base_dir.join(&catalog).join(&dataset);
+        if let Err(e) = tokio::fs::create_dir_all(&dir).await {
+            results.push(DownloadResult {
+                url: url.to_string(),
+                path: "".to_string(),
+                status: format!("フォルダ作成エラー: {}", e),
+            });
+            continue;
+        }
+        let path = dir.join(&safe);
 
         let status = match client.get(url).send().await {
             Ok(resp) if resp.status().is_success() => match resp.bytes().await {
