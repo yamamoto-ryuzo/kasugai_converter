@@ -1009,6 +1009,10 @@
                   <label for="importQuery">検索語</label>
                   <input type="text" id="importQuery" placeholder="例: 土地利用 境界 建物" />
                 </div>
+                <div>
+                  <label for="importPageSize">表示件数</label>
+                  <input type="number" id="importPageSize" value="20" min="1" max="100" />
+                </div>
                 <div class="full">
                   <label>形式フィルタ（省略可）</label>
                   <div class="format-filter-tabs">
@@ -1845,8 +1849,8 @@
     let currentImportStart = 0;
     let currentImportCount = 0;
     let currentDisplayStart = 0;
-    const IMPORT_PAGE_SIZE = 100;
-    const IMPORT_FETCH_SIZE = 200;
+    let currentPageSize = 20;
+    const IMPORT_FETCH_SIZE = 100;
     let importSearchController = null;
     let lastImportedDir = null;
 
@@ -1970,7 +1974,7 @@
       container.innerHTML = '';
       pagination.innerHTML = '';
 
-      const pageItems = currentImportResults.slice(currentDisplayStart, currentDisplayStart + IMPORT_PAGE_SIZE);
+      const pageItems = currentImportResults.slice(currentDisplayStart, currentDisplayStart + currentPageSize);
 
       let displayedCount = 0;
       const wrap = document.createElement('div');
@@ -2060,12 +2064,12 @@
       const prevBtn = document.createElement('button');
       prevBtn.type = 'button';
       prevBtn.textContent = '前へ';
-      const hasPrevPage = currentDisplayStart >= IMPORT_PAGE_SIZE;
+      const hasPrevPage = currentDisplayStart >= currentPageSize;
       const hasPrevChunk = currentImportStart >= IMPORT_FETCH_SIZE;
       prevBtn.disabled = !hasPrevPage && !hasPrevChunk;
       prevBtn.addEventListener('click', () => {
         if (hasPrevPage) {
-          currentDisplayStart -= IMPORT_PAGE_SIZE;
+          currentDisplayStart -= currentPageSize;
           renderImportPage();
         } else if (hasPrevChunk) {
           doImportSearch(currentImportStart - IMPORT_FETCH_SIZE, 'last');
@@ -2075,12 +2079,12 @@
       const nextBtn = document.createElement('button');
       nextBtn.type = 'button';
       nextBtn.textContent = '次へ';
-      const hasNextPage = currentDisplayStart + IMPORT_PAGE_SIZE < currentImportResults.length;
+      const hasNextPage = currentDisplayStart + currentPageSize < currentImportResults.length;
       const hasNextChunk = currentImportStart + currentImportResults.length < currentImportCount;
       nextBtn.disabled = !hasNextPage && !hasNextChunk;
       nextBtn.addEventListener('click', () => {
         if (hasNextPage) {
-          currentDisplayStart += IMPORT_PAGE_SIZE;
+          currentDisplayStart += currentPageSize;
           renderImportPage();
         } else if (hasNextChunk) {
           doImportSearch(currentImportStart + IMPORT_FETCH_SIZE, 0);
@@ -2101,6 +2105,7 @@
 
     function resetImportSearch() {
       setValue('importQuery', '');
+      setValue('importPageSize', '20');
       document.querySelectorAll('#importCategories input[type="checkbox"]').forEach(cb => cb.checked = false);
       document.querySelectorAll('.format-filter-options input[type="checkbox"]').forEach(cb => cb.checked = false);
       document.querySelectorAll('.format-filter-custom').forEach(input => input.value = '');
@@ -2115,6 +2120,7 @@
       currentImportStart = 0;
       currentImportCount = 0;
       currentDisplayStart = 0;
+      currentPageSize = 20;
       lastImportedDir = null;
       document.querySelector('#import .tab-btn[data-import-tab="import-search"]').click();
     }
@@ -2126,6 +2132,8 @@
       document.getElementById('importPagination').innerHTML = '';
       const apiUrl = document.getElementById('importCatalog').value;
       const query = getValue('importQuery');
+      const pageSizeInput = parseInt(getValue('importPageSize') || '20', 10);
+      currentPageSize = Math.max(1, Math.min(100, isNaN(pageSizeInput) ? 20 : pageSizeInput));
       const status = document.getElementById('importSearchStatus');
       const btn = document.getElementById('importSearchBtn');
       const cancelBtn = document.getElementById('importCancelBtn');
@@ -2152,7 +2160,7 @@
         status.textContent = `${currentImportCount} 件中 ${resultStart}〜${resultEnd} 件を取得`;
         status.className = 'status completed';
         if (displayStart === 'last') {
-          currentDisplayStart = Math.max(0, currentImportResults.length - IMPORT_PAGE_SIZE);
+          currentDisplayStart = Math.max(0, currentImportResults.length - currentPageSize);
         } else if (typeof displayStart === 'number') {
           currentDisplayStart = Math.max(0, displayStart);
         }
