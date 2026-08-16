@@ -378,6 +378,29 @@
       margin-top: 0.75rem;
     }
 
+    .import-catalog-tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+      border-bottom: 2px solid var(--border);
+    }
+    .import-catalog-tabs .catalog-tab {
+      background: #e5e7eb;
+      color: #374151;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem 0.5rem 0 0;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    .import-catalog-tabs .catalog-tab:hover { background: #d1d5db; }
+    .import-catalog-tabs .catalog-tab.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
     @media (max-width: 640px) {
       .grid { grid-template-columns: 1fr; }
       .import-search-layout { grid-template-columns: 1fr; }
@@ -1117,8 +1140,19 @@
             <div class="import-search-form">
               <div class="grid">
                 <div class="full">
-                  <label for="importCatalog">カタログ</label>
+                  <div class="import-catalog-tabs" id="importCatalogTabs">
+                    <button type="button" class="catalog-tab active" data-catalog-type="ckan">CKAN</button>
+                    <button type="button" class="catalog-tab" data-catalog-type="dpf">GraphQL API (DPF)</button>
+                  </div>
+                  <label for="importCatalog" style="display:none;">カタログ</label>
                   <select id="importCatalog"></select>
+                  <div class="full" id="importApiKeyWrap" style="display:none; margin-top:0.5rem;">
+                    <label for="importApiKey">DPF API キー</label>
+                    <input type="text" id="importApiKey" placeholder="必要な場合のみ入力" />
+                    <p class="hint">
+                      API キーは <a href="https://data-platform.mlit.go.jp/api_docs/usage/createAccount.html" target="_blank">国土交通データプラットフォーム アカウント作成</a> から取得できます。
+                    </p>
+                  </div>
                 </div>
                 <div class="full">
                   <label for="importQuery">検索語</label>
@@ -1975,6 +2009,8 @@
     let currentPageSize = 20;
     const IMPORT_FETCH_SIZE = 100;
     let importSearchController = null;
+    let allImportServers = [];
+    let currentCatalogType = 'ckan';
     let lastImportedDir = null;
     let selectedImportPkgIndex = -1;
     let selectedResourcesByUrl = new Map();
@@ -2034,33 +2070,60 @@
       return '';
     }
 
-    async function loadImportServers() {
+    function renderCatalogSelect(type) {
       const select = document.getElementById('importCatalog');
-      select.disabled = true;
+      select.innerHTML = '';
+      let firstIndex = -1;
+      const filtered = allImportServers.filter(s =>
+        (type === 'dpf') ? (s.catalog_type || s.type) === 'dpf' : (s.catalog_type || s.type) !== 'dpf'
+      );
+      for (let i = 0; i < filtered.length; i++) {
+        const s = filtered[i];
+        const url = s['url-api'] || s.url_api || s.url || '';
+        const opt = document.createElement('option');
+        opt.value = url;
+        opt.textContent = s.title + (s.country ? ` (${s.country})` : '');
+        opt.dataset.title = s.title;
+        opt.dataset.catalogType = s.catalog_type || s.type || '';
+        select.appendChild(opt);
+        if (firstIndex < 0 && (type === 'dpf' || url.includes('/api/3/'))) {
+          firstIndex = i;
+        }
+      }
+      select.selectedIndex = firstIndex >= 0 ? firstIndex : 0;
+      select.disabled = filtered.length === 0;
+      loadImportCategories();
+      updateCatalogUi();
+    }
+
+    function updateCatalogUi() {
+      const wrap = document.getElementById('importApiKeyWrap');
+      const input = document.getElementById('importApiKey');
+      if (wrap && input) {
+        if (currentCatalogType === 'dpf') {
+          wrap.style.display = '';
+          input.value = localStorage.getItem('mlit_dpf_api_key') || '';
+        } else {
+          wrap.style.display = 'none';
+        }
+      }
+    }
+
+    function updateCatalogTabs() {
+      document.querySelectorAll('#importCatalogTabs .catalog-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.catalogType === currentCatalogType);
+      });
+    }
+
+    async function loadImportServers() {
       try {
         const res = await fetch('/api/import/servers');
         if (!res.ok) throw new Error(await res.text());
-        const servers = await res.json();
-        select.innerHTML = '';
-        let firstApi3Index = -1;
-        for (let i = 0; i < servers.length; i++) {
-          const s = servers[i];
-          const url = s['url-api'] || s.url_api || s.url || '';
-          const opt = document.createElement('option');
-          opt.value = url;
-          opt.textContent = s.title + (s.country ? ` (${s.country})` : '');
-          opt.dataset.title = s.title;
-          select.appendChild(opt);
-          if (firstApi3Index < 0 && url.includes('/api/3/')) {
-            firstApi3Index = i;
-          }
-        }
-        if (firstApi3Index >= 0) {
-          select.selectedIndex = firstApi3Index;
-        }
-        select.disabled = false;
-        loadImportCategories();
-        select.addEventListener('change', loadImportCategories);
+        allImportServers = await res.json();
+        currentCatalogType = 'ckan';
+        updateCatalogTabs();
+        renderCatalogSelect(currentCatalogType);
+        document.getElementById('importCatalog').onchange = loadImportCategories;
       } catch (e) {
         setStatus('カタログ取得エラー: ' + e.message, 'failed');
       }
@@ -2112,13 +2175,13 @@
       pagination.innerHTML = '';
 
       const pageItems = currentImportResults.slice(currentDisplayStart, currentDisplayStart + currentPageSize);
-      const totalResources = currentImportResults.reduce((sum, p) => sum + ((p.resources || []).length), 0);
+      const totalResources = currentImportResults.reduce((sum, p) => sum + (((p.files || p.resources) || []).length), 0);
       header.textContent = `データセット:${currentImportResults.length}件 / データ:${totalResources}件`;
 
       if (pageItems.length) {
         for (const [i, pkg] of pageItems.entries()) {
           const title = normalizeText(pkg.title) || pkg.name || '(no title)';
-          const resources = pkg.resources || [];
+          const resources = (pkg.files || pkg.resources) || [];
           const item = document.createElement('div');
           item.className = 'import-result-item' + (selectedImportPkgIndex === currentDisplayStart + i ? ' active' : '');
 
@@ -2203,14 +2266,48 @@
       updateImportSelection();
     }
 
+    async function loadDpfResources(pkg, container) {
+      const apiUrl = document.getElementById('importCatalog').value;
+      const apiKey = getValue('importApiKey');
+      if (!apiKey) {
+        container.innerHTML = '<div class="import-empty">DPF API キーが必要です。</div>';
+        return;
+      }
+      try {
+        const res = await fetch('/api/import/dpf/download-urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ api_url: apiUrl, api_key: apiKey, files: pkg.files }),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const urls = await res.json();
+        const urlMap = new Map(urls.map(u => [u.ID, u.URL]));
+        pkg.resources = pkg.files.map(f => {
+          const name = f.original_path ? f.original_path.split('/').pop() : f.id;
+          const ext = (name.split('.').pop() || '').toLowerCase();
+          const url = urlMap.get(f.id) || '';
+          return { name, format: ext, url };
+        });
+        renderImportDetail(pkg, container);
+      } catch (e) {
+        container.innerHTML = '<div class="import-empty">リソースURL取得に失敗しました: ' + e.message + '</div>';
+      }
+    }
+
     function renderImportDetail(pkg, container) {
       if (!pkg) {
         container.innerHTML = '<div class="import-empty">データセットを選択すると詳細が表示されます。</div>';
         return;
       }
 
+      if (pkg.files && !pkg.resources) {
+        container.innerHTML = '<div class="import-empty">ダウンロードURLを取得中...</div>';
+        loadDpfResources(pkg, container);
+        return;
+      }
+
       const title = normalizeText(pkg.title) || pkg.name || '(no title)';
-      const notes = normalizeText(pkg.notes) || '';
+      const notes = normalizeText(pkg.notes || pkg.metadata) || '';
       const org = getOrganizationName(pkg.organization);
       const author = normalizeText(pkg.author) || '';
       const maintainer = normalizeText(pkg.maintainer) || '';
@@ -2228,6 +2325,9 @@
       if (author) dl.appendChild(makeDescRow('Author', author));
       if (maintainer) dl.appendChild(makeDescRow('Maintainer', maintainer));
       if (license) dl.appendChild(makeDescRow('License', license));
+      if (pkg.dataset_id) dl.appendChild(makeDescRow('Dataset ID', pkg.dataset_id));
+      if (pkg.catalog_id) dl.appendChild(makeDescRow('Catalog ID', pkg.catalog_id));
+      if (pkg.year) dl.appendChild(makeDescRow('Year', pkg.year));
       desc.appendChild(dl);
 
       if (notes) {
@@ -2401,11 +2501,16 @@
       status.textContent = '検索中...';
       status.className = 'status running';
       try {
+        const selectedCatalog = document.getElementById('importCatalog').selectedOptions[0];
+      const apiKey = currentCatalogType === 'dpf' ? getValue('importApiKey') : '';
+      if (currentCatalogType === 'dpf') {
+        localStorage.setItem('mlit_dpf_api_key', apiKey);
+      }
         const res = await fetch('/api/import/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal,
-          body: JSON.stringify({ api_url: apiUrl, query: query, rows: IMPORT_FETCH_SIZE, start: start, groups: getImportGroups(), formats: getValue('importFormatFilter') || undefined }),
+          body: JSON.stringify({ api_url: apiUrl, query: query, rows: IMPORT_FETCH_SIZE, start: start, groups: getImportGroups(), formats: getValue('importFormatFilter') || undefined, catalog_type: selectedCatalog.dataset.catalogType, api_key: apiKey || undefined }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
@@ -2486,6 +2591,15 @@
       document.querySelector('[data-top-tab="data-convert"]').click();
       document.querySelector('#data-convert [data-tab="auto"]').click();
       document.getElementById('autoRunBtn').click();
+    });
+
+    document.querySelectorAll('#importCatalogTabs .catalog-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentCatalogType = btn.dataset.catalogType;
+        updateCatalogTabs();
+        renderCatalogSelect(currentCatalogType);
+        resetImportSearch();
+      });
     });
 
     loadImportServers();

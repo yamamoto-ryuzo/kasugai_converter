@@ -192,6 +192,7 @@ async fn main() {
         .route("/import/search", post(import::search_handler))
         .route("/import/groups", get(import::groups_handler))
         .route("/import/download", post(import::download_handler))
+        .route("/import/dpf/download-urls", post(import::dpf_download_urls_handler))
         .with_state(state);
 
     let app = Router::new()

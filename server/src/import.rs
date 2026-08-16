@@ -2,6 +2,7 @@ use axum::{extract::Query, response::IntoResponse, Json};
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::io::AsyncWriteExt;
@@ -10,6 +11,11 @@ use tokio::time::timeout;
 const DEFAULT_IMPORT_DIR: &str = r"C:\kasugai\data\import";
 const CONNECTION_TIMEOUT: Duration = Duration::from_secs(5);
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
+
+fn is_dpf_url(url: &str) -> bool {
+    let u = url.to_lowercase();
+    u.contains("data-platform.mlit.go.jp") || u.contains("mlit-data.jp")
+}
 
 const INSTANCE_SOURCES: &[&str] = &[
     "https://raw.githubusercontent.com/yamamoto-ryuzo/geo_import/main/resources/instances/instances.json",
@@ -36,6 +42,9 @@ pub struct SearchRequest {
     pub start: Option<i64>,
     pub groups: Option<Vec<String>>,
     pub formats: Option<String>,
+    #[serde(default)]
+    pub catalog_type: String,
+    pub api_key: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -49,6 +58,8 @@ pub struct SearchResponse {
 #[derive(Debug, Deserialize)]
 pub struct GroupsRequest {
     pub api_url: String,
+    #[serde(default)]
+    pub catalog_type: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -198,6 +209,17 @@ async fn load_instances() -> Result<Vec<CatalogInstance>, String> {
         }
     }
 
+    if !servers.iter().any(|s| s.catalog_type == "dpf") {
+        servers.push(CatalogInstance {
+            title: "国土交通データプラットフォーム".to_string(),
+            url: "https://data-platform.mlit.go.jp/".to_string(),
+            url_api: "https://data-platform.mlit.go.jp/api/v1/".to_string(),
+            catalog_type: "dpf".to_string(),
+            country: Some("JP".to_string()),
+            description: Some("国土交通省 DPF（GraphQL）".to_string()),
+        });
+    }
+
     if servers.is_empty() {
         return Err("CKAN カタログ一覧を取得できませんでした".to_string());
     }
@@ -205,7 +227,252 @@ async fn load_instances() -> Result<Vec<CatalogInstance>, String> {
     Ok(servers)
 }
 
-pub async fn search_handler(Json(req): Json<SearchRequest>) -> impl IntoResponse {
+fn dpf_api_key(req_key: Option<&str>) -> Result<String, String> {
+    if let Some(k) = req_key {
+        if !k.is_empty() {
+            return Ok(k.to_string());
+        }
+    }
+    std::env::var("MLIT_DPF_API_KEY")
+        .map_err(|_| "MLIT_DPF_API_KEY 環境変数が必要です".to_string())
+}
+
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct DpfAdapter {
+    name: String,
+    #[serde(rename = "type")]
+    adapter_type: String,
+    endpoint: String,
+    search_query: String,
+    search_fields: String,
+    count_json_path: String,
+    results_json_path: String,
+    field_map: HashMap<String, String>,
+    download_query: String,
+    download_url_json_path: String,
+}
+
+async fn load_dpf_adapter() -> Result<DpfAdapter, String> {
+    let path = std::path::Path::new("resources/adapters/dpf.json");
+    let text = tokio::fs::read_to_string(path)
+        .await
+        .map_err(|e| format!("DPF adapter 設定を読めません: {}", e))?;
+    serde_json::from_str::<DpfAdapter>(&text)
+        .map_err(|e| format!("DPF adapter JSON パースエラー: {}", e))
+}
+
+fn to_json_pointer(path: &str) -> String {
+    let parts: Vec<String> = path
+        .split('.')
+        .map(|s| s.replace('~', "~0").replace('/', "~1"))
+        .collect();
+    format!("/{}", parts.join("/"))
+}
+
+fn get_json_path<'a>(value: &'a Value, path: &str) -> Option<&'a Value> {
+    value.pointer(&to_json_pointer(path))
+}
+
+fn map_dpf_result(result: &Value, field_map: &HashMap<String, String>) -> Value {
+    let mut out = serde_json::Map::new();
+    for (target, source) in field_map {
+        if let Some(v) = result.get(source) {
+            out.insert(target.clone(), v.clone());
+        }
+    }
+    Value::Object(out)
+}
+
+async fn dpf_search(req: SearchRequest) -> impl IntoResponse {
+    let adapter = match load_dpf_adapter().await {
+        Ok(a) => a,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+
+    let mut api_url = req.api_url.trim().to_string();
+    if api_url.is_empty() {
+        api_url = adapter.endpoint.clone();
+    }
+    if !api_url.ends_with('/') {
+        api_url.push('/');
+    }
+
+    let api_key = match dpf_api_key(req.api_key.as_deref()) {
+        Ok(k) => k,
+        Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
+    };
+
+    let rows = req.rows.unwrap_or(100).clamp(1, 1000);
+    let start = req.start.unwrap_or(0).max(0);
+    let term = req.query.trim();
+    let escaped_term = term.replace('"', "\\\"");
+
+    let graph_query = adapter
+        .search_query
+        .replace("{{term}}", &escaped_term)
+        .replace("{{start}}", &start.to_string())
+        .replace("{{rows}}", &rows.to_string())
+        .replace("{{fields}}", &adapter.search_fields);
+    let payload = serde_json::json!({ "query": graph_query });
+
+    let client = http_client();
+    let result = client
+        .post(&api_url)
+        .header("apikey", &api_key)
+        .header("Accept", "application/json")
+        .json(&payload)
+        .send()
+        .await;
+
+    match result {
+        Ok(resp) if resp.status().is_success() => match resp.json::<Value>().await {
+            Ok(json) => {
+                if let Some(errors) = json.get("errors") {
+                    return (StatusCode::BAD_GATEWAY, format!("DPF GraphQL エラー: {}", errors)).into_response();
+                }
+                let count = get_json_path(&json, &adapter.count_json_path)
+                    .and_then(Value::as_i64)
+                    .unwrap_or(0);
+                let results = get_json_path(&json, &adapter.results_json_path)
+                    .and_then(Value::as_array)
+                    .cloned()
+                    .unwrap_or_default();
+                let mapped: Vec<Value> = results
+                    .iter()
+                    .map(|r| map_dpf_result(r, &adapter.field_map))
+                    .collect();
+                Json(SearchResponse {
+                    count,
+                    start,
+                    results: mapped,
+                    search_url: api_url,
+                })
+                .into_response()
+            }
+            Err(e) => (
+                StatusCode::BAD_GATEWAY,
+                format!("JSON パースエラー: {} (URL: {})", e, api_url),
+            )
+                .into_response(),
+        },
+        Ok(resp) => (
+            StatusCode::BAD_GATEWAY,
+            format!("DPF サーバーエラー: {} (URL: {})", resp.status(), api_url),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            format!("リクエストエラー: {} (URL: {})", e, api_url),
+        )
+            .into_response(),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DpfFile {
+    pub id: String,
+    pub original_path: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct DpfDownloadUrlsRequest {
+    pub api_url: String,
+    pub api_key: String,
+    pub files: Vec<DpfFile>,
+}
+
+pub async fn dpf_download_urls_handler(Json(req): Json<DpfDownloadUrlsRequest>) -> impl IntoResponse {
+    let adapter = match load_dpf_adapter().await {
+        Ok(a) => a,
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+
+    let mut api_url = req.api_url.trim().to_string();
+    if api_url.is_empty() {
+        api_url = adapter.endpoint.clone();
+    }
+    if !api_url.ends_with('/') {
+        api_url.push('/');
+    }
+    let api_key = if !req.api_key.is_empty() {
+        req.api_key
+    } else {
+        match dpf_api_key(None) {
+            Ok(k) => k,
+            Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
+        }
+    };
+    if req.files.is_empty() {
+        return Json(serde_json::json!([])).into_response();
+    }
+
+    let items: Vec<String> = req
+        .files
+        .iter()
+        .map(|f| {
+            let id = f.id.replace('"', "\\\"");
+            let path = f.original_path.replace('"', "\\\"");
+            format!("{{ id: \"{}\", original_path: \"{}\" }}", id, path)
+        })
+        .collect();
+
+    let graph_query = adapter
+        .download_query
+        .replace("{{files}}", &items.join(", "));
+    let payload = serde_json::json!({ "query": graph_query });
+
+    let client = http_client();
+    match client
+        .post(&api_url)
+        .header("apikey", &api_key)
+        .header("Accept", "application/json")
+        .json(&payload)
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().is_success() => match resp.json::<Value>().await {
+            Ok(json) => {
+                if let Some(errors) = json.get("errors") {
+                    return (
+                        StatusCode::BAD_GATEWAY,
+                        format!("DPF GraphQL エラー: {}", errors),
+                    )
+                        .into_response();
+                }
+                let urls = get_json_path(&json, &adapter.download_url_json_path)
+                    .cloned()
+                    .unwrap_or_else(|| serde_json::json!([]));
+                Json(urls).into_response()
+            }
+            Err(e) => (
+                StatusCode::BAD_GATEWAY,
+                format!("JSON パースエラー: {} (URL: {})", e, api_url),
+            )
+                .into_response(),
+        },
+        Ok(resp) => (
+            StatusCode::BAD_GATEWAY,
+            format!("DPF サーバーエラー: {} (URL: {})", resp.status(), api_url),
+        )
+            .into_response(),
+        Err(e) => (
+            StatusCode::BAD_GATEWAY,
+            format!("リクエストエラー: {} (URL: {})", e, api_url),
+        )
+            .into_response(),
+    }
+}
+
+pub async fn search_handler(Json(req): Json<SearchRequest>) -> axum::response::Response {
+    if req.catalog_type == "dpf" {
+        dpf_search(req).await.into_response()
+    } else {
+        ckan_search(req).await.into_response()
+    }
+}
+
+async fn ckan_search(req: SearchRequest) -> impl IntoResponse {
     let api_url = match validate_ckan_url(&req.api_url) {
         Ok(u) => u,
         Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
@@ -331,6 +598,9 @@ pub async fn search_handler(Json(req): Json<SearchRequest>) -> impl IntoResponse
 }
 
 pub async fn groups_handler(Query(req): Query<GroupsRequest>) -> impl IntoResponse {
+    if is_dpf_url(&req.api_url) || req.catalog_type == "dpf" {
+        return Json(Vec::<GroupInfo>::new()).into_response();
+    }
     let api_url = match validate_ckan_url(&req.api_url) {
         Ok(u) => u,
         Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),

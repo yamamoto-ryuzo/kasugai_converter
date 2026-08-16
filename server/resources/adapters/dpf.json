@@ -1,0 +1,20 @@
+{
+  "name": "mlit-dpf",
+  "type": "graphql",
+  "endpoint": "https://data-platform.mlit.go.jp/api/v1/",
+  "search_query": "query { search(term: \"{{term}}\", first: {{start}}, size: {{rows}}) { totalNumber searchResults { {{fields}} } } }",
+  "search_fields": "id title lat lon year theme metadata dataset_id catalog_id hasThumbnail files { id original_path }",
+  "count_json_path": "data.search.totalNumber",
+  "results_json_path": "data.search.searchResults",
+  "field_map": {
+    "id": "id",
+    "title": "title",
+    "notes": "metadata",
+    "year": "year",
+    "dataset_id": "dataset_id",
+    "catalog_id": "catalog_id",
+    "files": "files"
+  },
+  "download_query": "query { fileDownloadURLs(files: [{{files}}]) { ID URL } }",
+  "download_url_json_path": "data.fileDownloadURLs"
+}
