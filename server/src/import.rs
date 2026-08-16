@@ -35,6 +35,7 @@ pub struct SearchRequest {
     pub rows: Option<i64>,
     pub start: Option<i64>,
     pub groups: Option<Vec<String>>,
+    pub formats: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -134,7 +135,7 @@ fn validate_ckan_url(api_url: &str) -> Result<String, String> {
     Ok(url)
 }
 
-async fn check_connection(api_url: &str) -> Result<(), String> {
+async fn resolve_canonical_url(api_url: &str) -> Result<String, String> {
     let client = http_client();
     let check_url = format!("{}action/package_search", api_url);
     let res = timeout(
@@ -143,7 +144,17 @@ async fn check_connection(api_url: &str) -> Result<(), String> {
     )
     .await;
     match res {
-        Ok(Ok(resp)) if resp.status().is_success() => Ok(()),
+        Ok(Ok(resp)) if resp.status().is_success() => {
+            let mut final_url = resp.url().clone();
+            let path = final_url.path();
+            if let Some(base_path) = path.strip_suffix("/action/package_search") {
+                let new_path = format!("{}/", base_path);
+                final_url.set_path(&new_path);
+                final_url.set_query(None);
+                return Ok(final_url.as_str().to_string());
+            }
+            Ok(api_url.to_string())
+        }
         Ok(Ok(resp)) => Err(format!(
             "接続先が応答しません ({}): {}",
             resp.status(),
@@ -200,9 +211,10 @@ pub async fn search_handler(Json(req): Json<SearchRequest>) -> impl IntoResponse
         Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
     };
 
-    if let Err(e) = check_connection(&api_url).await {
-        return (StatusCode::BAD_GATEWAY, e).into_response();
-    }
+    let api_url = match resolve_canonical_url(&api_url).await {
+        Ok(u) => u,
+        Err(e) => return (StatusCode::BAD_GATEWAY, e).into_response(),
+    };
 
     let rows = req.rows.unwrap_or(100).clamp(1, 1000);
     let start = req.start.unwrap_or(0).max(0);
@@ -214,16 +226,55 @@ pub async fn search_handler(Json(req): Json<SearchRequest>) -> impl IntoResponse
     let search_url = format!("{}action/package_search", api_url);
 
     let client = http_client();
-    let mut query_params: Vec<(&str, String)> = vec![("q", q), ("rows", rows.to_string()), ("start", start.to_string())];
+
+    let mut fq_terms = Vec::new();
+
     if let Some(groups) = &req.groups {
         if !groups.is_empty() {
-            query_params.push(("fq", format!("groups:({})", groups.join(" OR "))));
+            fq_terms.push(format!("groups:({})", groups.join(" OR ")));
         }
     }
 
+    if let Some(formats) = &req.formats {
+        let selected: std::collections::HashSet<String> = formats
+            .split(|c: char| c == ',' || c == ' ' || c == '　')
+            .map(|s| s.trim().to_lowercase())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if !selected.is_empty() {
+            let mut variants = Vec::new();
+            for f in &selected {
+                variants.push(f.clone());
+                let upper = f.to_uppercase();
+                if upper != *f {
+                    variants.push(upper);
+                }
+            }
+            fq_terms.push(format!("res_format:({})", variants.join(" OR ")));
+        }
+    }
+
+    let mut body = serde_json::Map::new();
+    body.insert("q".to_string(), serde_json::Value::String(q));
+    body.insert(
+        "rows".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(rows)),
+    );
+    body.insert(
+        "start".to_string(),
+        serde_json::Value::Number(serde_json::Number::from(start)),
+    );
+    if !fq_terms.is_empty() {
+        body.insert(
+            "fq".to_string(),
+            serde_json::Value::String(fq_terms.join(" AND ")),
+        );
+    }
+    let body = serde_json::Value::Object(body);
+
     let result = client
-        .get(&search_url)
-        .query(&query_params)
+        .post(&search_url)
+        .json(&body)
         .send()
         .await;
 
@@ -285,9 +336,10 @@ pub async fn groups_handler(Query(req): Query<GroupsRequest>) -> impl IntoRespon
         Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
     };
 
-    if let Err(e) = check_connection(&api_url).await {
-        return (StatusCode::BAD_GATEWAY, e).into_response();
-    }
+    let api_url = match resolve_canonical_url(&api_url).await {
+        Ok(u) => u,
+        Err(e) => return (StatusCode::BAD_GATEWAY, e).into_response(),
+    };
 
     let list_url = format!("{}action/group_list", api_url);
     let client = http_client();

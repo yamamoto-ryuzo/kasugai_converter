@@ -1009,6 +1009,10 @@
                   <label for="importQuery">検索語</label>
                   <input type="text" id="importQuery" placeholder="例: 土地利用 境界 建物" />
                 </div>
+                <div>
+                  <label for="importRows">1回の取得件数</label>
+                  <input type="number" id="importRows" value="100" min="1" max="1000" />
+                </div>
                 <div class="full">
                   <label>形式フィルタ（省略可）</label>
                   <div class="format-filter-tabs">
@@ -1133,6 +1137,7 @@
 
         <div id="import-results" class="tab-content">
         <div id="importResults" style="margin-top:1rem; max-height: 24rem; overflow-y: auto;"></div>
+        <div id="importPagination" style="margin-top:0.5rem;"></div>
 
         <div class="actions" style="margin-top:1rem;">
           <button type="button" id="importDownloadBtn" disabled>選択リソースをダウンロード</button>
@@ -1841,6 +1846,7 @@
     // オープンデータ取り込み
     let currentImportResults = [];
     let currentImportStart = 0;
+    let currentImportRows = 100;
     let lastImportedDir = null;
 
     function updateImportFormatFilter() {
@@ -1957,19 +1963,11 @@
       return [...document.querySelectorAll('#importCategories input[type="checkbox"]:checked')].map(cb => cb.dataset.name).filter(Boolean);
     }
 
-    function formatFilterMatch(resource, filterText) {
-      if (!filterText) return true;
-      const fmt = (resource.format || '').toLowerCase().trim();
-      return filterText.split(/[,\s]+/).some(f => {
-        const v = f.toLowerCase().trim();
-        return v && (fmt.includes(v) || v.includes(fmt));
-      });
-    }
-
     function renderImportResults(data) {
       const container = document.getElementById('importResults');
-      const filter = getValue('importFormatFilter');
+      const pagination = document.getElementById('importPagination');
       container.innerHTML = '';
+      pagination.innerHTML = '';
       currentImportResults = data.results || [];
 
       if (!currentImportResults.length) {
@@ -1987,7 +1985,7 @@
       for (const pkg of currentImportResults) {
         const title = normalizeText(pkg.title) || pkg.name || '(no title)';
         const notes = normalizeText(pkg.notes) || '';
-        const resources = (pkg.resources || []).filter(r => formatFilterMatch(r, filter));
+        const resources = pkg.resources || [];
         if (!resources.length) continue;
 
         const card = document.createElement('div');
@@ -2045,7 +2043,7 @@
 
       const start = data.start || 0;
       currentImportStart = start;
-      const step = currentImportResults.length || 100;
+      const step = currentImportRows || 100;
 
       const countEl = document.createElement('p');
       countEl.className = 'hint';
@@ -2064,7 +2062,7 @@
           prevBtn.addEventListener('click', () => doImportSearch(Math.max(0, start - step)));
           nav.appendChild(prevBtn);
         }
-        container.appendChild(nav);
+        pagination.appendChild(nav);
         document.getElementById('importDownloadBtn').disabled = true;
         return;
       }
@@ -2095,7 +2093,7 @@
 
       nav.appendChild(prevBtn);
       nav.appendChild(nextBtn);
-      container.appendChild(nav);
+      pagination.appendChild(nav);
       document.getElementById('importDownloadBtn').disabled = true;
     }
 
@@ -2107,16 +2105,20 @@
 
     function resetImportSearch() {
       setValue('importQuery', '');
+      setValue('importRows', '100');
       document.querySelectorAll('#importCategories input[type="checkbox"]').forEach(cb => cb.checked = false);
       document.querySelectorAll('.format-filter-options input[type="checkbox"]').forEach(cb => cb.checked = false);
       document.querySelectorAll('.format-filter-custom').forEach(input => input.value = '');
       setValue('importFormatFilter', '');
       document.getElementById('importResults').innerHTML = '';
+      document.getElementById('importPagination').innerHTML = '';
       document.getElementById('importSearchStatus').style.display = 'none';
       document.getElementById('importSearchStatus').textContent = '';
       document.getElementById('importDownloadBtn').disabled = true;
       document.getElementById('importConvertBtn').disabled = true;
       currentImportResults = [];
+      currentImportStart = 0;
+      currentImportRows = 100;
       lastImportedDir = null;
       document.querySelector('#import .tab-btn[data-import-tab="import-search"]').click();
     }
@@ -2125,9 +2127,12 @@
 
     async function doImportSearch(start = 0) {
       currentImportStart = start;
+      document.getElementById('importPagination').innerHTML = '';
       const apiUrl = document.getElementById('importCatalog').value;
       const query = getValue('importQuery');
-      const rows = 1000;
+      const rowsInput = parseInt(getValue('importRows') || '100', 10);
+      const rows = Math.max(1, Math.min(1000, isNaN(rowsInput) ? 100 : rowsInput));
+      currentImportRows = rows;
       const status = document.getElementById('importSearchStatus');
       const btn = document.getElementById('importSearchBtn');
       btn.disabled = true;
@@ -2138,7 +2143,7 @@
         const res = await fetch('/api/import/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_url: apiUrl, query: query, rows: rows, start: start, groups: getImportGroups() }),
+          body: JSON.stringify({ api_url: apiUrl, query: query, rows: rows, start: start, groups: getImportGroups(), formats: getValue('importFormatFilter') || undefined }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
@@ -2149,7 +2154,7 @@
         renderImportResults(data);
         document.querySelector('#import .tab-btn[data-import-tab="import-results"]').click();
       } catch (e) {
-        status.textContent = 'エラー';
+        status.textContent = 'エラー: ' + e.message;
         status.className = 'status failed';
         setStatus('検索エラー: ' + e.message, 'failed');
       } finally {
