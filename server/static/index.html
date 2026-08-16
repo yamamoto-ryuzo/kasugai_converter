@@ -1972,19 +1972,14 @@
 
       const pageItems = currentImportResults.slice(currentDisplayStart, currentDisplayStart + IMPORT_PAGE_SIZE);
 
-      if (!pageItems.length) {
-        container.innerHTML = '<p class="hint">該当するデータセットがありません。</p>';
-        document.getElementById('importDownloadBtn').disabled = true;
-        return;
-      }
-
+      let displayedCount = 0;
       const wrap = document.createElement('div');
       wrap.style.display = 'flex';
       wrap.style.flexDirection = 'column';
       wrap.style.gap = '0.75rem';
 
-      let displayedCount = 0;
-      for (const pkg of pageItems) {
+      if (pageItems.length) {
+        for (const pkg of pageItems) {
         const title = normalizeText(pkg.title) || pkg.name || '(no title)';
         const notes = normalizeText(pkg.notes) || '';
         const resources = pkg.resources || [];
@@ -2042,15 +2037,20 @@
         wrap.appendChild(card);
         displayedCount++;
       }
+        container.appendChild(wrap);
+      } else {
+        container.innerHTML = '<p class="hint">該当するデータセットがありません。</p>';
+      }
 
-      const startNum = currentImportStart + currentDisplayStart + 1;
-      const endNum = startNum + displayedCount - 1;
+      const startNum = displayedCount ? currentImportStart + currentDisplayStart + 1 : 0;
+      const endNum = displayedCount ? currentImportStart + currentDisplayStart + displayedCount : 0;
       const remaining = Math.max(0, currentImportCount - (currentImportStart + currentDisplayStart + displayedCount));
       const countEl = document.createElement('p');
       countEl.className = 'hint';
-      countEl.textContent = `全 ${currentImportCount} 件中 ${startNum}〜${endNum} 件目を表示、未取得 ${remaining} 件`;
+      countEl.textContent = displayedCount
+        ? `全 ${currentImportCount} 件中 ${startNum}〜${endNum} 件目を表示、未取得 ${remaining} 件`
+        : `全 ${currentImportCount} 件中 0〜0 件目を表示、未取得 ${remaining} 件`;
       pagination.appendChild(countEl);
-      container.appendChild(wrap);
 
       const nav = document.createElement('div');
       nav.style.display = 'flex';
