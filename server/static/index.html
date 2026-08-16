@@ -1124,6 +1124,7 @@
               </div>
               <div class="actions">
                 <button type="button" id="importSearchBtn">検索</button>
+                <button type="button" id="importCancelBtn" class="secondary" disabled>中止</button>
                 <button type="button" id="importResetBtn" class="secondary">クリア</button>
                 <span id="importSearchStatus" class="status" style="display:none;"></span>
               </div>
@@ -1846,6 +1847,7 @@
     let currentDisplayStart = 0;
     const IMPORT_PAGE_SIZE = 100;
     const IMPORT_FETCH_SIZE = 1000;
+    let importSearchController = null;
     let lastImportedDir = null;
 
     function updateImportFormatFilter() {
@@ -2126,7 +2128,11 @@
       const query = getValue('importQuery');
       const status = document.getElementById('importSearchStatus');
       const btn = document.getElementById('importSearchBtn');
+      const cancelBtn = document.getElementById('importCancelBtn');
+      const controller = new AbortController();
+      importSearchController = controller;
       btn.disabled = true;
+      cancelBtn.disabled = false;
       status.style.display = 'inline-block';
       status.textContent = '検索中...';
       status.className = 'status running';
@@ -2134,6 +2140,7 @@
         const res = await fetch('/api/import/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
           body: JSON.stringify({ api_url: apiUrl, query: query, rows: IMPORT_FETCH_SIZE, start: start, groups: getImportGroups(), formats: getValue('importFormatFilter') || undefined }),
         });
         if (!res.ok) throw new Error(await res.text());
@@ -2152,15 +2159,25 @@
         renderImportPage();
         document.querySelector('#import .tab-btn[data-import-tab="import-results"]').click();
       } catch (e) {
-        status.textContent = 'エラー: ' + e.message;
-        status.className = 'status failed';
-        setStatus('検索エラー: ' + e.message, 'failed');
+        if (e.name === 'AbortError') {
+          status.textContent = '検索を中止しました';
+          status.className = 'status failed';
+        } else {
+          status.textContent = 'エラー: ' + e.message;
+          status.className = 'status failed';
+          setStatus('検索エラー: ' + e.message, 'failed');
+        }
       } finally {
+        importSearchController = null;
         btn.disabled = false;
+        cancelBtn.disabled = true;
       }
     }
 
     document.getElementById('importSearchBtn').addEventListener('click', () => doImportSearch(0));
+    document.getElementById('importCancelBtn').addEventListener('click', () => {
+      importSearchController?.abort();
+    });
 
     document.getElementById('importDownloadBtn').addEventListener('click', async () => {
       const checked = document.querySelectorAll('#importResults input[type="checkbox"]:checked');
