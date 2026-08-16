@@ -1009,10 +1009,6 @@
                   <label for="importQuery">検索語</label>
                   <input type="text" id="importQuery" placeholder="例: 土地利用 境界 建物" />
                 </div>
-                <div>
-                  <label for="importRows">1回の取得件数</label>
-                  <input type="number" id="importRows" value="100" min="1" max="1000" />
-                </div>
                 <div class="full">
                   <label>形式フィルタ（省略可）</label>
                   <div class="format-filter-tabs">
@@ -1846,7 +1842,10 @@
     // オープンデータ取り込み
     let currentImportResults = [];
     let currentImportStart = 0;
-    let currentImportRows = 100;
+    let currentImportCount = 0;
+    let currentDisplayStart = 0;
+    const IMPORT_PAGE_SIZE = 100;
+    const IMPORT_FETCH_SIZE = 1000;
     let lastImportedDir = null;
 
     function updateImportFormatFilter() {
@@ -1963,14 +1962,15 @@
       return [...document.querySelectorAll('#importCategories input[type="checkbox"]:checked')].map(cb => cb.dataset.name).filter(Boolean);
     }
 
-    function renderImportResults(data) {
+    function renderImportPage() {
       const container = document.getElementById('importResults');
       const pagination = document.getElementById('importPagination');
       container.innerHTML = '';
       pagination.innerHTML = '';
-      currentImportResults = data.results || [];
 
-      if (!currentImportResults.length) {
+      const pageItems = currentImportResults.slice(currentDisplayStart, currentDisplayStart + IMPORT_PAGE_SIZE);
+
+      if (!pageItems.length) {
         container.innerHTML = '<p class="hint">該当するデータセットがありません。</p>';
         document.getElementById('importDownloadBtn').disabled = true;
         return;
@@ -1982,7 +1982,7 @@
       wrap.style.gap = '0.75rem';
 
       let displayedCount = 0;
-      for (const pkg of currentImportResults) {
+      for (const pkg of pageItems) {
         const title = normalizeText(pkg.title) || pkg.name || '(no title)';
         const notes = normalizeText(pkg.notes) || '';
         const resources = pkg.resources || [];
@@ -2041,36 +2041,12 @@
         displayedCount++;
       }
 
-      const start = data.start || 0;
-      currentImportStart = start;
-      const step = currentImportRows || 100;
-
+      const startNum = currentImportStart + currentDisplayStart + 1;
+      const endNum = startNum + displayedCount - 1;
+      const remaining = Math.max(0, currentImportCount - (currentImportStart + currentDisplayStart + displayedCount));
       const countEl = document.createElement('p');
       countEl.className = 'hint';
-      if (displayedCount === 0) {
-        countEl.textContent = `全 ${data.count || 0} 件ヒットしましたが、選択形式に一致するデータセットはありません。`;
-        container.appendChild(countEl);
-
-        const nav = document.createElement('div');
-        nav.style.display = 'flex';
-        nav.style.gap = '0.5rem';
-        nav.style.marginTop = '1rem';
-        if (start > 0) {
-          const prevBtn = document.createElement('button');
-          prevBtn.type = 'button';
-          prevBtn.textContent = '前へ';
-          prevBtn.addEventListener('click', () => doImportSearch(Math.max(0, start - step)));
-          nav.appendChild(prevBtn);
-        }
-        pagination.appendChild(nav);
-        document.getElementById('importDownloadBtn').disabled = true;
-        return;
-      }
-
-      const startNum = start + 1;
-      const endNum = start + displayedCount;
-      const remaining = Math.max(0, (data.count || 0) - endNum);
-      countEl.textContent = `全 ${data.count || 0} 件中、選択形式に一致する ${displayedCount} 件を表示（${startNum}〜${endNum} 件目）、未取得 ${remaining} 件`;
+      countEl.textContent = `全 ${currentImportCount} 件中 ${startNum}〜${endNum} 件目を表示、未取得 ${remaining} 件`;
       container.appendChild(countEl);
       container.appendChild(wrap);
 
@@ -2082,14 +2058,32 @@
       const prevBtn = document.createElement('button');
       prevBtn.type = 'button';
       prevBtn.textContent = '前へ';
-      prevBtn.disabled = start === 0;
-      prevBtn.addEventListener('click', () => doImportSearch(Math.max(0, start - step)));
+      const hasPrevPage = currentDisplayStart >= IMPORT_PAGE_SIZE;
+      const hasPrevChunk = currentImportStart >= IMPORT_FETCH_SIZE;
+      prevBtn.disabled = !hasPrevPage && !hasPrevChunk;
+      prevBtn.addEventListener('click', () => {
+        if (hasPrevPage) {
+          currentDisplayStart -= IMPORT_PAGE_SIZE;
+          renderImportPage();
+        } else if (hasPrevChunk) {
+          doImportSearch(currentImportStart - IMPORT_FETCH_SIZE, 'last');
+        }
+      });
 
       const nextBtn = document.createElement('button');
       nextBtn.type = 'button';
       nextBtn.textContent = '次へ';
-      nextBtn.disabled = endNum >= (data.count || 0);
-      nextBtn.addEventListener('click', () => doImportSearch(start + step));
+      const hasNextPage = currentDisplayStart + IMPORT_PAGE_SIZE < currentImportResults.length;
+      const hasNextChunk = currentImportStart + currentImportResults.length < currentImportCount;
+      nextBtn.disabled = !hasNextPage && !hasNextChunk;
+      nextBtn.addEventListener('click', () => {
+        if (hasNextPage) {
+          currentDisplayStart += IMPORT_PAGE_SIZE;
+          renderImportPage();
+        } else if (hasNextChunk) {
+          doImportSearch(currentImportStart + IMPORT_FETCH_SIZE, 0);
+        }
+      });
 
       nav.appendChild(prevBtn);
       nav.appendChild(nextBtn);
@@ -2105,7 +2099,6 @@
 
     function resetImportSearch() {
       setValue('importQuery', '');
-      setValue('importRows', '100');
       document.querySelectorAll('#importCategories input[type="checkbox"]').forEach(cb => cb.checked = false);
       document.querySelectorAll('.format-filter-options input[type="checkbox"]').forEach(cb => cb.checked = false);
       document.querySelectorAll('.format-filter-custom').forEach(input => input.value = '');
@@ -2118,21 +2111,19 @@
       document.getElementById('importConvertBtn').disabled = true;
       currentImportResults = [];
       currentImportStart = 0;
-      currentImportRows = 100;
+      currentImportCount = 0;
+      currentDisplayStart = 0;
       lastImportedDir = null;
       document.querySelector('#import .tab-btn[data-import-tab="import-search"]').click();
     }
 
     document.getElementById('importResetBtn').addEventListener('click', resetImportSearch);
 
-    async function doImportSearch(start = 0) {
+    async function doImportSearch(start = 0, displayStart = 0) {
       currentImportStart = start;
       document.getElementById('importPagination').innerHTML = '';
       const apiUrl = document.getElementById('importCatalog').value;
       const query = getValue('importQuery');
-      const rowsInput = parseInt(getValue('importRows') || '100', 10);
-      const rows = Math.max(1, Math.min(1000, isNaN(rowsInput) ? 100 : rowsInput));
-      currentImportRows = rows;
       const status = document.getElementById('importSearchStatus');
       const btn = document.getElementById('importSearchBtn');
       btn.disabled = true;
@@ -2143,15 +2134,22 @@
         const res = await fetch('/api/import/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ api_url: apiUrl, query: query, rows: rows, start: start, groups: getImportGroups(), formats: getValue('importFormatFilter') || undefined }),
+          body: JSON.stringify({ api_url: apiUrl, query: query, rows: IMPORT_FETCH_SIZE, start: start, groups: getImportGroups(), formats: getValue('importFormatFilter') || undefined }),
         });
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
-        const resultStart = (data.start || 0) + 1;
-        const resultEnd = (data.start || 0) + (data.results || []).length;
-        status.textContent = `${data.count} 件中 ${resultStart}〜${resultEnd} 件取得`;
+        currentImportResults = data.results || [];
+        currentImportCount = data.count || 0;
+        const resultStart = start + 1;
+        const resultEnd = start + currentImportResults.length;
+        status.textContent = `${currentImportCount} 件中 ${resultStart}〜${resultEnd} 件を取得`;
         status.className = 'status completed';
-        renderImportResults(data);
+        if (displayStart === 'last') {
+          currentDisplayStart = Math.max(0, currentImportResults.length - IMPORT_PAGE_SIZE);
+        } else if (typeof displayStart === 'number') {
+          currentDisplayStart = Math.max(0, displayStart);
+        }
+        renderImportPage();
         document.querySelector('#import .tab-btn[data-import-tab="import-results"]').click();
       } catch (e) {
         status.textContent = 'エラー: ' + e.message;
