@@ -283,69 +283,20 @@ fn map_dpf_result(result: &Value, field_map: &HashMap<String, String>) -> Value 
     Value::Object(out)
 }
 
-fn dpf_attribute_filter(groups: &[String], formats: Option<&str>) -> String {
-    let catalog_parts: Vec<String> = groups
+fn dpf_attribute_filter(groups: &[String]) -> String {
+    if groups.is_empty() {
+        return String::new();
+    }
+    let parts: Vec<String> = groups
         .iter()
         .map(|id| {
             let escaped = id.replace('"', "\\\"");
             format!(r#"{{ attributeName: "DPF:catalog_id", is: "{escaped}" }}"#)
         })
         .collect();
-
-    let selected: Vec<String> = formats
-        .map(|s| {
-            s.split(|c: char| c == ',' || c == ' ' || c == '　')
-                .map(|x| x.trim())
-                .filter(|x| !x.is_empty())
-                .map(|x| x.to_string())
-                .collect()
-        })
-        .unwrap_or_default();
-
-    let mut format_variants = Vec::new();
-    for f in &selected {
-        let mut add = |s: &str| {
-            if !format_variants.iter().any(|v: &String| v == s) {
-                format_variants.push(s.to_string());
-            }
-        };
-        add(f.as_str());
-        add(&f.to_uppercase());
-        add(&format!(".{f}"));
-        add(&format!(".{}", f.to_uppercase()));
-    }
-    let mut format_parts = Vec::new();
-    for v in &format_variants {
-        for attr in ["DPF:fileformat", "DPF:extensions"] {
-            let escaped = v.replace('"', "\\\"");
-            format_parts.push(format!(
-                r#"{{ attributeName: "{attr}", is: "{escaped}" }}"#,
-                attr = attr,
-                escaped = escaped
-            ));
-        }
-    }
-
-    let catalog_or = if catalog_parts.is_empty() {
-        String::new()
-    } else {
-        format!("{{ OR: [ {} ] }}", catalog_parts.join(", "))
-    };
-    let format_or = if format_parts.is_empty() {
-        String::new()
-    } else {
-        format!("{{ OR: [ {} ] }}", format_parts.join(", "))
-    };
-
-    match (catalog_parts.is_empty(), format_parts.is_empty()) {
-        (true, true) => String::new(),
-        (false, true) => format!(", attributeFilter: {{ OR: [ {} ] }}", catalog_parts.join(", ")),
-        (true, false) => format!(", attributeFilter: {{ OR: [ {} ] }}", format_parts.join(", ")),
-        (false, false) => format!(
-            ", attributeFilter: {{ AND: [ {}, {} ] }}",
-            catalog_or, format_or
-        ),
-    }
+    format!(", attributeFilter: {{ OR: [ {} ] }}",
+        parts.join(", ")
+    )
 }
 
 async fn dpf_search(req: SearchRequest) -> impl IntoResponse {
@@ -372,8 +323,17 @@ async fn dpf_search(req: SearchRequest) -> impl IntoResponse {
     let term = req.query.trim();
     let escaped_term = term.replace('"', "\\\"");
 
-    let attr_filter =
-        dpf_attribute_filter(req.groups.as_deref().unwrap_or(&[]), req.formats.as_deref());
+    let attr_filter = dpf_attribute_filter(req.groups.as_deref().unwrap_or(&[]));
+    let selected_formats: std::collections::HashSet<String> = req
+        .formats
+        .as_ref()
+        .map(|f| {
+            f.split(|c: char| c == ',' || c == ' ' || c == '　')
+                .map(|s| s.trim().to_lowercase())
+                .filter(|s| !s.is_empty())
+                .collect()
+        })
+        .unwrap_or_default();
     let graph_query = adapter
         .search_query
         .replace("{{term}}", &escaped_term)
@@ -405,7 +365,41 @@ async fn dpf_search(req: SearchRequest) -> impl IntoResponse {
                     .and_then(Value::as_array)
                     .cloned()
                     .unwrap_or_default();
-                let mapped: Vec<Value> = results
+                let filtered_results: Vec<Value> = results
+                    .into_iter()
+                    .filter_map(|mut r| {
+                        if selected_formats.is_empty() {
+                            return Some(r);
+                        }
+                        let files = r
+                            .get("files")
+                            .and_then(Value::as_array)
+                            .cloned()
+                            .unwrap_or_default();
+                        let filtered_files: Vec<Value> = files
+                            .into_iter()
+                            .filter(|f| {
+                                let path = f
+                                    .get("original_path")
+                                    .and_then(Value::as_str)
+                                    .unwrap_or("")
+                                    .to_lowercase();
+                                path.rsplit_once('.')
+                                    .map(|(_, ext)| ext)
+                                    .map_or(false, |ext| selected_formats.contains(ext))
+                            })
+                            .collect();
+                        if filtered_files.is_empty() {
+                            None
+                        } else {
+                            if let Some(obj) = r.as_object_mut() {
+                                obj.insert("files".to_string(), Value::Array(filtered_files));
+                            }
+                            Some(r)
+                        }
+                    })
+                    .collect();
+                let mapped: Vec<Value> = filtered_results
                     .iter()
                     .map(|r| map_dpf_result(r, &adapter.field_map))
                     .collect();
@@ -579,17 +573,6 @@ async fn ckan_search(req: SearchRequest) -> impl IntoResponse {
                 .collect()
         })
         .unwrap_or_default();
-    if !selected_formats.is_empty() {
-        let mut variants = Vec::new();
-        for f in &selected_formats {
-            variants.push(f.clone());
-            let upper = f.to_uppercase();
-            if upper != *f {
-                variants.push(upper);
-            }
-        }
-        fq_terms.push(format!("res_format:({})", variants.join(" OR ")));
-    }
 
     let mut body = serde_json::Map::new();
     body.insert("q".to_string(), serde_json::Value::String(q.clone()));
