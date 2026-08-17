@@ -311,16 +311,20 @@ fn dpf_attribute_filter(groups: &[String], formats: Option<&str>) -> String {
         };
         add(f.as_str());
         add(&f.to_uppercase());
+        add(&format!(".{f}"));
+        add(&format!(".{}", f.to_uppercase()));
     }
-    let format_parts: Vec<String> = format_variants
-        .iter()
-        .map(|v| {
+    let mut format_parts = Vec::new();
+    for v in &format_variants {
+        for attr in ["DPF:fileformat", "DPF:extensions"] {
             let escaped = v.replace('"', "\\\"");
-            format!(
-                r#"{{ attributeName: "DPF:fileformat", is: "{escaped}" }}"#
-            )
-        })
-        .collect();
+            format_parts.push(format!(
+                r#"{{ attributeName: "{attr}", is: "{escaped}" }}"#,
+                attr = attr,
+                escaped = escaped
+            ));
+        }
+    }
 
     let catalog_or = if catalog_parts.is_empty() {
         String::new()
@@ -654,7 +658,34 @@ async fn ckan_search(req: SearchRequest) -> impl IntoResponse {
                                             .unwrap_or("")
                                             .to_lowercase();
                                         if !selected_formats.contains(&fmt) {
-                                            return false;
+                                            // format フィールドが不一致の場合、name/url の拡張子を確認
+                                            let name = r
+                                                .get("name")
+                                                .and_then(Value::as_str)
+                                                .unwrap_or("")
+                                                .to_lowercase();
+                                            let url = r
+                                                .get("url")
+                                                .and_then(Value::as_str)
+                                                .unwrap_or("")
+                                                .to_lowercase();
+                                            let url_filename = url
+                                                .rsplit_once('/')
+                                                .map(|(_, s)| s)
+                                                .unwrap_or(&url)
+                                                .split('?')
+                                                .next()
+                                                .unwrap_or("");
+                                            let mut exts = Vec::new();
+                                            if let Some((_, ext)) = name.rsplit_once('.') {
+                                                exts.push(ext.to_string());
+                                            }
+                                            if let Some((_, ext)) = url_filename.rsplit_once('.') {
+                                                exts.push(ext.to_string());
+                                            }
+                                            if !exts.iter().any(|e| selected_formats.contains(e)) {
+                                                return false;
+                                            }
                                         }
                                     }
                                     if resource_query_terms.is_empty() {
