@@ -283,20 +283,65 @@ fn map_dpf_result(result: &Value, field_map: &HashMap<String, String>) -> Value 
     Value::Object(out)
 }
 
-fn dpf_catalog_filter(groups: &[String]) -> String {
-    if groups.is_empty() {
-        return String::new();
-    }
-    let parts: Vec<String> = groups
+fn dpf_attribute_filter(groups: &[String], formats: Option<&str>) -> String {
+    let catalog_parts: Vec<String> = groups
         .iter()
         .map(|id| {
             let escaped = id.replace('"', "\\\"");
             format!(r#"{{ attributeName: "DPF:catalog_id", is: "{escaped}" }}"#)
         })
         .collect();
-    format!(", attributeFilter: {{ OR: [ {} ] }}",
-        parts.join(", ")
-    )
+
+    let selected: Vec<String> = formats
+        .map(|s| {
+            s.split(|c: char| c == ',' || c == ' ' || c == '　')
+                .map(|x| x.trim())
+                .filter(|x| !x.is_empty())
+                .map(|x| x.to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let mut format_variants = Vec::new();
+    for f in &selected {
+        let mut add = |s: &str| {
+            if !format_variants.iter().any(|v: &String| v == s) {
+                format_variants.push(s.to_string());
+            }
+        };
+        add(f.as_str());
+        add(&f.to_uppercase());
+    }
+    let format_parts: Vec<String> = format_variants
+        .iter()
+        .map(|v| {
+            let escaped = v.replace('"', "\\\"");
+            format!(
+                r#"{{ attributeName: "DPF:fileformat", is: "{escaped}" }}"#
+            )
+        })
+        .collect();
+
+    let catalog_or = if catalog_parts.is_empty() {
+        String::new()
+    } else {
+        format!("{{ OR: [ {} ] }}", catalog_parts.join(", "))
+    };
+    let format_or = if format_parts.is_empty() {
+        String::new()
+    } else {
+        format!("{{ OR: [ {} ] }}", format_parts.join(", "))
+    };
+
+    match (catalog_parts.is_empty(), format_parts.is_empty()) {
+        (true, true) => String::new(),
+        (false, true) => format!(", attributeFilter: {{ OR: [ {} ] }}", catalog_parts.join(", ")),
+        (true, false) => format!(", attributeFilter: {{ OR: [ {} ] }}", format_parts.join(", ")),
+        (false, false) => format!(
+            ", attributeFilter: {{ AND: [ {}, {} ] }}",
+            catalog_or, format_or
+        ),
+    }
 }
 
 async fn dpf_search(req: SearchRequest) -> impl IntoResponse {
@@ -323,7 +368,8 @@ async fn dpf_search(req: SearchRequest) -> impl IntoResponse {
     let term = req.query.trim();
     let escaped_term = term.replace('"', "\\\"");
 
-    let attr_filter = dpf_catalog_filter(req.groups.as_deref().unwrap_or(&[]));
+    let attr_filter =
+        dpf_attribute_filter(req.groups.as_deref().unwrap_or(&[]), req.formats.as_deref());
     let graph_query = adapter
         .search_query
         .replace("{{term}}", &escaped_term)
@@ -519,27 +565,30 @@ async fn ckan_search(req: SearchRequest) -> impl IntoResponse {
         }
     }
 
-    if let Some(formats) = &req.formats {
-        let selected: std::collections::HashSet<String> = formats
-            .split(|c: char| c == ',' || c == ' ' || c == '　')
-            .map(|s| s.trim().to_lowercase())
-            .filter(|s| !s.is_empty())
-            .collect();
-        if !selected.is_empty() {
-            let mut variants = Vec::new();
-            for f in &selected {
-                variants.push(f.clone());
-                let upper = f.to_uppercase();
-                if upper != *f {
-                    variants.push(upper);
-                }
+    let selected_formats: std::collections::HashSet<String> = req
+        .formats
+        .as_ref()
+        .map(|f| {
+            f.split(|c: char| c == ',' || c == ' ' || c == '　')
+                .map(|s| s.trim().to_lowercase())
+                .filter(|s| !s.is_empty())
+                .collect()
+        })
+        .unwrap_or_default();
+    if !selected_formats.is_empty() {
+        let mut variants = Vec::new();
+        for f in &selected_formats {
+            variants.push(f.clone());
+            let upper = f.to_uppercase();
+            if upper != *f {
+                variants.push(upper);
             }
-            fq_terms.push(format!("res_format:({})", variants.join(" OR ")));
         }
+        fq_terms.push(format!("res_format:({})", variants.join(" OR ")));
     }
 
     let mut body = serde_json::Map::new();
-    body.insert("q".to_string(), serde_json::Value::String(q));
+    body.insert("q".to_string(), serde_json::Value::String(q.clone()));
     body.insert(
         "rows".to_string(),
         serde_json::Value::Number(serde_json::Number::from(rows)),
@@ -577,6 +626,65 @@ async fn ckan_search(req: SearchRequest) -> impl IntoResponse {
                         .and_then(Value::as_array)
                         .cloned()
                         .unwrap_or_default();
+
+                    // データ単位で絞り込み
+                    let resource_query_terms: Vec<String> = if q == "*:*" {
+                        Vec::new()
+                    } else {
+                        q.split_whitespace()
+                            .map(|s| s.to_lowercase())
+                            .filter(|s| !s.is_empty())
+                            .collect()
+                    };
+                    let results: Vec<Value> = results
+                        .into_iter()
+                        .filter_map(|mut pkg| {
+                            let resources = pkg
+                                .get("resources")
+                                .and_then(Value::as_array)
+                                .cloned()
+                                .unwrap_or_default();
+                            let filtered: Vec<Value> = resources
+                                .into_iter()
+                                .filter(|r| {
+                                    if !selected_formats.is_empty() {
+                                        let fmt = r
+                                            .get("format")
+                                            .and_then(Value::as_str)
+                                            .unwrap_or("")
+                                            .to_lowercase();
+                                        if !selected_formats.contains(&fmt) {
+                                            return false;
+                                        }
+                                    }
+                                    if resource_query_terms.is_empty() {
+                                        return true;
+                                    }
+                                    let name = r
+                                        .get("name")
+                                        .and_then(Value::as_str)
+                                        .unwrap_or("")
+                                        .to_lowercase();
+                                    let desc = r
+                                        .get("description")
+                                        .and_then(Value::as_str)
+                                        .unwrap_or("")
+                                        .to_lowercase();
+                                    let text = format!("{} {}", name, desc);
+                                    resource_query_terms.iter().all(|t| text.contains(t))
+                                })
+                                .collect();
+                            if filtered.is_empty() {
+                                None
+                            } else {
+                                if let Some(obj) = pkg.as_object_mut() {
+                                    obj.insert("resources".to_string(), Value::Array(filtered));
+                                }
+                                Some(pkg)
+                            }
+                        })
+                        .collect();
+
                     Json(SearchResponse {
                         count,
                         start,
