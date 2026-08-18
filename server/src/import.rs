@@ -614,15 +614,7 @@ async fn ckan_search(req: SearchRequest) -> impl IntoResponse {
                         .cloned()
                         .unwrap_or_default();
 
-                    // データ単位で絞り込み
-                    let resource_query_terms: Vec<String> = if q == "*:*" {
-                        Vec::new()
-                    } else {
-                        q.split_whitespace()
-                            .map(|s| s.to_lowercase())
-                            .filter(|s| !s.is_empty())
-                            .collect()
-                    };
+                    // データ単位で形式フィルタのみ
                     let results: Vec<Value> = results
                         .into_iter()
                         .filter_map(|mut pkg| {
@@ -671,21 +663,7 @@ async fn ckan_search(req: SearchRequest) -> impl IntoResponse {
                                             }
                                         }
                                     }
-                                    if resource_query_terms.is_empty() {
-                                        return true;
-                                    }
-                                    let name = r
-                                        .get("name")
-                                        .and_then(Value::as_str)
-                                        .unwrap_or("")
-                                        .to_lowercase();
-                                    let desc = r
-                                        .get("description")
-                                        .and_then(Value::as_str)
-                                        .unwrap_or("")
-                                        .to_lowercase();
-                                    let text = format!("{} {}", name, desc);
-                                    resource_query_terms.iter().all(|t| text.contains(t))
+                                    true
                                 })
                                 .collect();
                             if filtered.is_empty() {
