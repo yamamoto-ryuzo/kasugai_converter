@@ -9,8 +9,8 @@ RequestExecutionLevel user
 
 !define APP_NAME "KasugaiConverter"
 !define APP_NAME_DISPLAY "Kasugai Converter"
-!define APP_VERSION "0.3.0"
-!define APP_VERSION_FILE "0.3.0.0"
+!define APP_VERSION "0.4.0"
+!define APP_VERSION_FILE "0.4.0.0"
 !define PUBLISHER "Kasugai"
 
 VIProductVersion "${APP_VERSION_FILE}"

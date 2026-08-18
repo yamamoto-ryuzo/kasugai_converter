@@ -93,6 +93,17 @@ cargo run
 
 ## 更新履歴
 
+### v0.4.0
+
+- データ取得の検索対象をデータ単位に統一
+  - DPF 形式フィルターを `files[].original_path` の拡張子で後絞り
+  - CKAN 形式フィルターを `resources[].format` / `name` / `url` の拡張子でデータ単位に後絞り
+  - CKAN 検索語を `package_search` のデータセット単位検索のみに変更
+- DPF 検索を `phraseMatch: true` に変更し、フレーズ全体での一致に絞り込み
+- カタログサイト一覧を `server/resources/instances/instances.json` に追加
+  - 日本の主要 CKAN カタログ 13 件を同梱
+- 「ダウンロード先を開く」を、データセット保存フォルダ（`base_dir/catalog/dataset`）を開くように変更
+
 ### v0.3.0
 
 - DPF（国土交通データプラットフォーム）検索で `Catalog ID` をカテゴリで絞り込めるようになりました
