@@ -426,9 +426,50 @@
 
     <div id="data-convert" class="top-tab-content">
       <div class="tabs">
+        <button class="tab-btn" data-tab="coord">座標設定</button>
         <button class="tab-btn active" data-tab="auto">自動変換</button>
         <button class="tab-btn" data-tab="individual">個別コンバータ</button>
         <button class="tab-btn" data-tab="systems">関連システム</button>
+      </div>
+
+      <div id="coord" class="tab-content">
+        <div class="card">
+          <h2>座標設定</h2>
+          <p class="hint">ここで設定した EPSG / CRS は以下に反映されます。EPSG コードを入力または選択すると、対応する原点経度・緯度が入ります。必要に応じて X/Y/Z オフセットで補正してください。</p>
+          <ul class="hint">
+            <li>mago-3d-tiler の <code>crs</code>（個別 / 自動変換の b3dm / i3dm）</li>
+            <li>Py3DTiles の <code>srs_in</code> / <code>srs_out</code>（個別）</li>
+            <li>gocesiumtiler の <code>epsg</code>（個別 / 自動変換の pnts）</li>
+            <li>3D Tiles 1.1 の <code>crs</code>（自動変換の 3dtiles-1-1-glb）</li>
+          </ul>
+          <form id="coordForm" class="grid">
+            <div>
+              <label for="coordEpsg">EPSG / SRS</label>
+              <input type="text" id="coordEpsg" list="coordEpsgList" oninput="updateEpsg(this.value)" onchange="updateEpsg(this.value)" placeholder="6669, 2443, 30161 など" />
+              <datalist id="coordEpsgList"></datalist>
+            </div>
+            <div>
+              <label for="xOffset">X オフセット</label>
+              <input type="text" id="xOffset" placeholder="0.0" />
+            </div>
+            <div>
+              <label for="yOffset">Y オフセット</label>
+              <input type="text" id="yOffset" placeholder="0.0" />
+            </div>
+            <div>
+              <label for="zOffset">Z オフセット</label>
+              <input type="text" id="zOffset" placeholder="0.0" />
+            </div>
+            <div>
+              <label for="longitude">経度</label>
+              <input type="text" id="longitude" placeholder="139.6917" />
+            </div>
+            <div>
+              <label for="latitude">緯度</label>
+              <input type="text" id="latitude" placeholder="35.6895" />
+            </div>
+          </form>
+        </div>
       </div>
 
       <div id="individual" class="tab-content">
@@ -486,11 +527,6 @@
             </div>
 
             <div>
-              <label for="crs">座標参照系 (EPSG)</label>
-              <input type="text" id="crs" placeholder="例: 5186, 4326, 3857" />
-            </div>
-
-            <div>
               <label for="javaPath">Java 実行ファイル</label>
               <input type="text" id="javaPath" placeholder="java" value="java" />
             </div>
@@ -526,14 +562,6 @@
             <div class="full">
               <label for="pyOutput">出力ディレクトリ</label>
               <input type="text" id="pyOutput" placeholder="C:\data\py3dtiles-out" required />
-            </div>
-            <div>
-              <label for="pySrsIn">入力 SRS</label>
-              <input type="text" id="pySrsIn" placeholder="例: 6677" />
-            </div>
-            <div>
-              <label for="pySrsOut">出力 SRS</label>
-              <input type="text" id="pySrsOut" placeholder="例: 4326" />
             </div>
             <div>
               <label for="pyCommand">コマンドパス</label>
@@ -614,10 +642,6 @@
             <div class="full">
               <label for="gocesiumOutput">出力ディレクトリ</label>
               <input type="text" id="gocesiumOutput" placeholder="C:\data\gocesium-out" required />
-            </div>
-            <div>
-              <label for="gocesiumEpsg">EPSG / CRS</label>
-              <input type="text" id="gocesiumEpsg" placeholder="例: 6677" />
             </div>
             <div>
               <label for="gocesiumResolution">Resolution</label>
@@ -1361,6 +1385,56 @@
 
     function getValue(id) { return document.getElementById(id).value.trim(); }
     function setValue(id, val) { document.getElementById(id).value = val; }
+
+    const JAPAN_ZONES = [
+      { zone: '1', lon: '129.5', lat: '33.0', region: '長崎・鹿児島' },
+      { zone: '2', lon: '131.0', lat: '33.0', region: '福岡・佐賀・熊本・大分・宮崎・鹿児島' },
+      { zone: '3', lon: '132.1667', lat: '36.0', region: '山口・島根・広島' },
+      { zone: '4', lon: '133.5', lat: '33.0', region: '香川・愛媛・徳島・高知' },
+      { zone: '5', lon: '134.3333', lat: '36.0', region: '兵庫・鳥取・岡山' },
+      { zone: '6', lon: '136.0', lat: '36.0', region: '京都・大阪・福井・滋賀・三重・奈良・和歌山' },
+      { zone: '7', lon: '137.1667', lat: '36.0', region: '石川・富山・岐阜・愛知' },
+      { zone: '8', lon: '138.5', lat: '36.0', region: '新潟・長野・山梨・静岡' },
+      { zone: '9', lon: '139.8333', lat: '36.0', region: '東京・福島・栃木・茨城・埼玉・千葉・群馬・神奈川' },
+      { zone: '10', lon: '140.8333', lat: '40.0', region: '青森・秋田・山形・岩手・宮城' },
+      { zone: '11', lon: '140.25', lat: '44.0', region: '北海道西部' },
+      { zone: '12', lon: '142.25', lat: '44.0', region: '北海道中央部' },
+      { zone: '13', lon: '144.25', lat: '44.0', region: '北海道東部' },
+      { zone: '14', lon: '142.0', lat: '26.0', region: '東京都 南鳥島' },
+      { zone: '15', lon: '127.5', lat: '26.0', region: '沖縄 那覇・久米島' },
+      { zone: '16', lon: '124.0', lat: '26.0', region: '沖縄 石垣島・西表島' },
+      { zone: '17', lon: '131.0', lat: '26.0', region: '沖縄 大東諸島' },
+      { zone: '18', lon: '136.0', lat: '20.0', region: '東京都 沖ノ鳥島' },
+      { zone: '19', lon: '154.0', lat: '26.0', region: '東京都 小笠原諸島' },
+    ];
+    const JAPAN_EPSG = {};
+    [{ base: 6668, name: 'JGD2011' }, { base: 2442, name: 'JGD2000' }, { base: 30160, name: 'Tokyo' }].forEach(d => {
+      JAPAN_ZONES.forEach(z => {
+        const epsg = (d.base + parseInt(z.zone, 10)).toString();
+        JAPAN_EPSG[epsg] = { lon: z.lon, lat: z.lat, region: z.region, label: `${d.name} 第${z.zone}系` };
+      });
+    });
+
+    function populateEpsgList() {
+      const dl = document.getElementById('coordEpsgList');
+      Object.keys(JAPAN_EPSG).forEach(epsg => {
+        const opt = document.createElement('option');
+        opt.value = epsg;
+        opt.textContent = `${JAPAN_EPSG[epsg].label} (${JAPAN_EPSG[epsg].region}) (EPSG:${epsg})`;
+        dl.appendChild(opt);
+      });
+    }
+
+    function updateEpsg(value) {
+      const trimmed = value.trim();
+      const item = JAPAN_EPSG[trimmed];
+      if (!item) return;
+      if (item.lon) document.getElementById('longitude').value = item.lon;
+      if (item.lat) document.getElementById('latitude').value = item.lat;
+    }
+
+    populateEpsgList();
+
     function setStatus(text, cls) {
       if (!statusEl) return;
       statusEl.textContent = text;
@@ -1551,7 +1625,12 @@
         output: getValue('output'),
         input_type: getValue('inputType') || undefined,
         output_type: getValue('outputType') || undefined,
-        crs: getValue('crs') || undefined,
+        crs: getValue('coordEpsg') || undefined,
+        x_offset: getValue('xOffset') || undefined,
+        y_offset: getValue('yOffset') || undefined,
+        z_offset: getValue('zOffset') || undefined,
+        longitude: getValue('longitude') || undefined,
+        latitude: getValue('latitude') || undefined,
         java_path: getValue('javaPath') || undefined,
         jar_path: getValue('jarPath') || undefined,
         jvm_options: getValue('jvmOptions') || undefined,
@@ -1565,8 +1644,8 @@
       const payload = {
         input: getValue('pyInput'),
         output: getValue('pyOutput'),
-        srs_in: getValue('pySrsIn') || undefined,
-        srs_out: getValue('pySrsOut') || undefined,
+        srs_in: getValue('coordEpsg') || undefined,
+        srs_out: getValue('coordEpsg') || undefined,
         command: getValue('pyCommand') || undefined,
         extra_args: getValue('pyExtraArgs') || undefined,
       };
@@ -1595,7 +1674,7 @@
       const payload = {
         input: getValue('gocesiumInput'),
         output: getValue('gocesiumOutput'),
-        epsg: getValue('gocesiumEpsg') || undefined,
+        epsg: getValue('coordEpsg') || undefined,
         resolution: getValue('gocesiumResolution') || undefined,
         depth: getValue('gocesiumDepth') || undefined,
         min_points_per_tile: getValue('gocesiumMinPoints') || undefined,
@@ -1662,6 +1741,12 @@
         input: getValue('autoInput'),
         output: getValue('autoOutput'),
         output_format: getValue('autoOutputFormat') || undefined,
+        crs: getValue('coordEpsg') || undefined,
+        x_offset: getValue('xOffset') || undefined,
+        y_offset: getValue('yOffset') || undefined,
+        z_offset: getValue('zOffset') || undefined,
+        longitude: getValue('longitude') || undefined,
+        latitude: getValue('latitude') || undefined,
       };
       startJob('/api/convert/auto', payload, document.getElementById('autoRunBtn'));
     });

@@ -51,6 +51,11 @@ struct ConvertRequest {
     input_type: Option<String>,
     output_type: Option<String>,
     crs: Option<String>,
+    x_offset: Option<String>,
+    y_offset: Option<String>,
+    z_offset: Option<String>,
+    longitude: Option<String>,
+    latitude: Option<String>,
     java_path: Option<String>,
     jar_path: Option<String>,
     jvm_options: Option<String>,
@@ -123,6 +128,12 @@ struct AutoConvertRequest {
     output: String,
     output_format: Option<String>,
     input_format: Option<String>,
+    crs: Option<String>,
+    x_offset: Option<String>,
+    y_offset: Option<String>,
+    z_offset: Option<String>,
+    longitude: Option<String>,
+    latitude: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -130,6 +141,12 @@ struct ConvertObjTo3dtiles11Request {
     input: String,
     output: String,
     crs: Option<String>,
+    origin: Option<String>,
+    x_offset: Option<String>,
+    y_offset: Option<String>,
+    z_offset: Option<String>,
+    longitude: Option<String>,
+    latitude: Option<String>,
     output_type: Option<String>,
     java_path: Option<String>,
     jar_path: Option<String>,
@@ -419,6 +436,46 @@ async fn convert_handler(
         let trimmed = crs.trim();
         if !trimmed.is_empty() {
             args.push("--crs".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(v) = req.x_offset.as_ref() {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            args.push("--xOffset".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(v) = req.y_offset.as_ref() {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            args.push("--yOffset".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(v) = req.z_offset.as_ref() {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            args.push("--zOffset".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(v) = req.longitude.as_ref() {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            args.push("--longitude".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(v) = req.latitude.as_ref() {
+        let trimmed = v.trim();
+        if !trimmed.is_empty() {
+            args.push("--latitude".to_string());
             args.push(trimmed.to_string());
         }
     }
@@ -999,6 +1056,97 @@ async fn convert_auto_handler(
         .as_ref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
+    let crs = req
+        .crs
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let x_offset = req
+        .x_offset
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let y_offset = req
+        .y_offset
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let z_offset = req
+        .z_offset
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let longitude = req
+        .longitude
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let latitude = req
+        .latitude
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+
+    if let Some(fmt) = output_format.as_ref() {
+        match fmt.as_str() {
+            "b3dm" | "i3dm" => {
+                let convert_req = ConvertRequest {
+                    input: req.input.trim().to_string(),
+                    output: req.output.trim().to_string(),
+                    input_type: input_format,
+                    output_type: Some(fmt.clone()),
+                    crs,
+                    x_offset,
+                    y_offset,
+                    z_offset,
+                    longitude,
+                    latitude,
+                    java_path: None,
+                    jar_path: None,
+                    jvm_options: None,
+                    extra_args: None,
+                };
+                return convert_handler(State(state.clone()), Json(convert_req)).await.into_response();
+            }
+            "pnts" => {
+                let convert_req = ConvertGocesiumtilerRequest {
+                    input: req.input.trim().to_string(),
+                    output: req.output.trim().to_string(),
+                    epsg: crs,
+                    resolution: None,
+                    depth: None,
+                    min_points_per_tile: None,
+                    version: None,
+                    command: None,
+                    extra_args: None,
+                };
+                return convert_gocesiumtiler_handler(State(state.clone()), Json(convert_req)).await.into_response();
+            }
+            "3dtiles-1-1-glb" => {
+                let convert_req = ConvertObjTo3dtiles11Request {
+                    input: req.input.trim().to_string(),
+                    output: req.output.trim().to_string(),
+                    crs,
+                    origin: None,
+                    x_offset,
+                    y_offset,
+                    z_offset,
+                    longitude,
+                    latitude,
+                    output_type: None,
+                    java_path: None,
+                    jar_path: None,
+                    jvm_options: None,
+                    mago_extra_args: None,
+                    tdt_command: None,
+                    tdt_extra_args: None,
+                };
+                return convert_obj_to_3dtiles11_handler(State(state.clone()), Json(convert_req)).await.into_response();
+            }
+            _ => {}
+        }
+    }
+
     let state_spawn = state.clone();
     tokio::spawn(async move {
         {
@@ -1121,11 +1269,58 @@ async fn convert_obj_to_3dtiles11_handler(
 
     let input = input.to_string();
     let output_base = req.output.trim().to_string();
-    let crs = req
+    let mut crs = req
         .crs
         .as_ref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
+
+    if crs.is_none() {
+        if let Some(o) = req.origin.as_ref() {
+            let o = o.trim().to_lowercase();
+            if !o.is_empty() {
+                crs = Some(match o.as_str() {
+                    "jgd2011" => "6668".to_string(),
+                    "jgd2000" => "4612".to_string(),
+                    "tokyo" => "4301".to_string(),
+                    _ => {
+                        return (
+                            axum::http::StatusCode::BAD_REQUEST,
+                            format!("unknown geodetic origin: {}", o),
+                        )
+                            .into_response();
+                    }
+                });
+            }
+        }
+    }
+
+    let x_offset = req
+        .x_offset
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let y_offset = req
+        .y_offset
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let z_offset = req
+        .z_offset
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let longitude = req
+        .longitude
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let latitude = req
+        .latitude
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+
     let output_type = req
         .output_type
         .as_ref()
@@ -1205,6 +1400,26 @@ async fn convert_obj_to_3dtiles11_handler(
         if let Some(c) = crs {
             mago_args.push("--crs".to_string());
             mago_args.push(c);
+        }
+        if let Some(v) = x_offset {
+            mago_args.push("--xOffset".to_string());
+            mago_args.push(v);
+        }
+        if let Some(v) = y_offset {
+            mago_args.push("--yOffset".to_string());
+            mago_args.push(v);
+        }
+        if let Some(v) = z_offset {
+            mago_args.push("--zOffset".to_string());
+            mago_args.push(v);
+        }
+        if let Some(v) = longitude {
+            mago_args.push("--longitude".to_string());
+            mago_args.push(v);
+        }
+        if let Some(v) = latitude {
+            mago_args.push("--latitude".to_string());
+            mago_args.push(v);
         }
         if let Some(extra) = mago_extra_args {
             for part in extra.split_whitespace() {

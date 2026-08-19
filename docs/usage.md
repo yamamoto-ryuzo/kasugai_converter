@@ -18,6 +18,7 @@ title: 使い方
   - 100 件を超える場合は次の 100 件を取得
   - 検索条件は「クリア」ボタンで初期化できる
 - `データ変換` … 変換関連のタブに切り替え
+  - `座標設定` … 共有する EPSG / CRS、原点経度・緯度、X/Y/Z オフセットを一括設定。自動変換・個別コンバータが参照します。
   - `自動変換` … 入力ファイル・ディレクトリを指定すると、形式から最適なコンバータを自動選択
   - `個別コンバータ` … 手動で変換エンジンを選択
     - `mago-3d-tiler`
@@ -35,9 +36,9 @@ title: 使い方
 
 ## 自動変換の形式別ルーティング
 
-> **注意**: 現時点で `/api/convert/auto` のバックエンド処理は未実装です。実行すると `auto converter not yet implemented` が返されます。以下のマッピングは将来の実装を見据えた想定です。
-
 `自動変換` タブでは、入力の拡張子や構成から対象のコンバータを選択します。`出力形式` は「次元 / 用途」で分類したカテゴリタブから選びます。各選択肢には対応プラットフォーム（Cesium / QGIS / ArcGIS）を併記しています。`output_format` には純粋な形式コード（`geojson`、`gltf`、`b3dm` など）が送信されます。出力形式を選ぶと、その出力に変換可能な入力形式が `入力可能形式` 一覧に表示されます。
+
+`座標設定` タブで設定した EPSG / CRS は、対応するコンバータに自動的に渡されます。
 
 - `2D ベクター` : GeoJSON、KML / KMZ、GeoPackage、Shapefile、File Geodatabase / FGDB (ArcGIS / QGIS)、SpatiaLite
 - `2D タイル` : XYZ / TMS、MVT
@@ -46,27 +47,16 @@ title: 使い方
 - `点群` : pnts、LAZ
 - `地形` : quantized-mesh、DEM / GeoTIFF、terrain-rgb
 
-MVT、OBJ、FBX、DAE、LAZ、terrain-rgb などは現状のコンバーターでは未対応ですが、将来の標準拡張として UI 上に配置しています。空欄の場合は自動判定されます。現時点では下表のマッピングを想定しています。
+現在実装されている `出力形式` とコンバータの対応は下表の通りです。
 
-| 入力形式 | 拡張子・目印 | 選択されるコンバータ | 呼び出しルート |
+| 出力形式 | 選択されるコンバータ | 呼び出しルート | 備考 |
 |---|---|---|---|
-| Shapefile | `.shp` | mago-3d-tiler | `/api/convert` |
-| GeoJSON | `.geojson` | mago-3d-tiler | `/api/convert` |
-| GeoPackage | `.gpkg` | mago-3d-tiler | `/api/convert` |
-| KML | `.kml` | mago-3d-tiler | `/api/convert` |
-| CityGML | `.gml`, `.citygml` | mago-3d-tiler | `/api/convert` |
-| IndoorGML | `.igml` | mago-3d-tiler | `/api/convert` |
-| OBJ | `.obj` | mago-3d-tiler | `/api/convert` |
-| FBX | `.fbx` | mago-3d-tiler | `/api/convert` |
-| 3DS | `.3ds` | mago-3d-tiler | `/api/convert` |
-| glTF / GLB | `.gltf`, `.glb` | mago-3d-tiler | `/api/convert` |
-| LAS / LAZ | `.las`, `.laz` | Py3DTiles / gocesiumtiler | `/api/convert/py3dtiles` または `/api/convert/gocesiumtiler` |
-| PostGIS | PostgreSQL 接続文字列 | pg2b3dm | `/api/convert/pg2b3dm` |
-| DEM GeoTIFF | `.tif` など（標高） | Cesium Terrain | `/api/run/preprocess` |
-| ラスター画像 | `.tif`, `.png`, `.jpg` など | 2D 画像タイル | `/api/run/preprocess` |
-| IFC | `.ifc` | BIM/CIM（IfcConvert） | `/api/convert/bimcim` |
-| CityJSON | `.json`（CityJSON） | BIM/CIM（cjio） | `/api/convert/bimcim` |
-| glTF 最適化 | `.gltf`, `.glb` | glTF 最適化 | `/api/run/preprocess` |
+| `b3dm` | mago-3d-tiler | `/api/convert` | 3D Tiles 1.0 バッチモデル |
+| `i3dm` | mago-3d-tiler | `/api/convert` | 3D Tiles 1.0 インスタンスモデル |
+| `pnts` | gocesiumtiler | `/api/convert/gocesiumtiler` | 点群 3D Tiles |
+| `3dtiles-1-1-glb` | 3D Tiles 1.1 変換 | `/api/convert/obj-3dtiles11` | OBJ → 3D Tiles 1.1 GLB |
+
+`座標設定` タブで設定した EPSG / CRS は、上記の mago-3d-tiler / gocesiumtiler / 3D Tiles 1.1 変換に渡されます。その他の 2D 系・LAZ・3D モデル（gltf / obj / fbx / dae）・地形系の出力形式は、UI 上で選択できますが、現時点では自動変換ルーティングが未対応です。
 
 ## 2. 必要ツールをインストールする
 
@@ -95,26 +85,41 @@ MVT、OBJ、FBX、DAE、LAZ、terrain-rgb などは現状のコンバーター�
 
 各タブに応じた入力を行います。
 
+### 座標設定
+
+`座標設定` タブは、`自動変換` および `個別コンバータ` の該当エンジンで共有される座標系パラメータを一括設定します。
+
+- **EPSG / SRS** … 使用する座標参照系を入力します。日本の平面直角座標系を含む主要な EPSG コードは入力候補に表示されます。
+- **X / Y / Z オフセット** … モデルの原点に対する補正値（mago-3d-tiler / 3D Tiles 1.1 に渡されます）。
+- **経度 / 緯度** … モデルの原点が置かれる地理座標（mago-3d-tiler / 3D Tiles 1.1 に渡されます）。平面直角座標系を EPSG で選ぶと、対応する原点経度・緯度が自動入力されます。
+
+以下のエンジンが `座標設定` の値を参照します。
+
+- mago-3d-tiler（`crs`、`xOffset`、`yOffset`、`zOffset`、`longitude`、`latitude`）
+- Py3DTiles（`srs_in` / `srs_out`）
+- gocesiumtiler（`epsg`）
+- 3D Tiles 1.1 自動変換（`crs`）
+
 ### mago-3d-tiler
 
 - 入力ディレクトリ
 - 出力ディレクトリ
 - 入力・出力形式
-- CRS
+- 座標系 / オフセット / 経度・緯度（`座標設定` タブ）
 - Java パス / JAR パス
 
 ### Py3DTiles
 
 - 入力ファイル（例: `sample.las`）
 - 出力ディレクトリ
-- 入力 / 出力 SRS
+- 入力 / 出力 SRS（`座標設定` タブ）
 - コマンドパス
 
 ### gocesiumtiler
 
 - 入力ファイル（例: `sample.las`）
 - 出力ディレクトリ
-- EPSG / CRS
+- EPSG / CRS（`座標設定` タブ）
 - **3D Tiles バージョン（`1.0` または `1.1`）**
 - コマンドパス
 
