@@ -1,7 +1,7 @@
 {
-  "version": "0.4.0",
-  "notes": "Kasugai Converter 0.4.0",
-  "pub_date": "2026-08-18T00:00:00Z",
+  "version": "0.5.0",
+  "notes": "Kasugai Converter 0.5.0",
+  "pub_date": "2026-08-19T00:00:00Z",
   "platforms": {
     "windows-x86_64": {
       "url": "https://raw.githubusercontent.com/yamamoto-ryuzo/kasugai_converter/main/download/kasugai_converter.zip",

@@ -125,6 +125,20 @@ struct AutoConvertRequest {
     input_format: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+struct ConvertObjTo3dtiles11Request {
+    input: String,
+    output: String,
+    crs: Option<String>,
+    output_type: Option<String>,
+    java_path: Option<String>,
+    jar_path: Option<String>,
+    jvm_options: Option<String>,
+    mago_extra_args: Option<String>,
+    tdt_command: Option<String>,
+    tdt_extra_args: Option<String>,
+}
+
 #[tokio::main]
 async fn main() {
     let open_browser = std::env::args().any(|a| a == "--open-browser");
@@ -175,6 +189,7 @@ async fn main() {
         .route("/convert/gocesiumtiler", post(convert_gocesiumtiler_handler))
         .route("/run/preprocess", post(preprocess_handler))
         .route("/convert/bimcim", post(convert_bimcim_handler))
+        .route("/convert/obj-3dtiles11", post(convert_obj_to_3dtiles11_handler))
         .route("/convert/auto", post(convert_auto_handler))
         .route("/open-folder", post(open_folder_handler))
         .route("/install/{name}", post(install_handler))
@@ -188,6 +203,7 @@ async fn main() {
         .route("/env/gocesiumtiler", get(get_gocesiumtiler_env))
         .route("/env/ifcopenshell", get(get_ifcopenshell_env))
         .route("/env/cjio", get(get_cjio_env))
+        .route("/env/node", get(get_node_env))
         .route("/import/servers", get(import::get_servers_handler))
         .route("/import/search", post(import::search_handler))
         .route("/import/groups", get(import::groups_handler))
@@ -760,10 +776,16 @@ async fn preprocess_handler(
     State(state): State<AppState>,
     Json(req): Json<PreprocessRequest>,
 ) -> impl IntoResponse {
-    let program = req.program.trim().to_string();
-    if program.is_empty() {
+    let trimmed = req.program.trim().to_string();
+    let mut parts: Vec<String> = trimmed
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
+    if parts.is_empty() {
         return (axum::http::StatusCode::BAD_REQUEST, "program is required").into_response();
     }
+    let program = parts.remove(0);
 
     let job_id = {
         let mut counter = state.next_id.lock().await;
@@ -790,7 +812,7 @@ async fn preprocess_handler(
         );
     }
 
-    let mut args: Vec<String> = Vec::new();
+    let mut args = parts;
     if let Some(extra) = req.extra_args.as_ref() {
         let trimmed = extra.trim();
         if !trimmed.is_empty() {
@@ -1006,6 +1028,268 @@ async fn convert_auto_handler(
     Json(ConvertResponse { job_id: response_id }).into_response()
 }
 
+async fn convert_obj_to_3dtiles11_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ConvertObjTo3dtiles11Request>,
+) -> impl IntoResponse {
+    if req.input.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "input is required").into_response();
+    }
+    if req.output.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "output is required").into_response();
+    }
+
+    let input = req.input.trim();
+    if !StdPath::new(input).exists() {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            format!("input not found: {}", input),
+        )
+            .into_response();
+    }
+
+    let java_path = req
+        .java_path
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| std::env::var("MAGO_JAVA_PATH").unwrap_or_else(|_| "java".to_string()));
+
+    let jar_path = req
+        .jar_path
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            std::env::var("MAGO_JAR_PATH")
+                .unwrap_or_else(|_| "tools/mago-3d-tiler.jar".to_string())
+        });
+
+    if !StdPath::new(&jar_path).exists() {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            format!("jar not found: {}", jar_path),
+        )
+            .into_response();
+    }
+
+    let tdt_command = req
+        .tdt_command
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            std::env::var("TDT_COMMAND")
+                .ok()
+                .filter(|s| !s.trim().is_empty())
+                .map(|s| s.trim().to_string())
+                .unwrap_or_else(|| {
+                    let bundled_node = "tools/node/node.exe";
+                    let bundled_npx_cli = "tools/node/node_modules/npm/bin/npx-cli.js";
+                    if StdPath::new(bundled_node).exists() && StdPath::new(bundled_npx_cli).exists() {
+                        format!("{} {} 3d-tiles-tools", bundled_node, bundled_npx_cli)
+                    } else {
+                        "npx 3d-tiles-tools".to_string()
+                    }
+                })
+        });
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
+    }
+
+    let input = input.to_string();
+    let output_base = req.output.trim().to_string();
+    let crs = req
+        .crs
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let output_type = req
+        .output_type
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "b3dm".to_string());
+    let jvm_options = req
+        .jvm_options
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let mago_extra_args = req
+        .mago_extra_args
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+    let tdt_extra_args = req
+        .tdt_extra_args
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "--targetVersion 1.1".to_string());
+
+    let state_spawn = state.clone();
+    let response_id = job_id.clone();
+
+    tokio::spawn(async move {
+        {
+            let mut jobs = state_spawn.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Running;
+            }
+        }
+
+        let work_dir = format!("{}/{}", output_base, job_id);
+        let step10 = format!("{}/1.0", work_dir);
+        let step11 = format!("{}/1.1", work_dir);
+        let tileset_path = format!("{}/tileset.json", step10);
+
+        let mut combined = String::new();
+        combined.push_str(&format!("working directory: {}\n", work_dir));
+
+        if let Err(e) = std::fs::create_dir_all(step10.as_str()) {
+            let mut jobs = state_spawn.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Failed;
+                job.output = format!("{}\nfailed to create 1.0 dir: {}", combined, e);
+            }
+            return;
+        }
+        if let Err(e) = std::fs::create_dir_all(step11.as_str()) {
+            let mut jobs = state_spawn.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Failed;
+                job.output = format!("{}\nfailed to create 1.1 dir: {}", combined, e);
+            }
+            return;
+        }
+
+        // mago-3d-tiler: OBJ -> 3D Tiles 1.0
+        let mut mago_args: Vec<String> = Vec::new();
+        if let Some(jvm) = jvm_options {
+            for part in jvm.split_whitespace() {
+                mago_args.push(part.to_string());
+            }
+        }
+        mago_args.push("-jar".to_string());
+        mago_args.push(jar_path);
+        mago_args.push("--input".to_string());
+        mago_args.push(input);
+        mago_args.push("--output".to_string());
+        mago_args.push(step10.clone());
+        mago_args.push("--inputType".to_string());
+        mago_args.push("obj".to_string());
+        mago_args.push("--outputType".to_string());
+        mago_args.push(output_type);
+        if let Some(c) = crs {
+            mago_args.push("--crs".to_string());
+            mago_args.push(c);
+        }
+        if let Some(extra) = mago_extra_args {
+            for part in extra.split_whitespace() {
+                mago_args.push(part.to_string());
+            }
+        }
+
+        match run_command(&java_path, &mago_args).await {
+            Ok((code, out)) => {
+                combined.push_str(&format!("[mago-3d-tiler] exit_code={}\n{}\n", code, out));
+                if code != 0 {
+                    let mut jobs = state_spawn.jobs.lock().await;
+                    if let Some(job) = jobs.get_mut(&job_id) {
+                        job.status = JobStatus::Failed;
+                        job.exit_code = Some(code);
+                        job.output = combined;
+                    }
+                    return;
+                }
+            }
+            Err(e) => {
+                let mut jobs = state_spawn.jobs.lock().await;
+                if let Some(job) = jobs.get_mut(&job_id) {
+                    job.status = JobStatus::Failed;
+                    job.output = format!("{}\n[mago-3d-tiler] failed to start: {}", combined, e);
+                }
+                return;
+            }
+        }
+
+        // 3d-tiles-tools: 3D Tiles 1.0 -> 1.1
+        let mut tdt_cmd_parts: Vec<String> = tdt_command
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .filter(|s| !s.is_empty())
+            .collect();
+        if tdt_cmd_parts.is_empty() {
+            tdt_cmd_parts.push("3d-tiles-tools".to_string());
+        }
+        let tdt_program = tdt_cmd_parts.remove(0);
+        let mut tdt_args = tdt_cmd_parts;
+        tdt_args.push("upgrade".to_string());
+        tdt_args.push("-i".to_string());
+        tdt_args.push(tileset_path);
+        tdt_args.push("-o".to_string());
+        tdt_args.push(step11.clone());
+        if !tdt_extra_args.is_empty() {
+            for part in tdt_extra_args.split_whitespace() {
+                tdt_args.push(part.to_string());
+            }
+        }
+
+        match run_command(&tdt_program, &tdt_args).await {
+            Ok((code, out)) => {
+                combined.push_str(&format!("[3d-tiles-tools] exit_code={}\n{}\n", code, out));
+                let mut jobs = state_spawn.jobs.lock().await;
+                if let Some(job) = jobs.get_mut(&job_id) {
+                    job.exit_code = Some(code);
+                    job.output = format!(
+                        "{}\n1.0 output: {}\n1.1 output: {}",
+                        combined, step10, step11
+                    );
+                    job.status = if code == 0 {
+                        JobStatus::Completed
+                    } else {
+                        JobStatus::Failed
+                    };
+                }
+            }
+            Err(e) => {
+                let mut jobs = state_spawn.jobs.lock().await;
+                if let Some(job) = jobs.get_mut(&job_id) {
+                    job.status = JobStatus::Failed;
+                    job.output = format!(
+                        "{}\n[3d-tiles-tools] failed to start: {}\n1.0 output remains at: {}",
+                        combined, e, step10
+                    );
+                }
+            }
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
 #[derive(Debug, Deserialize)]
 struct OpenFolderRequest {
     path: String,
@@ -1199,6 +1483,32 @@ Write-Output "cjio installed"
 "#;
             ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
         }
+        "node" => {
+            let version = std::env::var("NODE_VERSION")
+                .unwrap_or_else(|_| "v24.18.0".to_string());
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+$tmp = "$tools/temp-node"
+$dst = "$tools/node"
+Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $dst -Recurse -Force -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Path $tmp -Force
+Write-Output "Downloading Node.js {version}..."
+curl.exe -s -S -L --fail -o "$tmp/node.zip" "https://nodejs.org/dist/{version}/node-{version}-win-x64.zip"
+if ($LASTEXITCODE -ne 0) { throw "node download failed" }
+Write-Output "Extracting Node.js..."
+Expand-Archive -Path "$tmp/node.zip" -DestinationPath $tmp -Force
+$dir = Get-ChildItem $tmp -Directory | Select-Object -First 1
+if (-not $dir) { throw "node directory not found in archive" }
+New-Item -ItemType Directory -Path $dst -Force
+Move-Item "$($dir.FullName)/*" $dst -Force -ErrorAction SilentlyContinue
+Remove-Item $tmp -Recurse -Force
+Write-Output "node installed to $dst"
+"#;
+            let script = script.replace("{version}", &version);
+            ("powershell".to_string(), vec!["-Command".to_string(), script])
+        }
         _ => {
             return (axum::http::StatusCode::NOT_FOUND, "install target not found").into_response();
         }
@@ -1325,6 +1635,53 @@ async fn run_conversion(
     }
 
     Ok(())
+}
+
+async fn run_command(program: &str, args: &[String]) -> Result<(i32, String), String> {
+    let mut child = Command::new(program)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true)
+        .spawn()
+        .map_err(|e| format!("failed to start {}: {}", program, e))?;
+
+    let log = Arc::new(Mutex::new(String::new()));
+    let out_log = log.clone();
+    let err_log = log.clone();
+
+    let stdout = child.stdout.take().ok_or("stdout not piped")?;
+    let stderr = child.stderr.take().ok_or("stderr not piped")?;
+
+    let out_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stdout).lines();
+        while let Ok(Some(line)) = reader.next_line().await {
+            let mut l = out_log.lock().await;
+            l.push_str(&line);
+            l.push('\n');
+        }
+    });
+
+    let err_task = tokio::spawn(async move {
+        let mut reader = BufReader::new(stderr).lines();
+        while let Ok(Some(line)) = reader.next_line().await {
+            let mut l = err_log.lock().await;
+            l.push_str(&line);
+            l.push('\n');
+        }
+    });
+
+    let status = child
+        .wait()
+        .await
+        .map_err(|e| format!("process error: {}", e))?;
+
+    out_task.await.unwrap_or(());
+    err_task.await.unwrap_or(());
+
+    let output = log.lock().await.clone();
+    let exit_code = status.code().unwrap_or(-1);
+    Ok((exit_code, output))
 }
 
 #[derive(Debug, Serialize)]
@@ -1648,6 +2005,67 @@ async fn get_cjio_env() -> impl IntoResponse {
     }
 
     Json(CjioEnv {
+        found,
+        path,
+        version_output,
+    })
+}
+
+#[derive(Debug, Serialize)]
+struct NodeEnv {
+    found: bool,
+    path: Option<String>,
+    version_output: String,
+}
+
+async fn get_node_env() -> impl IntoResponse {
+    let mut path: Option<String> = None;
+
+    if let Ok(p) = std::env::var("NODE_PATH") {
+        let trimmed = p.trim().to_string();
+        if !trimmed.is_empty() && StdPath::new(&trimmed).exists() {
+            path = Some(trimmed);
+        }
+    }
+
+    if path.is_none() {
+        let tools_node = "tools/node/node.exe";
+        if StdPath::new(tools_node).exists() {
+            path = Some(tools_node.to_string());
+        }
+    }
+
+    if path.is_none() {
+        match Command::new("where").arg("node").output().await {
+            Ok(out) if out.status.success() => {
+                let first = String::from_utf8_lossy(&out.stdout)
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                if !first.is_empty() {
+                    path = Some(first);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut found = false;
+    let mut version_output = String::new();
+    if let Some(p) = path.as_ref() {
+        match Command::new(p).arg("--version").output().await {
+            Ok(out) => {
+                version_output = String::from_utf8_lossy(&out.stdout).to_string();
+                version_output.push_str(&String::from_utf8_lossy(&out.stderr));
+                found = out.status.success();
+            }
+            _ => {}
+        }
+    }
+
+    Json(NodeEnv {
         found,
         path,
         version_output,

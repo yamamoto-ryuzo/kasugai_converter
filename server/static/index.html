@@ -848,7 +848,7 @@
           <form id="gltfoptForm" class="grid">
             <div class="full">
               <label for="gltfoptCommand">コマンド</label>
-              <input type="text" id="gltfoptCommand" placeholder="gltf-pipeline" value="gltf-pipeline" required />
+              <input type="text" id="gltfoptCommand" placeholder="npx gltf-pipeline" value="npx gltf-pipeline" required />
             </div>
             <div class="full">
               <label for="gltfoptInput">入力 glTF/GLB</label>
@@ -1092,6 +1092,19 @@
             <div class="system-actions">
               <button class="secondary" id="installCjioNow" type="button">自動インストール</button>
               <button class="secondary" id="installCjioBtn" type="button">PyPI ページ</button>
+            </div>
+          </div>
+
+          <div class="system-item">
+            <div class="system-title">Node.js <span id="nodeStatusTag" class="tag ng">未検出</span></div>
+            <div class="system-meta" id="nodeInfo">
+              <code>tools/node/node.exe</code> が見つかりません。3D Tiles 1.1 化に必要です。
+              <pre id="nodeVersionOutput" style="display:none;"></pre>
+              <div id="nodePath" class="hint"></div>
+            </div>
+            <div class="system-actions">
+              <button class="secondary" id="installNodeNow" type="button">自動ダウンロード</button>
+              <button class="secondary" id="installNodeBtn" type="button">ダウンロードページ</button>
             </div>
           </div>
         </div>
@@ -1635,7 +1648,7 @@
 
     async function loadSystemEnv() {
       try {
-        const [javaRes, magoRes, pythonRes, py3Res, pgRes, gocesiumRes, ifcRes, cjioRes] = await Promise.all([
+        const [javaRes, magoRes, pythonRes, py3Res, pgRes, gocesiumRes, ifcRes, cjioRes, nodeRes] = await Promise.all([
           fetch('/api/env/java'),
           fetch('/api/env/mago'),
           fetch('/api/env/python'),
@@ -1644,6 +1657,7 @@
           fetch('/api/env/gocesiumtiler'),
           fetch('/api/env/ifcopenshell'),
           fetch('/api/env/cjio'),
+          fetch('/api/env/node'),
         ]);
         const java = await javaRes.json();
         const mago = await magoRes.json();
@@ -1653,6 +1667,7 @@
         const gocesium = await gocesiumRes.json();
         const ifc = await ifcRes.json();
         const cjio = await cjioRes.json();
+        const nodeEnv = await nodeRes.json();
 
         const jdkTag = document.getElementById('jdkStatusTag');
         const jdkVersion = document.getElementById('jdkVersionOutput');
@@ -1811,6 +1826,22 @@
           cjioPath.textContent = '';
           currentCjioPath = null;
         }
+
+        const nodeTag = document.getElementById('nodeStatusTag');
+        const nodeVersion = document.getElementById('nodeVersionOutput');
+        const nodePath = document.getElementById('nodePath');
+        if (nodeEnv.found) {
+          nodeTag.textContent = '検出済';
+          nodeTag.className = 'tag ok';
+          nodeVersion.textContent = nodeEnv.version_output;
+          nodeVersion.style.display = 'block';
+          nodePath.textContent = 'パス: ' + nodeEnv.path;
+        } else {
+          nodeTag.textContent = '未検出';
+          nodeTag.className = 'tag ng';
+          nodeVersion.style.display = 'none';
+          nodePath.textContent = '';
+        }
       } catch (e) {
         console.error('env load failed', e);
       }
@@ -1914,6 +1945,13 @@
     });
     document.getElementById('installCjioNow').addEventListener('click', () => {
       startJob('/api/install/cjio', {}, document.getElementById('installCjioNow'));
+    });
+
+    document.getElementById('installNodeBtn').addEventListener('click', () => {
+      window.open('https://nodejs.org/en/download', '_blank');
+    });
+    document.getElementById('installNodeNow').addEventListener('click', () => {
+      startJob('/api/install/node', {}, document.getElementById('installNodeNow'));
     });
 
     // bimcim

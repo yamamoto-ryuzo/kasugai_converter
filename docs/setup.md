@@ -35,6 +35,7 @@ UI の「データ変換」タブ内の「関連システム」から、以下�
 | gocesiumtiler | 自動ダウンロード | `tools/gocesiumtiler/gocesiumtiler.exe` |
 | IfcOpenShell | 自動ダウンロード | `tools/ifcopenshell/IfcConvert.exe` |
 | cjio | 自動インストール | `tools/python/Scripts/cjio.exe` |
+|| Node.js（LTS） | 自動ダウンロード | `tools/node` |
 
 ## 手動でパスを指定する場合
 
@@ -48,6 +49,7 @@ $env:PG2B3DM_PATH = "C:\tools\pg2b3dm\pg2b3dm.exe"
 $env:GOCESIUMTILER_PATH = "C:\tools\gocesiumtiler\gocesiumtiler.exe"
 $env:IFCCONVERT_PATH = "C:\tools\ifcopenshell\IfcConvert.exe"
 $env:CJIO_PATH = "C:\tools\python\Scripts\cjio.exe"
+$env:NODE_PATH = "C:\tools\node\node.exe"
 ```
 
 ## GDAL/PDAL・Cesium Terrain ツールのインストール
@@ -58,8 +60,8 @@ $env:CJIO_PATH = "C:\tools\python\Scripts\cjio.exe"
 | Cesium Terrain Builder | Docker、または[ quantized-mesh 対応フォーク](https://github.com/tum-gis/cesium-terrain-builder-docker) |
 | tin-terrain | Docker、またはソースからビルド |
 | gdal2tiles.py / ctb-tile | GDAL / Cesium Terrain Builder に同梱 |
-| 3d-tiles-tools | `npm install -g 3d-tiles-tools`（Node.js が必要） |
-| gltf-pipeline | `npm install -g gltf-pipeline`（Node.js が必要） |
+| 3d-tiles-tools | `npx 3d-tiles-tools`（関連システムから Node.js 自動インストール） |
+| gltf-pipeline | `npx gltf-pipeline`（関連システムから Node.js 自動インストール） |
 
 ## リリースビルド
 

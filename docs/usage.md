@@ -88,8 +88,8 @@ MVT、OBJ、FBX、DAE、LAZ、terrain-rgb などは現状のコンバーター�
 - `GDAL/PDAL` … OSGeo4W / conda-forge
 - `Cesium Terrain Builder / tin-terrain` … Docker / ソースからビルド
 - `gdal2tiles.py / ctb-tile` … GDAL / Cesium Terrain Builder に同梱
-- `3d-tiles-tools` … `npm install -g 3d-tiles-tools`
-- `gltf-pipeline` … `npm install -g gltf-pipeline`
+
+
 
 ## 3. 変換パラメータを入力する
 
@@ -148,7 +148,7 @@ MVT、OBJ、FBX、DAE、LAZ、terrain-rgb などは現状のコンバーター�
 - 出力ディレクトリ
 - 追加オプション（例: `--targetVersion 1.1`）
 
-Node.js がインストール済みの環境で `npm install -g 3d-tiles-tools` してください。
+Node.js は「関連システム」から自動インストール可能です。`npx 3d-tiles-tools` を指定する場合、個別の `npm install` は不要です。
 
 ### BIM/CIM
 
@@ -178,13 +178,13 @@ GDAL/ctb-tile は OSGeo4W などから事前にインストールしてくださ
 
 gltf-pipeline を使って glTF/GLB を最適化します。
 
-- コマンド: `gltf-pipeline`
+- コマンド: `npx gltf-pipeline`
 - 入力: `C:/data/input.glb`
 - 出力: `C:/data/output.glb`
 - Draco 圧縮: 有効 / 無効
 - 追加: `--keepUnusedElements`、`--textureCompression etc1s` など
 
-Node.js 環境で `npm install -g gltf-pipeline` してください。
+Node.js は「関連システム」から自動インストール可能です。`npx gltf-pipeline` を指定する場合、個別の `npm install` は不要です。
 
 ## 4. 実行
 

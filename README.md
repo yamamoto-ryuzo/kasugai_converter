@@ -82,16 +82,26 @@ cargo run
 | gocesiumtiler | `tools/gocesiumtiler/gocesiumtiler.exe` |
 | IfcOpenShell | `tools/ifcopenshell/IfcConvert.exe` |
 | cjio | `tools/python/Scripts/cjio.exe` |
+|| Node.js（LTS） | `tools/node` |
 
 以下は手動でインストールしてください。
+
+※ `3d-tiles-tools` と `gltf-pipeline` は Node.js 自動インストール後に `npx` で利用できるため、個別の手動インストールは不要です。
 
 - **GDAL/PDAL** … OSGeo4W または conda-forge
 - **Cesium Terrain Builder / tin-terrain** … Docker またはソースからビルド
 - **gdal2tiles.py / ctb-tile** … GDAL または Cesium Terrain Builder に同梱
-- **3d-tiles-tools** … `npm install -g 3d-tiles-tools`（Node.js が必要）
-- **gltf-pipeline** … `npm install -g gltf-pipeline`（Node.js が必要）
+
+
 
 ## 更新履歴
+
+### v0.5.0
+
+- OBJ → 3D Tiles 1.1 変換ルート（`/api/convert/obj-3dtiles11`）を追加
+- Node.js（LTS）の自動インストール対応
+- `3d-tiles-tools` / `gltf-pipeline` を npx 化
+- `/api/run/preprocess` のコマンドを空白区切り対応
 
 ### v0.4.0
 
