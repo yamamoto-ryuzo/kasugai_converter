@@ -141,7 +141,7 @@ def main():
     parser.add_argument("--release", action="store_true", help="Run the release EXE")
     args = parser.parse_args()
 
-    wants_installer = args.installer or args.build or args.cmd in ("b", "B")
+    wants_installer = args.installer
     build_requested = args.build or args.cmd in ("b", "B")
 
     if args.release:
@@ -150,11 +150,9 @@ def main():
         build_release()
         package_zip()
         if wants_installer:
-            build_installer()
-    elif args.installer:
-        build_release()
-        package_zip()
-        build_installer()
+            rc = build_installer()
+            if rc != 0:
+                sys.exit(rc)
     else:
         # 引数なし: 開発モード起動
         sys.exit(run_command(["cargo", "run"], cwd=SERVER_DIR))

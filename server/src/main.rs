@@ -269,7 +269,7 @@ struct PlatformRelease {
 async fn update_check_handler() -> impl IntoResponse {
     let current = env!("CARGO_PKG_VERSION").to_string();
     let remote =
-        "https://raw.githubusercontent.com/yamamoto-ryuzo/kasuga_converter/main/download/latest.json";
+        "https://raw.githubusercontent.com/yamamoto-ryuzo/kasugai_converter/main/download/latest.json";
     match reqwest::get(remote).await {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(text) = resp.text().await {
@@ -1857,7 +1857,7 @@ async fn get_py3dtiles_env() -> impl IntoResponse {
     let mut found = false;
     let mut version_output = String::new();
     if StdPath::new(&path).exists() {
-        match Command::new(&path).arg("-h").output().await {
+        match Command::new(&path).arg("--help").output().await {
             Ok(out) => {
                 version_output = String::from_utf8_lossy(&out.stdout).to_string();
                 version_output.push_str(&String::from_utf8_lossy(&out.stderr));
@@ -1994,7 +1994,7 @@ async fn get_cjio_env() -> impl IntoResponse {
     let mut found = false;
     let mut version_output = String::new();
     if StdPath::new(&path).exists() {
-        match Command::new(&path).arg("--version").output().await {
+        match Command::new(&path).arg("--help").output().await {
             Ok(out) => {
                 version_output = String::from_utf8_lossy(&out.stdout).to_string();
                 version_output.push_str(&String::from_utf8_lossy(&out.stderr));
