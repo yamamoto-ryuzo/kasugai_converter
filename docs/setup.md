@@ -23,7 +23,7 @@ cargo run
 
 ## 必要ツールの自動インストール
 
-UI の「データ変換」タブ内の「関連システム」から、以下を自動ダウンロード・配置できます。
+UI の「データ変換」タブ内の「関連システム」から、タブ単位で以下を自動ダウンロード・配置できます。各タブには概要・変換対応拡張子が表示され、未検出のタブは赤く表示されます。
 
 | ツール | ボタン | 配置先 |
 |--------|--------|--------|
@@ -35,7 +35,7 @@ UI の「データ変換」タブ内の「関連システム」から、以下�
 | gocesiumtiler | 自動ダウンロード | `tools/gocesiumtiler/gocesiumtiler.exe` |
 | IfcOpenShell | 自動ダウンロード | `tools/ifcopenshell/IfcConvert.exe` |
 | cjio | 自動インストール | `tools/python/Scripts/cjio.exe` |
-|| Node.js（LTS） | 自動ダウンロード | `tools/node` |
+| Node.js（LTS） | 自動ダウンロード | `tools/node` |
 
 ## 手動でパスを指定する場合
 

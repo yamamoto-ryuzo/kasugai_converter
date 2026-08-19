@@ -84,6 +84,8 @@
       font-weight: 600;
     }
     .tab-btn:hover { background: #d1d5db; }
+    .tab-btn.ok { background: #d1fae5; color: #065f46; }
+    .tab-btn.ng { background: #fee2e2; color: #991b1b; }
     .tab-btn.active {
       background: var(--card);
       color: var(--primary);
@@ -984,128 +986,156 @@
     <div id="systems" class="tab-content">
       <div class="card">
         <h2>関連システム</h2>
-        <p class="hint">ここで JDK など、変換に必要な外部ツールの状態を確認・インストールできます。</p>
+        <p class="hint">タブを切り替えて、各外部ツールの概要と変換対応拡張子を確認してください。</p>
 
-        <div class="system-list">
-          <div class="system-item">
-            <div class="system-title">JDK 21 <span id="jdkStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta">
-              mago-3d-tiler の実行には JDK 21 以上が必要です。
-              <pre id="jdkVersionOutput" style="display:none;"></pre>
-              <div id="jdkPath" class="hint"></div>
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installJdkNow" type="button">自動インストール</button>
-              <button class="secondary" id="installJdkMs" type="button">Microsoft Build of OpenJDK 21</button>
-              <button class="secondary" id="installJdkAdoptium" type="button">Eclipse Temurin 21</button>
-              <button class="secondary" id="useJdkBtn" type="button" style="display:none;">この Java を使う</button>
-            </div>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="system-jdk" type="button">JDK 21</button>
+          <button class="tab-btn" data-tab="system-mago" type="button">mago-3d-tiler</button>
+          <button class="tab-btn" data-tab="system-python" type="button">Python</button>
+          <button class="tab-btn" data-tab="system-py3dtiles" type="button">Py3DTiles</button>
+          <button class="tab-btn" data-tab="system-pg2b3dm" type="button">pg2b3dm</button>
+          <button class="tab-btn" data-tab="system-gocesiumtiler" type="button">gocesiumtiler</button>
+          <button class="tab-btn" data-tab="system-ifcopenshell" type="button">IfcOpenShell</button>
+          <button class="tab-btn" data-tab="system-cjio" type="button">cjio</button>
+          <button class="tab-btn" data-tab="system-node" type="button">Node.js</button>
+        </div>
+
+        <div id="system-jdk" class="tab-content active system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">JDK 21 <span id="jdkStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> mago-3d-tiler など Java 製コンバータの実行環境です。</p>
+          <p class="hint"><strong>変換:</strong> 直接的な変換は行いません。mago-3d-tiler の実行基盤として使用し、.shp / .geojson / .gpkg / .kml / .gml / .citygml / .igml / .obj / .fbx / .3ds / .gltf / .glb → 3D Tiles (b3dm) 変換を支えます。</p>
+          <div class="system-meta" id="jdkInfo">
+            mago-3d-tiler の実行には JDK 21 以上が必要です。
+            <pre id="jdkVersionOutput" style="display:none;"></pre>
+            <div id="jdkPath" class="hint"></div>
           </div>
-
-          <div class="system-item">
-            <div class="system-title">mago-3d-tiler JAR <span id="magoStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta" id="magoInfo">
-              JAR ファイルが <code>tools/mago-3d-tiler.jar</code> または <code>MAGO_JAR_PATH</code> に見つかりません。
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installMagoNow" type="button">自動ダウンロード</button>
-              <button class="secondary" id="installMagoBtn" type="button">ダウンロードページ</button>
-              <button class="secondary" id="useMagoBtn" type="button" style="display:none;">この JAR を使う</button>
-            </div>
+          <div class="system-actions">
+            <button class="secondary" id="installJdkNow" type="button">自動インストール</button>
+            <button class="secondary" id="installJdkMs" type="button">Microsoft Build of OpenJDK 21</button>
+            <button class="secondary" id="installJdkAdoptium" type="button">Eclipse Temurin 21</button>
+            <button class="secondary" id="useJdkBtn" type="button" style="display:none;">この Java を使う</button>
           </div>
+        </div>
 
-          <div class="system-item">
-            <div class="system-title">Python <span id="pythonStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta" id="pythonInfo">
-              Py3DTiles をインストールするには Python が必要です。
-              <pre id="pythonVersionOutput" style="display:none;"></pre>
-              <div id="pythonPath" class="hint"></div>
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installPythonNow" type="button">自動ダウンロード</button>
-              <button class="secondary" id="installPythonBtn" type="button">ダウンロードページ</button>
-            </div>
+        <div id="system-mago" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">mago-3d-tiler JAR <span id="magoStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> CityGML / GeoJSON / Shapefile など 2D/3D データを 3D Tiles (b3dm) 化するエンジンです。</p>
+          <p class="hint"><strong>変換:</strong> .shp / .geojson / .gpkg / .kml / .gml / .citygml / .igml / .obj / .fbx / .3ds / .gltf / .glb → 3D Tiles (b3dm)。</p>
+          <div class="system-meta" id="magoInfo">
+            JAR ファイルが <code>tools/mago-3d-tiler.jar</code> または <code>MAGO_JAR_PATH</code> に見つかりません。
           </div>
-
-          <div class="system-item">
-            <div class="system-title">Py3DTiles <span id="py3dtilesStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta" id="py3dtilesInfo">
-              venv 内に py3dtiles がインストールされていません。
-              <pre id="py3dtilesVersionOutput" style="display:none;"></pre>
-              <div id="py3dtilesPath" class="hint"></div>
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installPy3dtilesNow" type="button">自動インストール</button>
-              <button class="secondary" id="installPy3dtilesBtn" type="button">PyPI ページ</button>
-              <button class="secondary" id="usePy3dtilesBtn" type="button" style="display:none;">このコマンドを使う</button>
-            </div>
+          <div class="system-actions">
+            <button class="secondary" id="installMagoNow" type="button">自動ダウンロード</button>
+            <button class="secondary" id="installMagoBtn" type="button">ダウンロードページ</button>
+            <button class="secondary" id="useMagoBtn" type="button" style="display:none;">この JAR を使う</button>
           </div>
+        </div>
 
-          <div class="system-item">
-            <div class="system-title">pg2b3dm <span id="pg2b3dmStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta" id="pg2b3dmInfo">
-              <code>tools/pg2b3dm/pg2b3dm.exe</code> が見つかりません。
-              <pre id="pg2b3dmVersionOutput" style="display:none;"></pre>
-              <div id="pg2b3dmPath" class="hint"></div>
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installPg2b3dmNow" type="button">自動ダウンロード</button>
-              <button class="secondary" id="installPg2b3dmBtn" type="button">ダウンロードページ</button>
-              <button class="secondary" id="usePg2b3dmBtn" type="button" style="display:none;">このコマンドを使う</button>
-            </div>
+        <div id="system-python" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">Python <span id="pythonStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> Py3DTiles や cjio など Python 製コンバータの実行環境です。</p>
+          <p class="hint"><strong>変換:</strong> 直接的な変換は行いません。Py3DTiles / cjio の実行基盤として、.las / .laz → pnts/3D Tiles や CityJSON → .glb / .obj / .citygml 変換を支えます。</p>
+          <div class="system-meta" id="pythonInfo">
+            Py3DTiles をインストールするには Python が必要です。
+            <pre id="pythonVersionOutput" style="display:none;"></pre>
+            <div id="pythonPath" class="hint"></div>
           </div>
-
-          <div class="system-item">
-            <div class="system-title">gocesiumtiler <span id="gocesiumtilerStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta" id="gocesiumtilerInfo">
-              <code>tools/gocesiumtiler/gocesiumtiler.exe</code> が見つかりません。
-              <pre id="gocesiumtilerVersionOutput" style="display:none;"></pre>
-              <div id="gocesiumtilerPath" class="hint"></div>
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installGocesiumtilerNow" type="button">自動ダウンロード</button>
-              <button class="secondary" id="installGocesiumtilerBtn" type="button">ダウンロードページ</button>
-              <button class="secondary" id="useGocesiumtilerBtn" type="button" style="display:none;">このコマンドを使う</button>
-            </div>
+          <div class="system-actions">
+            <button class="secondary" id="installPythonNow" type="button">自動ダウンロード</button>
+            <button class="secondary" id="installPythonBtn" type="button">ダウンロードページ</button>
           </div>
+        </div>
 
-          <div class="system-item">
-            <div class="system-title">IfcOpenShell <span id="ifcopenshellStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta" id="ifcopenshellInfo">
-              <code>tools/ifcopenshell/IfcConvert.exe</code> が見つかりません。
-              <pre id="ifcopenshellVersionOutput" style="display:none;"></pre>
-              <div id="ifcopenshellPath" class="hint"></div>
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installIfcOpenShellNow" type="button">自動ダウンロード</button>
-              <button class="secondary" id="installIfcOpenShellBtn" type="button">ダウンロードページ</button>
-            </div>
+        <div id="system-py3dtiles" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">Py3DTiles <span id="py3dtilesStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> 点群データを 3D Tiles (pnts) 化する Python ライブラリです。</p>
+          <p class="hint"><strong>変換:</strong> .las / .laz → 3D Tiles (pnts)。</p>
+          <div class="system-meta" id="py3dtilesInfo">
+            venv 内に py3dtiles がインストールされていません。
+            <pre id="py3dtilesVersionOutput" style="display:none;"></pre>
+            <div id="py3dtilesPath" class="hint"></div>
           </div>
-
-          <div class="system-item">
-            <div class="system-title">cjio <span id="cjioStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta" id="cjioInfo">
-              <code>tools/python/Scripts/cjio.exe</code> が見つかりません。
-              <pre id="cjioVersionOutput" style="display:none;"></pre>
-              <div id="cjioPath" class="hint"></div>
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installCjioNow" type="button">自動インストール</button>
-              <button class="secondary" id="installCjioBtn" type="button">PyPI ページ</button>
-            </div>
+          <div class="system-actions">
+            <button class="secondary" id="installPy3dtilesNow" type="button">自動インストール</button>
+            <button class="secondary" id="installPy3dtilesBtn" type="button">PyPI ページ</button>
+            <button class="secondary" id="usePy3dtilesBtn" type="button" style="display:none;">このコマンドを使う</button>
           </div>
+        </div>
 
-          <div class="system-item">
-            <div class="system-title">Node.js <span id="nodeStatusTag" class="tag ng">未検出</span></div>
-            <div class="system-meta" id="nodeInfo">
-              <code>tools/node/node.exe</code> が見つかりません。3D Tiles 1.1 化に必要です。
-              <pre id="nodeVersionOutput" style="display:none;"></pre>
-              <div id="nodePath" class="hint"></div>
-            </div>
-            <div class="system-actions">
-              <button class="secondary" id="installNodeNow" type="button">自動ダウンロード</button>
-              <button class="secondary" id="installNodeBtn" type="button">ダウンロードページ</button>
-            </div>
+        <div id="system-pg2b3dm" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">pg2b3dm <span id="pg2b3dmStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> PostGIS テーブルのジオメトリと属性を 3D Tiles (b3dm) 化します。</p>
+          <p class="hint"><strong>変換:</strong> PostGIS テーブル（PostgreSQL 接続） → 3D Tiles (b3dm)。</p>
+          <div class="system-meta" id="pg2b3dmInfo">
+            <code>tools/pg2b3dm/pg2b3dm.exe</code> が見つかりません。
+            <pre id="pg2b3dmVersionOutput" style="display:none;"></pre>
+            <div id="pg2b3dmPath" class="hint"></div>
+          </div>
+          <div class="system-actions">
+            <button class="secondary" id="installPg2b3dmNow" type="button">自動ダウンロード</button>
+            <button class="secondary" id="installPg2b3dmBtn" type="button">ダウンロードページ</button>
+            <button class="secondary" id="usePg2b3dmBtn" type="button" style="display:none;">このコマンドを使う</button>
+          </div>
+        </div>
+
+        <div id="system-gocesiumtiler" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">gocesiumtiler <span id="gocesiumtilerStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> LAS / LAZ 点群を 3D Tiles 化するエンジンです。</p>
+          <p class="hint"><strong>変換:</strong> .las / .laz → 3D Tiles (1.0 / 1.1)。</p>
+          <div class="system-meta" id="gocesiumtilerInfo">
+            <code>tools/gocesiumtiler/gocesiumtiler.exe</code> が見つかりません。
+            <pre id="gocesiumtilerVersionOutput" style="display:none;"></pre>
+            <div id="gocesiumtilerPath" class="hint"></div>
+          </div>
+          <div class="system-actions">
+            <button class="secondary" id="installGocesiumtilerNow" type="button">自動ダウンロード</button>
+            <button class="secondary" id="installGocesiumtilerBtn" type="button">ダウンロードページ</button>
+            <button class="secondary" id="useGocesiumtilerBtn" type="button" style="display:none;">このコマンドを使う</button>
+          </div>
+        </div>
+
+        <div id="system-ifcopenshell" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">IfcOpenShell <span id="ifcopenshellStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> IFC ファイルを glTF / GLB / OBJ / CityGML に変換します。</p>
+          <p class="hint"><strong>変換:</strong> .ifc → .glb / .obj / .citygml。</p>
+          <div class="system-meta" id="ifcopenshellInfo">
+            <code>tools/ifcopenshell/IfcConvert.exe</code> が見つかりません。
+            <pre id="ifcopenshellVersionOutput" style="display:none;"></pre>
+            <div id="ifcopenshellPath" class="hint"></div>
+          </div>
+          <div class="system-actions">
+            <button class="secondary" id="installIfcOpenShellNow" type="button">自動ダウンロード</button>
+            <button class="secondary" id="installIfcOpenShellBtn" type="button">ダウンロードページ</button>
+          </div>
+        </div>
+
+        <div id="system-cjio" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">cjio <span id="cjioStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> CityJSON ファイルを加工・変換します。</p>
+          <p class="hint"><strong>変換:</strong> CityJSON (.json) → .glb / .obj / .citygml。</p>
+          <div class="system-meta" id="cjioInfo">
+            <code>tools/python/Scripts/cjio.exe</code> が見つかりません。
+            <pre id="cjioVersionOutput" style="display:none;"></pre>
+            <div id="cjioPath" class="hint"></div>
+          </div>
+          <div class="system-actions">
+            <button class="secondary" id="installCjioNow" type="button">自動インストール</button>
+            <button class="secondary" id="installCjioBtn" type="button">PyPI ページ</button>
+          </div>
+        </div>
+
+        <div id="system-node" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">Node.js <span id="nodeStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> 3d-tiles-tools や gltf-pipeline を npx で実行する実行環境です。</p>
+          <p class="hint"><strong>変換:</strong> 直接的な変換は行いません。3D Tiles 1.0 → 1.1（3d-tiles-tools）や .glb / .gltf の最適化（gltf-pipeline）を支えます。</p>
+          <div class="system-meta" id="nodeInfo">
+            <code>tools/node/node.exe</code> が見つかりません。3D Tiles 1.1 化に必要です。
+            <pre id="nodeVersionOutput" style="display:none;"></pre>
+            <div id="nodePath" class="hint"></div>
+          </div>
+          <div class="system-actions">
+            <button class="secondary" id="installNodeNow" type="button">自動ダウンロード</button>
+            <button class="secondary" id="installNodeBtn" type="button">ダウンロードページ</button>
           </div>
         </div>
       </div>
@@ -1359,6 +1389,22 @@
           if (target === 'systems') loadSystemEnv();
         });
       });
+    }
+
+    const systemsEl = document.getElementById('systems');
+    if (systemsEl) {
+      const systemsTabBar = systemsEl.querySelector('.tabs');
+      if (systemsTabBar) {
+        systemsTabBar.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const target = btn.dataset.tab;
+            systemsTabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            systemsEl.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(target).classList.add('active');
+          });
+        });
+      }
     }
 
     document.getElementById('individual').querySelectorAll('.tab-btn').forEach(btn => {
@@ -1841,6 +1887,31 @@
           nodeTag.className = 'tag ng';
           nodeVersion.style.display = 'none';
           nodePath.textContent = '';
+        }
+
+        const systemsEl = document.getElementById('systems');
+        if (systemsEl) {
+          const systemsTabBar = systemsEl.querySelector('.tabs');
+          if (systemsTabBar) {
+            const statusList = [
+              { tab: 'system-jdk', found: java.found },
+              { tab: 'system-mago', found: mago.found },
+              { tab: 'system-python', found: python.found },
+              { tab: 'system-py3dtiles', found: py3.found },
+              { tab: 'system-pg2b3dm', found: pg.found },
+              { tab: 'system-gocesiumtiler', found: gocesium.found },
+              { tab: 'system-ifcopenshell', found: ifc.found },
+              { tab: 'system-cjio', found: cjio.found },
+              { tab: 'system-node', found: nodeEnv.found },
+            ];
+            statusList.forEach(({ tab, found }) => {
+              const btn = systemsTabBar.querySelector(`[data-tab="${tab}"]`);
+              if (btn) {
+                btn.classList.remove('ok', 'ng');
+                btn.classList.add(found ? 'ok' : 'ng');
+              }
+            });
+          }
         }
       } catch (e) {
         console.error('env load failed', e);
