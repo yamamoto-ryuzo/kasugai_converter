@@ -7,6 +7,8 @@ import shutil
 import subprocess
 import sys
 import zipfile
+import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 APP_NAME = "kasugai_converter"
@@ -21,6 +23,40 @@ def run_command(cmd, cwd=None):
     """Run a command and return its return code."""
     print(f"[Kasugai] {' '.join(map(str, cmd))}")
     return subprocess.run(cmd, cwd=cwd, check=False).returncode
+
+
+def get_version():
+    """Read version from server/Cargo.toml."""
+    cargo_toml = SERVER_DIR / "Cargo.toml"
+    for line in cargo_toml.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("version ") and "=" in stripped:
+            return stripped.split("=", 1)[1].strip().strip('"')
+    raise RuntimeError("version not found in Cargo.toml")
+
+
+def write_latest_json(version):
+    """Update download/latest.json to the built version."""
+    latest_json = DOWNLOAD_DIR / "latest.json"
+    DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    if latest_json.exists():
+        with open(latest_json, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+    else:
+        manifest = {}
+    manifest["version"] = version
+    manifest["notes"] = f"Kasugai Converter {version}"
+    manifest["pub_date"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    manifest.setdefault("platforms", {})
+    manifest["platforms"].setdefault("windows-x86_64", {})
+    manifest["platforms"]["windows-x86_64"].setdefault(
+        "url",
+        "https://raw.githubusercontent.com/yamamoto-ryuzo/kasugai_converter/main/download/kasugai_converter.zip",
+    )
+    with open(latest_json, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, ensure_ascii=False, indent=2)
+        f.write("\n")
+    print(f"[Kasugai] Updated latest.json to version {version}")
 
 
 def build_release():
@@ -149,6 +185,7 @@ def main():
     elif build_requested or wants_installer:
         build_release()
         package_zip()
+        write_latest_json(get_version())
         if wants_installer:
             rc = build_installer()
             if rc != 0:

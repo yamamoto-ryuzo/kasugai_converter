@@ -68,6 +68,11 @@ struct ConvertResponse {
 }
 
 #[derive(Debug, Deserialize)]
+struct InstallUpdateRequest {
+    url: String,
+}
+
+#[derive(Debug, Deserialize)]
 struct ConvertPy3dtilesRequest {
     input: String,
     output: String,
@@ -200,6 +205,7 @@ async fn main() {
         .route("/v1/server/stop", post(stop_handler))
         .route("/v1/server/version", get(version_handler))
         .route("/v1/server/update-check", get(update_check_handler))
+        .route("/v1/server/install-update", post(install_update_handler))
         .route("/convert", post(convert_handler))
         .route("/convert/py3dtiles", post(convert_py3dtiles_handler))
         .route("/convert/pg2b3dm", post(convert_pg2b3dm_handler))
@@ -310,6 +316,140 @@ async fn update_check_handler() -> impl IntoResponse {
         _ => {}
     }
     (axum::http::StatusCode::SERVICE_UNAVAILABLE, "update check failed").into_response()
+}
+
+async fn install_update_handler(Json(req): Json<InstallUpdateRequest>) -> impl IntoResponse {
+    let url = req.url.trim();
+    if url.is_empty() || !url.starts_with("https://") {
+        return (axum::http::StatusCode::BAD_REQUEST, "url must be an https URL").into_response();
+    }
+    if !url.ends_with(".zip") {
+        return (axum::http::StatusCode::BAD_REQUEST, "url must point to a zip file").into_response();
+    }
+
+    let current_exe = match std::env::current_exe() {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                format!("current exe not found: {}", e),
+            )
+                .into_response();
+        }
+    };
+    let app_dir = match current_exe.parent() {
+        Some(d) => d.to_path_buf(),
+        None => {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "exe has no parent directory",
+            )
+                .into_response();
+        }
+    };
+    let pid = std::process::id();
+
+    let tmp_dir = std::env::temp_dir().join("kasugai_update");
+    if tmp_dir.exists() {
+        let _ = std::fs::remove_dir_all(&tmp_dir);
+    }
+    if let Err(e) = std::fs::create_dir_all(&tmp_dir) {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to create temp dir: {}", e),
+        )
+            .into_response();
+    }
+
+    let script = r#"
+$ErrorActionPreference = "Stop"
+$appDir = $args[0]
+$url = $args[1]
+$oldPid = $args[2]
+$tmp = Join-Path $appDir "update_tmp"
+if (Test-Path $tmp) { Remove-Item $tmp -Recurse -Force }
+New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+$zip = Join-Path $tmp "kasugai_converter.zip"
+Write-Output "Downloading update..."
+curl.exe -s -S -L --fail -o $zip $url
+if ($LASTEXITCODE -ne 0) { throw "download failed" }
+Write-Output "Extracting update..."
+Expand-Archive -Path $zip -DestinationPath $tmp -Force
+Write-Output "Waiting for old process to exit..."
+while (Get-Process -Id $oldPid -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 200 }
+$src = Join-Path $tmp "kasugai_converter.exe"
+if (-not (Test-Path $src)) { throw "kasugai_converter.exe not found in archive" }
+$srcStatic = Join-Path $tmp "static"
+$srcResources = Join-Path $tmp "resources"
+$srcTools = Join-Path $tmp "tools"
+Copy-Item $src -Destination (Join-Path $appDir "kasugai_converter.exe") -Force
+if (Test-Path $srcStatic) { Copy-Item $srcStatic -Destination $appDir -Recurse -Force }
+if (Test-Path $srcResources) { Copy-Item $srcResources -Destination $appDir -Recurse -Force }
+if (Test-Path $srcTools) { Copy-Item $srcTools -Destination $appDir -Recurse -Force }
+Remove-Item $tmp -Recurse -Force
+Write-Output "Starting new version..."
+Start-Process -FilePath (Join-Path $appDir "kasugai_converter.exe") -WorkingDirectory $appDir -ArgumentList "--open-browser"
+"#;
+
+    let script_path = tmp_dir.join("updater.ps1");
+    if let Err(e) = std::fs::write(&script_path, script) {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to write updater script: {}", e),
+        )
+            .into_response();
+    }
+
+    let app_dir_str = match app_dir.to_str() {
+        Some(s) => s.to_string(),
+        None => {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "app dir path is not valid UTF-8",
+            )
+                .into_response();
+        }
+    };
+    let script_path_str = match script_path.to_str() {
+        Some(s) => s.to_string(),
+        None => {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "script path is not valid UTF-8",
+            )
+                .into_response();
+        }
+    };
+
+    match std::process::Command::new("powershell")
+        .arg("-WindowStyle")
+        .arg("Hidden")
+        .arg("-ExecutionPolicy")
+        .arg("Bypass")
+        .arg("-File")
+        .arg(&script_path_str)
+        .arg(&app_dir_str)
+        .arg(url)
+        .arg(pid.to_string())
+        .spawn()
+    {
+        Ok(_) => {
+            tokio::spawn(async move {
+                tokio::time::sleep(Duration::from_millis(2000)).await;
+                std::process::exit(0);
+            });
+            Json(serde_json::json!({
+                "status": "updating",
+                "message": "更新を適用し、再起動します。しばらくお待ちください。"
+            }))
+            .into_response()
+        }
+        Err(e) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to spawn updater: {}", e),
+        )
+            .into_response(),
+    }
 }
 
 async fn serve_index() -> impl IntoResponse {

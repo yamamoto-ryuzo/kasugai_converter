@@ -2186,8 +2186,30 @@
         const res = await fetch('/api/v1/server/update-check');
         if (!res.ok) throw new Error(await res.text());
         const data = await res.json();
-        if (data.update_available) {
-          result.innerHTML = `新しいバージョン ${data.latest} が利用可能です。<br>ダウンロード: <a href="${data.url}" target="_blank">${data.url}</a>`;
+        if (data.update_available && data.url) {
+          result.innerHTML = `新しいバージョン ${data.latest} が利用可能です。<br>ダウンロード: <a href="${data.url}" target="_blank">${data.url}</a><br><button id="installUpdateBtn" type="button" class="secondary" style="margin-top:0.5rem;">ダウンロードして再起動</button>`;
+          document.getElementById('installUpdateBtn').addEventListener('click', async () => {
+            if (!confirm(`バージョン ${data.latest} に更新して再起動します。よろしいですか？`)) return;
+            const btn = document.getElementById('installUpdateBtn');
+            btn.disabled = true;
+            btn.textContent = 'ダウンロード中...';
+            try {
+              const res = await fetch('/api/v1/server/install-update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: data.url }),
+              });
+              if (!res.ok) throw new Error(await res.text());
+              const d = await res.json();
+              result.textContent = d.message;
+            } catch (e) {
+              result.textContent = '更新に失敗しました: ' + e.message;
+              btn.disabled = false;
+              btn.textContent = 'ダウンロードして再起動';
+            }
+          });
+        } else if (data.update_available) {
+          result.innerHTML = `新しいバージョン ${data.latest} が利用可能です。<br>ダウンロードURLが取得できませんでした。`;
         } else {
           result.textContent = `お使いのバージョン ${data.current} は最新です。`;
         }
