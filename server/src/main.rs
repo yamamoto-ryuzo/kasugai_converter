@@ -1929,6 +1929,40 @@ async fn open_folder_handler(Json(req): Json<OpenFolderRequest>) -> impl IntoRes
     }
 }
 
+const ENSURE_EMBEDDED_PYTHON_PS: &str = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+if (-not (Test-Path "$tools/python/python.exe")) {
+    Write-Output "Embedded Python not found. Installing it first..."
+    $tmp = "$tools/temp-python"
+    Remove-Item "$tools/python" -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+    Write-Output "Downloading Python 3.12.4..."
+    curl.exe -s -S -L --fail -o "$tmp/python.zip" "https://www.python.org/ftp/python/3.12.4/python-3.12.4-embed-amd64.zip"
+    if ($LASTEXITCODE -ne 0) { throw "Python download failed" }
+    Write-Output "Extracting Python..."
+    Expand-Archive -Path "$tmp/python.zip" -DestinationPath "$tools/python" -Force
+    Remove-Item $tmp -Recurse -Force
+    $pth = Get-ChildItem "$tools/python" -Filter "python*._pth" | Select-Object -First 1
+    if ($pth) {
+        $content = Get-Content $pth.FullName
+        $content = $content -replace '^#import site', 'import site'
+        $content | Set-Content $pth.FullName
+    }
+}
+$python = "$tools/python/python.exe"
+& $python -m pip --version
+if ($LASTEXITCODE -ne 0) {
+    Write-Output "Bootstrapping pip..."
+    curl.exe -s -S -L --fail -o "$tools/python/get-pip.py" "https://bootstrap.pypa.io/get-pip.py"
+    if ($LASTEXITCODE -ne 0) { throw "get-pip.py download failed" }
+    & $python "$tools/python/get-pip.py" --no-setuptools --no-wheel
+    if ($LASTEXITCODE -ne 0) { throw "pip bootstrap failed" }
+    Remove-Item "$tools/python/get-pip.py"
+}
+"#;
+
 async fn install_handler(
     Path(name): Path<String>,
     State(state): State<AppState>,
@@ -2006,37 +2040,31 @@ Write-Host "JAR saved to $tools/mago-3d-tiler.jar"
             ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
         }
         "py3dtiles" => {
-            let script = r#"
-$ErrorActionPreference = "Stop"
-$tools = "tools"
-$python = if (Test-Path "$tools/python/python.exe") { "$tools/python/python.exe" } else { "python" }
+            let script = format!(r#"{ENSURE_EMBEDDED_PYTHON_PS}
 Write-Output "Upgrading pip..."
 & $python -m pip install --upgrade pip --no-warn-script-location --progress-bar off
-if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+if ($LASTEXITCODE -ne 0) {{ throw "pip upgrade failed" }}
 Write-Output "Installing py3dtiles..."
 & $python -m pip install --no-warn-script-location --progress-bar off py3dtiles
-if ($LASTEXITCODE -ne 0) { throw "py3dtiles install failed" }
+if ($LASTEXITCODE -ne 0) {{ throw "py3dtiles install failed" }}
 Write-Output "py3dtiles installed"
-"#;
-            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+"#);
+            ("powershell".to_string(), vec!["-Command".to_string(), script])
         }
         "laspy" => {
-            let script = r#"
-$ErrorActionPreference = "Stop"
-$tools = "tools"
-$python = if (Test-Path "$tools/python/python.exe") { "$tools/python/python.exe" } else { "python" }
+            let script = format!(r#"{ENSURE_EMBEDDED_PYTHON_PS}
 Write-Output "Upgrading pip..."
 & $python -m pip install --upgrade pip --no-warn-script-location --progress-bar off
-if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+if ($LASTEXITCODE -ne 0) {{ throw "pip upgrade failed" }}
 Write-Output "Installing laspy..."
 & $python -m pip install --no-warn-script-location --progress-bar off laspy
-if ($LASTEXITCODE -ne 0) { throw "laspy install failed" }
+if ($LASTEXITCODE -ne 0) {{ throw "laspy install failed" }}
 Write-Output "Installing lazrs for LAZ support..."
 & $python -m pip install --no-warn-script-location --progress-bar off lazrs
-if ($LASTEXITCODE -ne 0) { throw "lazrs install failed" }
+if ($LASTEXITCODE -ne 0) {{ throw "lazrs install failed" }}
 Write-Output "laspy installed"
-"#;
-            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+"#);
+            ("powershell".to_string(), vec!["-Command".to_string(), script])
         }
         "pg2b3dm" => {
             let script = r#"
@@ -2113,16 +2141,13 @@ Write-Output "ifcopenshell installed to $dst"
             ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
         }
         "cjio" => {
-            let script = r#"
-$ErrorActionPreference = "Stop"
-$tools = "tools"
-$python = if (Test-Path "$tools/python/python.exe") { "$tools/python/python.exe" } else { "python" }
+            let script = format!(r#"{ENSURE_EMBEDDED_PYTHON_PS}
 Write-Output "Installing cjio..."
 & $python -m pip install --no-warn-script-location --progress-bar off cjio
-if ($LASTEXITCODE -ne 0) { throw "cjio install failed" }
+if ($LASTEXITCODE -ne 0) {{ throw "cjio install failed" }}
 Write-Output "cjio installed"
-"#;
-            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+"#);
+            ("powershell".to_string(), vec!["-Command".to_string(), script])
         }
         "node" => {
             let version = std::env::var("NODE_VERSION")
