@@ -1,5 +1,13 @@
 # 更新履歴
 
+## [0.8.3] - 2026-08-20
+
+- `OBJ 表面処理` タブにファイル選択ダイアログを追加
+  - 入力 OBJ ファイルを Windows の「ファイルを開く」ダイアログで選択可能に
+  - 初期表示フォルダを自動変換の入力フォルダ（`c:\kasugai\data\input`）に連動
+
+[0.8.3]: https://github.com/yamamoto-ryuzo/kasugai_converter/compare/v0.8.2...v0.8.3
+
 ## [0.8.2] - 2026-08-20
 
 - `OBJ 表面処理` タブを追加

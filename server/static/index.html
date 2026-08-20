@@ -1239,7 +1239,10 @@
           <form id="objSurfaceForm" class="grid">
             <div class="full">
               <label for="objSurfaceInput">入力 OBJ ファイル</label>
-              <input type="text" id="objSurfaceInput" placeholder="C:\data\input.obj" required />
+              <div class="input-row">
+                <input type="text" id="objSurfaceInput" placeholder="C:\data\input.obj" required />
+                <button type="button" id="objSurfaceInputOpenBtn" class="secondary" title="ファイルを開く">参照</button>
+              </div>
             </div>
             <div class="full">
               <label for="objSurfaceOutput">出力 OBJ ファイル</label>
@@ -1883,6 +1886,30 @@
     }
     document.getElementById('openInputBtn').addEventListener('click', () => openFolder(getValue('autoInput')));
     document.getElementById('openOutputBtn').addEventListener('click', () => openFolder(getValue('autoOutput')));
+
+    async function openFileDialog(inputId, options = {}) {
+      try {
+        const res = await fetch('/api/open-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(options),
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const data = await res.json();
+        if (data.path) {
+          setValue(inputId, data.path);
+        }
+      } catch (e) {
+        setStatus(e.message, 'error');
+      }
+    }
+    document.getElementById('objSurfaceInputOpenBtn').addEventListener('click', () => {
+      openFileDialog('objSurfaceInput', {
+        filter: '.obj',
+        default_dir: getValue('objSurfaceInput') || getValue('autoInput'),
+        title: '入力 OBJ ファイルを選択',
+      });
+    });
 
     // systems
     let currentJavaPath = null;

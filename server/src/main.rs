@@ -237,6 +237,7 @@ async fn main() {
         .route("/convert/obj-3dtiles11", post(convert_obj_to_3dtiles11_handler))
         .route("/convert/auto", post(convert_auto_handler))
         .route("/open-folder", post(open_folder_handler))
+        .route("/open-file", post(open_file_handler))
         .route("/install/{name}", post(install_handler))
         .route("/jobs/{id}", get(get_job))
         .route("/jobs", get(list_jobs))
@@ -2158,6 +2159,84 @@ async fn open_folder_handler(Json(req): Json<OpenFolderRequest>) -> impl IntoRes
     match opener::open(path) {
         Ok(_) => (axum::http::StatusCode::OK, "opened").into_response(),
         Err(e) => (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e.to_string()).into_response(),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct OpenFileRequest {
+    default_dir: Option<String>,
+    filter: Option<String>,
+    title: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct OpenFileResponse {
+    path: Option<String>,
+    canceled: bool,
+}
+
+async fn open_file_handler(Json(req): Json<OpenFileRequest>) -> impl IntoResponse {
+    let default_dir = req
+        .default_dir
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| s.trim().to_string());
+    let filter = req
+        .filter
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| s.trim().to_string());
+    let title = req
+        .title
+        .filter(|s| !s.trim().is_empty())
+        .map(|s| s.trim().to_string());
+
+    let res = tokio::task::spawn_blocking(move || {
+        let mut dialog = rfd::FileDialog::new();
+        if let Some(dir) = default_dir.as_deref().map(std::path::PathBuf::from) {
+            let dir = if dir.is_file() {
+                dir.parent().map(|p| p.to_path_buf()).unwrap_or(dir)
+            } else {
+                dir
+            };
+            if dir.exists() {
+                dialog = dialog.set_directory(dir);
+            }
+        }
+        if let Some(filter) = filter.as_deref() {
+            let parts: Vec<String> = filter
+                .split(|c: char| c == ',' || c == ';')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.trim_start_matches("*.").trim_start_matches('.').to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            if !parts.is_empty() {
+                let exts: Vec<&str> = parts.iter().map(|s| s.as_str()).collect();
+                dialog = dialog.add_filter("指定形式", &exts);
+            }
+        }
+        if let Some(title) = title.as_deref() {
+            dialog = dialog.set_title(title);
+        }
+        dialog.pick_file()
+    })
+    .await;
+
+    match res {
+        Ok(Some(path)) => Json(OpenFileResponse {
+            path: Some(path.to_string_lossy().to_string()),
+            canceled: false,
+        })
+        .into_response(),
+        Ok(None) => Json(OpenFileResponse {
+            path: None,
+            canceled: true,
+        })
+        .into_response(),
+        Err(e) => (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            e.to_string(),
+        )
+            .into_response(),
     }
 }
 
