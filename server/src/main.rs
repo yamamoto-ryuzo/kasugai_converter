@@ -173,6 +173,9 @@ struct ConvertObjTo3dtiles11Request {
 #[tokio::main]
 async fn main() {
     let open_browser = std::env::args().any(|a| a == "--open-browser");
+    if auto_update_if_available().await {
+        std::process::exit(0);
+    }
     let port = 8590;
     let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, port));
 
@@ -273,7 +276,11 @@ async fn main() {
 }
 
 async fn health_handler() -> impl IntoResponse {
-    "ok"
+    Json(serde_json::json!({
+        "status": "ok",
+        "version": env!("CARGO_PKG_VERSION"),
+    }))
+    .into_response()
 }
 
 async fn stop_handler() -> impl IntoResponse {
@@ -461,6 +468,49 @@ Start-Process -FilePath (Join-Path $appDir "kasugai_converter.exe") -WorkingDire
         )
             .into_response(),
     }
+}
+
+async fn auto_update_if_available() -> bool {
+    if cfg!(debug_assertions) {
+        return false;
+    }
+    if std::env::var("KASUGAI_NO_AUTO_UPDATE").is_ok() {
+        return false;
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        let p = exe.to_string_lossy().to_lowercase();
+        if p.contains("\\target\\") || p.contains("/target/") {
+            return false;
+        }
+    }
+    let current = env!("CARGO_PKG_VERSION").to_string();
+    let remote =
+        "https://raw.githubusercontent.com/yamamoto-ryuzo/kasugai_converter/main/download/latest.json";
+    match tokio::time::timeout(Duration::from_secs(10), reqwest::get(remote)).await {
+        Ok(Ok(resp)) if resp.status().is_success() => {
+            if let Ok(text) = resp.text().await {
+                if let Ok(release) = serde_json::from_str::<LatestRelease>(&text) {
+                    if release.version != current {
+                        if let Some(url) = release
+                            .platforms
+                            .get("windows-x86_64")
+                            .map(|p| p.url.clone())
+                            .filter(|u| !u.is_empty())
+                        {
+                            println!(
+                                "新しいバージョン {} が利用可能です。自動更新を開始します。",
+                                release.version
+                            );
+                            let _ = install_update_handler(Json(InstallUpdateRequest { url })).await;
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    false
 }
 
 async fn serve_index() -> impl IntoResponse {

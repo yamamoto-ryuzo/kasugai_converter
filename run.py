@@ -8,6 +8,7 @@ import subprocess
 import sys
 import zipfile
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -33,6 +34,68 @@ def get_version():
         if stripped.startswith("version ") and "=" in stripped:
             return stripped.split("=", 1)[1].strip().strip('"')
     raise RuntimeError("version not found in Cargo.toml")
+
+
+def check_versions():
+    """Verify version consistency across release files."""
+    version = get_version()
+    print(f"[Kasugai] Checking versions against {version}")
+    errors = []
+
+    # installer NSIS: should use APP_VERSION variables
+    nsi = PROJECT_ROOT / "installer" / f"{APP_NAME}.nsi"
+    if nsi.exists():
+        nsi_text = nsi.read_text(encoding="utf-8")
+        if 'VIProductVersion "${APP_VERSION_FILE}"' not in nsi_text:
+            errors.append(f"installer/{APP_NAME}.nsi: VIProductVersion does not use APP_VERSION_FILE")
+        if 'VIAddVersionKey "FileVersion" "${APP_VERSION}"' not in nsi_text:
+            errors.append(f"installer/{APP_NAME}.nsi: FileVersion does not use APP_VERSION")
+        if '!define APP_VERSION_FILE "${APP_VERSION}.0"' not in nsi_text:
+            errors.append(f"installer/{APP_NAME}.nsi: APP_VERSION_FILE pattern missing")
+    else:
+        errors.append(f"installer/{APP_NAME}.nsi not found")
+
+    # download/latest.json
+    latest_json = DOWNLOAD_DIR / "latest.json"
+    if latest_json.exists():
+        with open(latest_json, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+        if manifest.get("version") != version:
+            errors.append(f"download/latest.json version mismatch: {manifest.get('version')} != {version}")
+        notes = manifest.get("notes", "")
+        if version not in notes:
+            errors.append(f"download/latest.json notes do not include version {version}")
+    else:
+        errors.append("download/latest.json not found")
+
+    # README.md
+    readme = PROJECT_ROOT / "README.md"
+    if readme.exists():
+        readme_text = readme.read_text(encoding="utf-8")
+        expected = f"現在のバージョンは **{version}** です。"
+        if expected not in readme_text:
+            errors.append(f"README.md missing: {expected}")
+    else:
+        errors.append("README.md not found")
+
+    # CHANGELOG.md
+    changelog = PROJECT_ROOT / "CHANGELOG.md"
+    if changelog.exists():
+        changelog_text = changelog.read_text(encoding="utf-8")
+        m = re.search(r"## \[\s*(\d+\.\d+\.\d+)\s*\]", changelog_text)
+        if not m:
+            errors.append("CHANGELOG.md missing version header")
+        elif m.group(1) != version:
+            errors.append(f"CHANGELOG.md first version mismatch: {m.group(1)} != {version}")
+    else:
+        errors.append("CHANGELOG.md not found")
+
+    if errors:
+        print("[Kasugai] Version check failed:")
+        for e in errors:
+            print(f"  - {e}")
+        sys.exit(1)
+    print(f"[Kasugai] All versions consistent: {version}")
 
 
 def write_latest_json(version):
@@ -193,9 +256,11 @@ def main():
     if args.release:
         run_release()
     elif build_requested or wants_installer:
+        version = get_version()
+        write_latest_json(version)
+        check_versions()
         build_release()
         package_zip()
-        write_latest_json(get_version())
         if wants_installer:
             rc = build_installer()
             if rc != 0:
