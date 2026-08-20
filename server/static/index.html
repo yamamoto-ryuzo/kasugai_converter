@@ -1033,6 +1033,7 @@
         <button class="tab-btn" data-tab="imagery">2D 画像タイル</button>
         <button class="tab-btn" data-tab="gltfopt">glTF 最適化</button>
         <button class="tab-btn" data-tab="xyflip">XY 反転</button>
+        <button class="tab-btn" data-tab="obj-surface">OBJ 表面処理</button>
       </div>
 
       <div id="preprocess" class="tab-content active">
@@ -1227,6 +1228,39 @@
 
           <div class="actions">
             <button id="xyflipRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="obj-surface" class="tab-content">
+        <div class="card">
+          <h2>OBJ 表面処理</h2>
+          <p class="hint">OBJ ファイルの内容を以下のように変換します。<br>・<code>f</code> 行：頂点順序を逆にし、面の向き（表裏）を反転<br>・<code>vn</code> 行：法線ベクトルの符号を反転<br>・<code>vt</code> 行：U / V チェックに応じてテクスチャ座標を反転<br>対応形式: .obj ファイル。</p>
+          <form id="objSurfaceForm" class="grid">
+            <div class="full">
+              <label for="objSurfaceInput">入力 OBJ ファイル</label>
+              <input type="text" id="objSurfaceInput" placeholder="C:\data\input.obj" required />
+            </div>
+            <div class="full">
+              <label for="objSurfaceOutput">出力 OBJ ファイル</label>
+              <input type="text" id="objSurfaceOutput" placeholder="C:\data\output.obj" required />
+            </div>
+            <div class="full" style="display:flex; gap:1.5rem; align-items:center; margin-top:0.25rem;">
+              <label style="font-weight:400; margin:0;"><input type="checkbox" id="objSurfaceFlipU" /> U 反転（vt の u を 1-u に）</label>
+              <label style="font-weight:400; margin:0;"><input type="checkbox" id="objSurfaceFlipV" /> V 反転（vt の v を 1-v に）</label>
+            </div>
+          </form>
+
+          <p class="hint" style="margin-top:0.5rem;">
+            <code>vt u v</code> の u はテクスチャの横方向（0=左端、1=右端）、v は縦方向（0=下端、1=上端）を表します。<br>
+            U 反転を ON にすると <code>u' = 1 - u</code> となり、テクスチャが左右に反転します。<br>
+            V 反転を ON にすると <code>v' = 1 - v</code> となり、テクスチャが上下に反転します。<br>
+            両方 ON にすると、テクスチャが上下左右ともに反転します。<br>
+            表裏反転のみにチェックがなくても UV だけを反転できます。
+          </p>
+
+          <div class="actions">
+            <button id="objSurfaceFlipBtn" type="button">表裏反転</button>
           </div>
         </div>
       </div>
@@ -2293,6 +2327,17 @@
         python_path: getValue('xyflipPython') || undefined,
       };
       startJob('/api/convert/xy-flip', payload, document.getElementById('xyflipRunBtn'));
+    });
+
+    // obj surface flip
+    document.getElementById('objSurfaceFlipBtn').addEventListener('click', () => {
+      const payload = {
+        input: getValue('objSurfaceInput'),
+        output: getValue('objSurfaceOutput'),
+        flip_u: document.getElementById('objSurfaceFlipU').checked,
+        flip_v: document.getElementById('objSurfaceFlipV').checked,
+      };
+      startJob('/api/convert/obj-flip', payload, document.getElementById('objSurfaceFlipBtn'));
     });
 
     // settings

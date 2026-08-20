@@ -23,6 +23,7 @@ title: 使い方
   - `2D 画像タイル`
   - `glTF 最適化`
   - `XY 反転`
+  - `OBJ 表面処理`
 - `データ変換` … 変換関連のタブに切り替え
   - `座標設定` … 共有する EPSG / CRS、原点経度・緯度、X/Y/Z オフセットを一括設定。自動変換・個別コンバータが参照します。
   - `自動変換` … 入力ファイル・ディレクトリを指定すると、形式から最適なコンバータを自動選択
@@ -205,6 +206,15 @@ laspy を使って LAS/LAZ 点群の X 座標と Y 座標を入れ替えます�
 
 laspy（+ LAZ 用の lazrs）は「関連システム」の `laspy` タブから自動インストールできます。
 
+### OBJ 表面処理
+
+OBJ ファイルの面の向き、法線、テクスチャ座標を反転させます。追加ライブラリは不要です。
+
+- 入力 OBJ ファイル: `C:/data/input.obj`
+- 出力 OBJ ファイル: `C:/data/output.obj`
+- U 反転: `vt` の u 座標を `1 - u` に置換
+- V 反転: `vt` の v 座標を `1 - v` に置換
+
 ## 4. 実行
 
 `実行` ボタンを押すと、バックエンドでジョブが作成されます。
@@ -234,6 +244,11 @@ curl -X POST http://127.0.0.1:8590/api/run/preprocess \
 curl -X POST http://127.0.0.1:8590/api/convert/xy-flip \
   -H "Content-Type: application/json" \
   -d '{"input":"C:/data/input.las","output":"C:/data/output.las"}'
+
+# OBJ 表面処理ジョブの開始
+curl -X POST http://127.0.0.1:8590/api/convert/obj-flip \
+  -H "Content-Type: application/json" \
+  -d '{"input":"C:/data/input.obj","output":"C:/data/output.obj","flip_u":true,"flip_v":false}'
 
 # ジョブ状態の確認
 curl http://127.0.0.1:8590/api/jobs/1

@@ -137,6 +137,14 @@ struct ConvertXyFlipRequest {
 }
 
 #[derive(Debug, Deserialize)]
+struct ConvertObjFlipRequest {
+    input: String,
+    output: String,
+    flip_u: Option<bool>,
+    flip_v: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
 struct AutoConvertRequest {
     input: String,
     output: String,
@@ -225,6 +233,7 @@ async fn main() {
         .route("/run/preprocess", post(preprocess_handler))
         .route("/convert/bimcim", post(convert_bimcim_handler))
         .route("/convert/xy-flip", post(convert_xy_flip_handler))
+        .route("/convert/obj-flip", post(convert_obj_flip_handler))
         .route("/convert/obj-3dtiles11", post(convert_obj_to_3dtiles11_handler))
         .route("/convert/auto", post(convert_auto_handler))
         .route("/open-folder", post(open_folder_handler))
@@ -1961,6 +1970,179 @@ async fn convert_obj_to_3dtiles11_handler(
     });
 
     Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
+async fn convert_obj_flip_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ConvertObjFlipRequest>,
+) -> impl IntoResponse {
+    if req.input.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "input is required").into_response();
+    }
+    if req.output.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "output is required").into_response();
+    }
+
+    let input = req.input.trim();
+    let output = req.output.trim();
+
+    if !StdPath::new(input).exists() {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            format!("input not found: {}", input),
+        )
+            .into_response();
+    }
+
+    if let Some(parent) = StdPath::new(output).parent() {
+        if let Err(e) = std::fs::create_dir_all(parent) {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                format!("failed to create output dir: {}", e),
+            )
+                .into_response();
+        }
+    }
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
+    }
+
+    let input = input.to_string();
+    let output = output.to_string();
+    let flip_u = req.flip_u.unwrap_or(false);
+    let flip_v = req.flip_v.unwrap_or(false);
+    let response_id = job_id.clone();
+    let state_spawn = state.clone();
+    tokio::spawn(async move {
+        {
+            let mut jobs = state_spawn.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Running;
+            }
+        }
+
+        let result = flip_obj_file(&input, &output, flip_u, flip_v).await;
+
+        let mut jobs = state_spawn.jobs.lock().await;
+        if let Some(job) = jobs.get_mut(&job_id) {
+            match result {
+                Ok(msg) => {
+                    job.status = JobStatus::Completed;
+                    job.exit_code = Some(0);
+                    job.output = msg;
+                }
+                Err(e) => {
+                    job.status = JobStatus::Failed;
+                    job.exit_code = Some(1);
+                    job.output = e;
+                }
+            }
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
+async fn flip_obj_file(
+    input: &str,
+    output: &str,
+    flip_u: bool,
+    flip_v: bool,
+) -> Result<String, String> {
+    let content = tokio::fs::read_to_string(input)
+        .await
+        .map_err(|e| format!("failed to read input: {}", e))?;
+
+    let mut out = String::with_capacity(content.len());
+    let mut face_count = 0;
+    let mut normal_count = 0;
+    let mut vt_count = 0;
+
+    for line in content.lines() {
+        let trimmed = line.trim_start();
+        let mut parts = trimmed.split_whitespace();
+        let transformed = match parts.next() {
+            Some("vn") => {
+                let mut line_out = String::from("vn");
+                for p in parts {
+                    if let Ok(v) = p.parse::<f64>() {
+                        line_out.push(' ');
+                        line_out.push_str(&(-v).to_string());
+                    } else {
+                        line_out.push(' ');
+                        line_out.push_str(p);
+                    }
+                }
+                normal_count += 1;
+                line_out
+            }
+            Some("f") => {
+                let mut face: Vec<&str> = parts.collect();
+                if face.is_empty() {
+                    line.to_string()
+                } else {
+                    face.reverse();
+                    face_count += 1;
+                    format!("f {}", face.join(" "))
+                }
+            }
+            Some("vt") => {
+                let mut line_out = String::from("vt");
+                for (i, p) in parts.enumerate() {
+                    if let Ok(v) = p.parse::<f64>() {
+                        let flipped = if i == 0 && flip_u {
+                            1.0 - v
+                        } else if i == 1 && flip_v {
+                            1.0 - v
+                        } else {
+                            v
+                        };
+                        line_out.push(' ');
+                        line_out.push_str(&flipped.to_string());
+                    } else {
+                        line_out.push(' ');
+                        line_out.push_str(p);
+                    }
+                }
+                vt_count += 1;
+                line_out
+            }
+            _ => line.to_string(),
+        };
+        out.push_str(&transformed);
+        out.push('\n');
+    }
+
+    tokio::fs::write(output, out)
+        .await
+        .map_err(|e| format!("failed to write output: {}", e))?;
+
+    Ok(format!(
+        "OBJ surface flipped: {} faces reversed, {} normals negated, {} uvs flipped\noutput: {}",
+        face_count, normal_count, vt_count, output
+    ))
 }
 
 #[derive(Debug, Deserialize)]
