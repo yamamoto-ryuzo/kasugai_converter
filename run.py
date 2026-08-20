@@ -261,10 +261,15 @@ def main():
         check_versions()
         build_release()
         package_zip()
-        if wants_installer:
+        if find_makensis() is not None:
             rc = build_installer()
             if rc != 0:
                 sys.exit(rc)
+        elif wants_installer:
+            print("[Kasugai] makensis not found. Install NSIS to build the installer.")
+            sys.exit(1)
+        else:
+            print("[Kasugai] makensis not found. Skipping installer.")
     else:
         # 引数なし: 開発モード起動
         sys.exit(run_command(["cargo", "run"], cwd=SERVER_DIR))
