@@ -17,6 +17,12 @@ title: 使い方
   - 1回に 100 件を取得し、表示件数は 1〜100 件で入力可能（デフォルト 20 件）
   - 100 件を超える場合は次の 100 件を取得
   - 検索条件は「クリア」ボタンで初期化できる
+- `前処理` … 変換前のデータ整形・タイル生成・最適化
+  - `GDAL/PDAL`
+  - `Cesium Terrain`
+  - `2D 画像タイル`
+  - `glTF 最適化`
+  - `XY 反転`
 - `データ変換` … 変換関連のタブに切り替え
   - `座標設定` … 共有する EPSG / CRS、原点経度・緯度、X/Y/Z オフセットを一括設定。自動変換・個別コンバータが参照します。
   - `自動変換` … 入力ファイル・ディレクトリを指定すると、形式から最適なコンバータを自動選択
@@ -25,12 +31,8 @@ title: 使い方
     - `Py3DTiles`
     - `gocesiumtiler`
     - `pg2b3dm`
-    - `GDAL/PDAL`
-    - `Cesium Terrain`
     - `3D Tiles 1.1`
     - `BIM/CIM`
-    - `2D 画像タイル`
-    - `glTF 最適化`
   - `関連システム` … 外部ツールの状態確認・自動インストール。タブ単位で概要・変換対応拡張子を確認できます。未検出のタブは赤く表示されます。
 - `設定` … バージョン確認・更新確認・サーバー停止
 
@@ -68,6 +70,7 @@ title: 使い方
 - mago-3d-tiler JAR
 - Python 3.12.4
 - Py3DTiles
+- laspy（+ lazrs、XY 反転で使用）
 - pg2b3dm
 - gocesiumtiler
 - IfcOpenShell
@@ -191,6 +194,17 @@ gltf-pipeline を使って glTF/GLB を最適化します。
 
 Node.js は「関連システム」から自動インストール可能です。`npx gltf-pipeline` を指定する場合、個別の `npm install` は不要です。
 
+### XY 反転
+
+laspy を使って LAS/LAZ 点群の X 座標と Y 座標を入れ替えます。座標軸の取り違えがあるデータの補正に使用します。
+
+- 入力点群ファイル: `C:/data/input.las`（`.las` / `.laz`）
+- 出力点群ファイル: `C:/data/output.las`（`.las` / `.laz`。出力拡張子で LAS↔LAZ 変換も可能）
+- 入力拡張子 / 出力拡張子: `自動判定` のままで通常は問題ありません
+- Python パス: 省略時は `tools/python/python.exe` → `python` の順で自動選択
+
+laspy（+ LAZ 用の lazrs）は「関連システム」の `laspy` タブから自動インストールできます。
+
 ## 4. 実行
 
 `実行` ボタンを押すと、バックエンドでジョブが作成されます。
@@ -215,6 +229,11 @@ curl -X POST http://127.0.0.1:8590/api/convert/py3dtiles \
 curl -X POST http://127.0.0.1:8590/api/run/preprocess \
   -H "Content-Type: application/json" \
   -d '{"program":"gdalwarp","input":"C:/data/in.tif","output":"C:/data/out.tif","extra_args":"-t_srs EPSG:4326"}'
+
+# XY 反転ジョブの開始
+curl -X POST http://127.0.0.1:8590/api/convert/xy-flip \
+  -H "Content-Type: application/json" \
+  -d '{"input":"C:/data/input.las","output":"C:/data/output.las"}'
 
 # ジョブ状態の確認
 curl http://127.0.0.1:8590/api/jobs/1

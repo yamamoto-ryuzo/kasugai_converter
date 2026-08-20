@@ -416,10 +416,12 @@
   <div class="container">
     <div class="app-header">
       <h1>Kasuga Converter</h1>
+      <span id="status" class="status">待機中</span>
     </div>
 
     <div class="top-tabs">
       <button class="top-tab-btn active" data-top-tab="data-get">データ取得</button>
+      <button class="top-tab-btn" data-top-tab="data-preprocess">前処理</button>
       <button class="top-tab-btn" data-top-tab="data-convert">データ変換</button>
       <button class="top-tab-btn" data-top-tab="settings">設定</button>
     </div>
@@ -478,12 +480,8 @@
         <button class="tab-btn" data-tab="py3dtiles">Py3DTiles</button>
         <button class="tab-btn" data-tab="pg2b3dm">pg2b3dm</button>
         <button class="tab-btn" data-tab="gocesiumtiler">gocesiumtiler</button>
-        <button class="tab-btn" data-tab="preprocess">GDAL/PDAL</button>
-        <button class="tab-btn" data-tab="terrain">Cesium Terrain</button>
         <button class="tab-btn" data-tab="tiles11">3D Tiles 1.1</button>
         <button class="tab-btn" data-tab="bimcim">BIM/CIM</button>
-        <button class="tab-btn" data-tab="imagery">2D 画像タイル</button>
-        <button class="tab-btn" data-tab="gltfopt">glTF 最適化</button>
       </div>
 
       <div id="mago" class="tab-content active">
@@ -675,80 +673,6 @@
         </div>
       </div>
 
-      <div id="preprocess" class="tab-content">
-        <div class="card">
-          <h2>GDAL/PDAL 前処理</h2>
-          <p class="hint">gdalwarp、pdal translate、ogr2ogr などを実行して入力を整形します。</p>
-          <form id="preprocessForm" class="grid">
-            <div class="full">
-              <label for="preprocessProgram">プログラム</label>
-              <input type="text" id="preprocessProgram" placeholder="gdalwarp" value="gdalwarp" required />
-            </div>
-            <div class="full">
-              <label for="preprocessInput">入力</label>
-              <input type="text" id="preprocessInput" placeholder="C:\data\input.las" />
-            </div>
-            <div class="full">
-              <label for="preprocessOutput">出力</label>
-              <input type="text" id="preprocessOutput" placeholder="C:\data\output.laz" />
-            </div>
-            <div class="full">
-              <label for="preprocessExtraArgs">追加オプション</label>
-              <input type="text" id="preprocessExtraArgs" placeholder="-t_srs EPSG:4326" />
-            </div>
-          </form>
-
-          <div class="actions">
-            <button id="preprocessRunBtn" type="button">実行</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="terrain" class="tab-content">
-        <div class="card">
-          <h2>Cesium Terrain（DEM → quantized-mesh）</h2>
-          <p class="hint">Cesium Terrain Builder または tin-terrain を使用して DEM ラスターを Cesium 用 terrain タイルに変換します。</p>
-          <form id="terrainForm" class="grid">
-            <div class="full">
-              <label for="terrainProgram">コマンド</label>
-              <input type="text" id="terrainProgram" placeholder="ctb-tile" value="ctb-tile" required />
-            </div>
-            <div class="full">
-              <label for="terrainInput">入力 DEM（GeoTIFF/VRT）</label>
-              <input type="text" id="terrainInput" placeholder="C:\data\dem.tif" required />
-            </div>
-            <div class="full">
-              <label for="terrainOutput">出力ディレクトリ</label>
-              <input type="text" id="terrainOutput" placeholder="C:\data\terrain" required />
-            </div>
-            <div>
-              <label for="terrainFormat">出力形式</label>
-              <input type="text" id="terrainFormat" placeholder="Terrain" value="Terrain" />
-            </div>
-            <div>
-              <label for="terrainProfile">プロファイル</label>
-              <input type="text" id="terrainProfile" placeholder="geodetic" value="geodetic" />
-            </div>
-            <div>
-              <label for="terrainStartZoom">開始ズーム</label>
-              <input type="text" id="terrainStartZoom" placeholder="0" />
-            </div>
-            <div>
-              <label for="terrainEndZoom">終了ズーム</label>
-              <input type="text" id="terrainEndZoom" placeholder="" />
-            </div>
-            <div>
-              <label for="terrainExtraArgs">追加オプション</label>
-              <input type="text" id="terrainExtraArgs" placeholder="-N -C" />
-            </div>
-          </form>
-
-          <div class="actions">
-            <button id="terrainRunBtn" type="button">実行</button>
-          </div>
-        </div>
-      </div>
-
       <div id="tiles11" class="tab-content">
         <div class="card">
           <h2>3D Tiles 1.1 後処理</h2>
@@ -822,88 +746,7 @@
         </div>
       </div>
 
-      <div id="imagery" class="tab-content">
-        <div class="card">
-          <h2>2D 画像タイル</h2>
-          <p class="hint">gdal2tiles.py または ctb-tile を使って、衛星写真や航空写真を XYZ/TMS 形式の 2D 画像タイルに変換します。</p>
-          <form id="imageryForm" class="grid">
-            <div class="full">
-              <label for="imageryProgram">コマンド</label>
-              <input type="text" id="imageryProgram" placeholder="gdal2tiles.py" value="gdal2tiles.py" required />
-            </div>
-            <div class="full">
-              <label for="imageryInput">入力画像</label>
-              <input type="text" id="imageryInput" placeholder="C:\data\ortho.tif" required />
-            </div>
-            <div class="full">
-              <label for="imageryOutput">出力ディレクトリ</label>
-              <input type="text" id="imageryOutput" placeholder="C:\data\imagery" required />
-            </div>
-            <div>
-              <label for="imageryProfile">プロファイル</label>
-              <input type="text" id="imageryProfile" placeholder="mercator" value="mercator" />
-            </div>
-            <div>
-              <label for="imageryZoom">ズーム範囲</label>
-              <input type="text" id="imageryZoom" placeholder="5-18" value="5-18" />
-            </div>
-            <div>
-              <label for="imageryFormat">画像形式</label>
-              <input type="text" id="imageryFormat" placeholder="png" value="png" />
-            </div>
-            <div>
-              <label for="imageryThreads">スレッド数</label>
-              <input type="text" id="imageryThreads" placeholder="4" />
-            </div>
-            <div class="full">
-              <label for="imageryExtraArgs">追加オプション</label>
-              <input type="text" id="imageryExtraArgs" placeholder="--processes 4" />
-            </div>
-          </form>
-
-          <div class="actions">
-            <button id="imageryRunBtn" type="button">実行</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="gltfopt" class="tab-content">
-        <div class="card">
-          <h2>glTF 最適化</h2>
-          <p class="hint">gltf-pipeline を使って glTF/GLB を最適化（Draco 圧縮、KHR_texture_transform 追加など）します。</p>
-          <form id="gltfoptForm" class="grid">
-            <div class="full">
-              <label for="gltfoptCommand">コマンド</label>
-              <input type="text" id="gltfoptCommand" placeholder="npx gltf-pipeline" value="npx gltf-pipeline" required />
-            </div>
-            <div class="full">
-              <label for="gltfoptInput">入力 glTF/GLB</label>
-              <input type="text" id="gltfoptInput" placeholder="C:\data\input.glb" required />
-            </div>
-            <div class="full">
-              <label for="gltfoptOutput">出力 glTF/GLB</label>
-              <input type="text" id="gltfoptOutput" placeholder="C:\data\output.glb" required />
-            </div>
-            <div>
-              <label for="gltfoptDraco">Draco 圧縮</label>
-              <select id="gltfoptDraco">
-                <option value="false">無効</option>
-                <option value="true">有効</option>
-              </select>
-            </div>
-            <div class="full">
-              <label for="gltfoptExtraArgs">追加オプション</label>
-              <input type="text" id="gltfoptExtraArgs" placeholder="--keepUnusedElements --textureCompression etc1s" />
-            </div>
-          </form>
-
-          <div class="actions">
-            <button id="gltfoptRunBtn" type="button">実行</button>
-          </div>
-        </div>
-      </div>
     </div>
-
     <div id="auto" class="tab-content active">
       <div class="card">
         <h2>自動変換</h2>
@@ -1017,6 +860,7 @@
           <button class="tab-btn" data-tab="system-mago" type="button">mago-3d-tiler</button>
           <button class="tab-btn" data-tab="system-python" type="button">Python</button>
           <button class="tab-btn" data-tab="system-py3dtiles" type="button">Py3DTiles</button>
+          <button class="tab-btn" data-tab="system-laspy" type="button">laspy</button>
           <button class="tab-btn" data-tab="system-pg2b3dm" type="button">pg2b3dm</button>
           <button class="tab-btn" data-tab="system-gocesiumtiler" type="button">gocesiumtiler</button>
           <button class="tab-btn" data-tab="system-ifcopenshell" type="button">IfcOpenShell</button>
@@ -1083,6 +927,22 @@
             <button class="secondary" id="installPy3dtilesNow" type="button">自動インストール</button>
             <button class="secondary" id="installPy3dtilesBtn" type="button">PyPI ページ</button>
             <button class="secondary" id="usePy3dtilesBtn" type="button" style="display:none;">このコマンドを使う</button>
+          </div>
+        </div>
+
+        <div id="system-laspy" class="tab-content system-item">
+          <div class="system-title" style="margin-bottom:0.5rem;">laspy <span id="laspyStatusTag" class="tag ng">未検出</span></div>
+          <p class="hint"><strong>概要:</strong> LAS / LAZ 点群ファイルを読み書きする Python ライブラリです。</p>
+          <p class="hint"><strong>変換:</strong> .las / .laz → .las / .laz（XY 反転など前処理）。</p>
+          <div class="system-meta" id="laspyInfo">
+            <code>laspy</code> が Python 環境にインストールされていません。
+            <pre id="laspyVersionOutput" style="display:none;"></pre>
+            <div id="laspyPath" class="hint"></div>
+          </div>
+          <div class="system-actions">
+            <button class="secondary" id="installLaspyNow" type="button">自動インストール</button>
+            <button class="secondary" id="installLaspyBtn" type="button">PyPI ページ</button>
+            <button class="secondary" id="useLaspyBtn" type="button" style="display:none;">この Python を使う</button>
           </div>
         </div>
 
@@ -1164,6 +1024,212 @@
         </div>
       </div>
     </div>
+    </div>
+
+    <div id="data-preprocess" class="top-tab-content">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="preprocess">GDAL/PDAL</button>
+        <button class="tab-btn" data-tab="terrain">Cesium Terrain</button>
+        <button class="tab-btn" data-tab="imagery">2D 画像タイル</button>
+        <button class="tab-btn" data-tab="gltfopt">glTF 最適化</button>
+        <button class="tab-btn" data-tab="xyflip">XY 反転</button>
+      </div>
+
+      <div id="preprocess" class="tab-content active">
+        <div class="card">
+          <h2>GDAL/PDAL 前処理</h2>
+          <p class="hint">gdalwarp、pdal translate、ogr2ogr などを実行して入力を整形します。</p>
+          <form id="preprocessForm" class="grid">
+            <div class="full">
+              <label for="preprocessProgram">プログラム</label>
+              <input type="text" id="preprocessProgram" placeholder="gdalwarp" value="gdalwarp" required />
+            </div>
+            <div class="full">
+              <label for="preprocessInput">入力</label>
+              <input type="text" id="preprocessInput" placeholder="C:\data\input.las" />
+            </div>
+            <div class="full">
+              <label for="preprocessOutput">出力</label>
+              <input type="text" id="preprocessOutput" placeholder="C:\data\output.laz" />
+            </div>
+            <div class="full">
+              <label for="preprocessExtraArgs">追加オプション</label>
+              <input type="text" id="preprocessExtraArgs" placeholder="-t_srs EPSG:4326" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="preprocessRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="terrain" class="tab-content">
+        <div class="card">
+          <h2>Cesium Terrain（DEM → quantized-mesh）</h2>
+          <p class="hint">Cesium Terrain Builder または tin-terrain を使用して DEM ラスターを Cesium 用 terrain タイルに変換します。</p>
+          <form id="terrainForm" class="grid">
+            <div class="full">
+              <label for="terrainProgram">コマンド</label>
+              <input type="text" id="terrainProgram" placeholder="ctb-tile" value="ctb-tile" required />
+            </div>
+            <div class="full">
+              <label for="terrainInput">入力 DEM（GeoTIFF/VRT）</label>
+              <input type="text" id="terrainInput" placeholder="C:\data\dem.tif" required />
+            </div>
+            <div class="full">
+              <label for="terrainOutput">出力ディレクトリ</label>
+              <input type="text" id="terrainOutput" placeholder="C:\data\terrain" required />
+            </div>
+            <div>
+              <label for="terrainFormat">出力形式</label>
+              <input type="text" id="terrainFormat" placeholder="Terrain" value="Terrain" />
+            </div>
+            <div>
+              <label for="terrainProfile">プロファイル</label>
+              <input type="text" id="terrainProfile" placeholder="geodetic" value="geodetic" />
+            </div>
+            <div>
+              <label for="terrainStartZoom">開始ズーム</label>
+              <input type="text" id="terrainStartZoom" placeholder="0" />
+            </div>
+            <div>
+              <label for="terrainEndZoom">終了ズーム</label>
+              <input type="text" id="terrainEndZoom" placeholder="" />
+            </div>
+            <div>
+              <label for="terrainExtraArgs">追加オプション</label>
+              <input type="text" id="terrainExtraArgs" placeholder="-N -C" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="terrainRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="imagery" class="tab-content">
+        <div class="card">
+          <h2>2D 画像タイル</h2>
+          <p class="hint">gdal2tiles.py または ctb-tile を使って、衛星写真や航空写真を XYZ/TMS 形式の 2D 画像タイルに変換します。</p>
+          <form id="imageryForm" class="grid">
+            <div class="full">
+              <label for="imageryProgram">コマンド</label>
+              <input type="text" id="imageryProgram" placeholder="gdal2tiles.py" value="gdal2tiles.py" required />
+            </div>
+            <div class="full">
+              <label for="imageryInput">入力画像</label>
+              <input type="text" id="imageryInput" placeholder="C:\data\ortho.tif" required />
+            </div>
+            <div class="full">
+              <label for="imageryOutput">出力ディレクトリ</label>
+              <input type="text" id="imageryOutput" placeholder="C:\data\imagery" required />
+            </div>
+            <div>
+              <label for="imageryProfile">プロファイル</label>
+              <input type="text" id="imageryProfile" placeholder="mercator" value="mercator" />
+            </div>
+            <div>
+              <label for="imageryZoom">ズーム範囲</label>
+              <input type="text" id="imageryZoom" placeholder="5-18" value="5-18" />
+            </div>
+            <div>
+              <label for="imageryFormat">画像形式</label>
+              <input type="text" id="imageryFormat" placeholder="png" value="png" />
+            </div>
+            <div>
+              <label for="imageryThreads">スレッド数</label>
+              <input type="text" id="imageryThreads" placeholder="4" />
+            </div>
+            <div class="full">
+              <label for="imageryExtraArgs">追加オプション</label>
+              <input type="text" id="imageryExtraArgs" placeholder="--processes 4" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="imageryRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="gltfopt" class="tab-content">
+        <div class="card">
+          <h2>glTF 最適化</h2>
+          <p class="hint">gltf-pipeline を使って glTF/GLB を最適化（Draco 圧縮、KHR_texture_transform 追加など）します。</p>
+          <form id="gltfoptForm" class="grid">
+            <div class="full">
+              <label for="gltfoptCommand">コマンド</label>
+              <input type="text" id="gltfoptCommand" placeholder="npx gltf-pipeline" value="npx gltf-pipeline" required />
+            </div>
+            <div class="full">
+              <label for="gltfoptInput">入力 glTF/GLB</label>
+              <input type="text" id="gltfoptInput" placeholder="C:\data\input.glb" required />
+            </div>
+            <div class="full">
+              <label for="gltfoptOutput">出力 glTF/GLB</label>
+              <input type="text" id="gltfoptOutput" placeholder="C:\data\output.glb" required />
+            </div>
+            <div>
+              <label for="gltfoptDraco">Draco 圧縮</label>
+              <select id="gltfoptDraco">
+                <option value="false">無効</option>
+                <option value="true">有効</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="gltfoptExtraArgs">追加オプション</label>
+              <input type="text" id="gltfoptExtraArgs" placeholder="--keepUnusedElements --textureCompression etc1s" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="gltfoptRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="xyflip" class="tab-content">
+        <div class="card">
+          <h2>点群 XY 反転</h2>
+          <p class="hint">点群ファイルの X 座標と Y 座標を入れ替えます。対応形式: LAS / LAZ。</p>
+          <form id="xyflipForm" class="grid">
+            <div class="full">
+              <label for="xyflipInput">入力点群ファイル</label>
+              <input type="text" id="xyflipInput" placeholder="C:\data\input.las" required />
+            </div>
+            <div class="full">
+              <label for="xyflipOutput">出力点群ファイル</label>
+              <input type="text" id="xyflipOutput" placeholder="C:\data\output.las" required />
+            </div>
+            <div class="full">
+              <label for="xyflipInputFormat">入力拡張子</label>
+              <select id="xyflipInputFormat">
+                <option value="auto">自動判定</option>
+                <option value="las">LAS</option>
+                <option value="laz">LAZ</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="xyflipOutputFormat">出力拡張子</label>
+              <select id="xyflipOutputFormat">
+                <option value="auto">入力と同じ</option>
+                <option value="las">LAS</option>
+                <option value="laz">LAZ</option>
+              </select>
+            </div>
+            <div class="full">
+              <label for="xyflipPython">Python パス（必要な場合）</label>
+              <input type="text" id="xyflipPython" placeholder="tools/python/python.exe" />
+            </div>
+          </form>
+
+          <div class="actions">
+            <button id="xyflipRunBtn" type="button">実行</button>
+          </div>
+        </div>
+      </div>
 
     </div>
 
@@ -1491,6 +1557,22 @@
       });
     });
 
+    const preprocessEl = document.getElementById('data-preprocess');
+    if (preprocessEl) {
+      const preprocessTabBar = preprocessEl.querySelector('.tabs');
+      if (preprocessTabBar) {
+        preprocessTabBar.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const target = btn.dataset.tab;
+            preprocessTabBar.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            preprocessEl.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById(target).classList.add('active');
+          });
+        });
+      }
+    }
+
     // 自動変換のプラットフォームタブ
     const outputToInputs = {
       'geojson': ['shp', 'geojson', 'gpkg', 'kml', 'fgdb', 'spatialite', 'gml', 'citygml', 'dxf', 'csv'],
@@ -1565,7 +1647,7 @@
       });
     });
 
-    async function startJob(endpoint, payload, button) {
+    async function startJob(endpoint, payload, button, onComplete) {
       button.disabled = true;
       setStatus('送信中...', 'running');
       logEl.textContent = '';
@@ -1580,7 +1662,7 @@
         const data = await res.json();
         setStatus('実行中...', 'running');
         logEl.textContent = `job id: ${data.job_id}\n`;
-        pollJob(data.job_id, button);
+        pollJob(data.job_id, button, onComplete);
       } catch (e) {
         setStatus('エラー', 'failed');
         logEl.textContent = e.message;
@@ -1588,7 +1670,7 @@
       }
     }
 
-    function pollJob(jobId, button) {
+    function pollJob(jobId, button, onComplete) {
       const interval = setInterval(async () => {
         try {
           const res = await fetch(`/api/jobs/${jobId}`);
@@ -1604,6 +1686,7 @@
             clearInterval(interval);
             setStatus(`完了 (exit ${job.exit_code ?? '?'})`, 'completed');
             button.disabled = false;
+            if (onComplete) onComplete();
           } else if (job.status === 'failed') {
             clearInterval(interval);
             setStatus(`失敗 (exit ${job.exit_code ?? '?'})`, 'failed');
@@ -1772,6 +1855,7 @@
     let currentMagoPath = null;
     let currentPythonPath = null;
     let currentPy3dtilesPath = null;
+    let currentLaspyPath = null;
     let currentPg2b3dmPath = null;
     let currentGocesiumtilerPath = null;
     let currentIfcOpenShellPath = null;
@@ -1779,26 +1863,29 @@
 
     async function loadSystemEnv() {
       try {
-        const [javaRes, magoRes, pythonRes, py3Res, pgRes, gocesiumRes, ifcRes, cjioRes, nodeRes] = await Promise.all([
+        const [javaRes, magoRes, pythonRes, py3Res, laspyRes, pgRes, gocesiumRes, ifcRes, cjioRes, nodeRes] = await Promise.all([
           fetch('/api/env/java'),
           fetch('/api/env/mago'),
           fetch('/api/env/python'),
           fetch('/api/env/py3dtiles'),
+          fetch('/api/env/laspy'),
           fetch('/api/env/pg2b3dm'),
           fetch('/api/env/gocesiumtiler'),
           fetch('/api/env/ifcopenshell'),
           fetch('/api/env/cjio'),
           fetch('/api/env/node'),
         ]);
-        const java = await javaRes.json();
-        const mago = await magoRes.json();
-        const python = await pythonRes.json();
-        const py3 = await py3Res.json();
-        const pg = await pgRes.json();
-        const gocesium = await gocesiumRes.json();
-        const ifc = await ifcRes.json();
-        const cjio = await cjioRes.json();
-        const nodeEnv = await nodeRes.json();
+        const safeJson = async (res) => res.ok ? await res.json() : { found: false };
+        const java = await safeJson(javaRes);
+        const mago = await safeJson(magoRes);
+        const python = await safeJson(pythonRes);
+        const py3 = await safeJson(py3Res);
+        const laspy = await safeJson(laspyRes);
+        const pg = await safeJson(pgRes);
+        const gocesium = await safeJson(gocesiumRes);
+        const ifc = await safeJson(ifcRes);
+        const cjio = await safeJson(cjioRes);
+        const nodeEnv = await safeJson(nodeRes);
 
         const jdkTag = document.getElementById('jdkStatusTag');
         const jdkVersion = document.getElementById('jdkVersionOutput');
@@ -1878,6 +1965,27 @@
           py3Path.textContent = '';
           usePy3Btn.style.display = 'none';
           currentPy3dtilesPath = null;
+        }
+
+        const laspyTag = document.getElementById('laspyStatusTag');
+        const laspyVersion = document.getElementById('laspyVersionOutput');
+        const laspyPath = document.getElementById('laspyPath');
+        const useLaspyBtn = document.getElementById('useLaspyBtn');
+        if (laspy.found) {
+          laspyTag.textContent = '検出済';
+          laspyTag.className = 'tag ok';
+          laspyVersion.textContent = laspy.version_output;
+          laspyVersion.style.display = 'block';
+          currentLaspyPath = laspy.path;
+          laspyPath.textContent = 'パス: ' + laspy.path;
+          useLaspyBtn.style.display = 'inline-block';
+        } else {
+          laspyTag.textContent = '未検出';
+          laspyTag.className = 'tag ng';
+          laspyVersion.style.display = 'none';
+          laspyPath.textContent = '';
+          useLaspyBtn.style.display = 'none';
+          currentLaspyPath = null;
         }
 
         const pgTag = document.getElementById('pg2b3dmStatusTag');
@@ -1983,6 +2091,7 @@
               { tab: 'system-mago', found: mago.found },
               { tab: 'system-python', found: python.found },
               { tab: 'system-py3dtiles', found: py3.found },
+              { tab: 'system-laspy', found: laspy.found },
               { tab: 'system-pg2b3dm', found: pg.found },
               { tab: 'system-gocesiumtiler', found: gocesium.found },
               { tab: 'system-ifcopenshell', found: ifc.found },
@@ -2046,12 +2155,18 @@
     document.getElementById('installPy3dtilesBtn').addEventListener('click', () => {
       window.open('https://py3dtiles.org/', '_blank');
     });
+    document.getElementById('installLaspyBtn').addEventListener('click', () => {
+      window.open('https://pypi.org/project/laspy/', '_blank');
+    });
     document.getElementById('installPg2b3dmBtn').addEventListener('click', () => {
       window.open('https://github.com/Geodan/pg2b3dm/releases', '_blank');
     });
 
     document.getElementById('installPy3dtilesNow').addEventListener('click', () => {
       startJob('/api/install/py3dtiles', {}, document.getElementById('installPy3dtilesNow'));
+    });
+    document.getElementById('installLaspyNow').addEventListener('click', () => {
+      startJob('/api/install/laspy', {}, document.getElementById('installLaspyNow'), loadSystemEnv);
     });
     document.getElementById('installPg2b3dmNow').addEventListener('click', () => {
       startJob('/api/install/pg2b3dm', {}, document.getElementById('installPg2b3dmNow'));
@@ -2063,6 +2178,13 @@
         document.querySelector('[data-top-tab="data-convert"]').click();
         document.querySelector('#data-convert [data-tab="individual"]').click();
         document.querySelector('#individual [data-tab="py3dtiles"]').click();
+      }
+    });
+    document.getElementById('useLaspyBtn').addEventListener('click', () => {
+      if (currentLaspyPath) {
+        setValue('xyflipPython', currentLaspyPath);
+        document.querySelector('[data-top-tab="data-preprocess"]').click();
+        document.querySelector('#data-preprocess [data-tab="xyflip"]').click();
       }
     });
     document.getElementById('usePg2b3dmBtn').addEventListener('click', () => {
@@ -2159,6 +2281,18 @@
         extra_args: parts.join(' '),
       };
       startJob('/api/run/preprocess', payload, document.getElementById('gltfoptRunBtn'));
+    });
+
+    // xy flip
+    document.getElementById('xyflipRunBtn').addEventListener('click', () => {
+      const payload = {
+        input: getValue('xyflipInput'),
+        output: getValue('xyflipOutput'),
+        input_format: getValue('xyflipInputFormat') || undefined,
+        output_format: getValue('xyflipOutputFormat') || undefined,
+        python_path: getValue('xyflipPython') || undefined,
+      };
+      startJob('/api/convert/xy-flip', payload, document.getElementById('xyflipRunBtn'));
     });
 
     // settings
@@ -2847,6 +2981,7 @@
       });
     });
 
+    loadSystemEnv();
     loadImportServers();
   </script>
 </body>

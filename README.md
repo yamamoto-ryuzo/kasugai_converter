@@ -37,12 +37,13 @@ cargo run
 
 ## 画面構成
 
-画面上部のトップタブから大きく 3 つのモードに切り替えます。
+画面上部のトップタブから大きく 4 つのモードに切り替えます。
 
 | トップタブ | 用途 |
 |---|---|
 | `データ取得` | CKAN カタログと GraphQL API（国土交通データプラットフォーム/DPF）からデータセットを検索・ダウンロードできます。カテゴリ、検索語、形式フィルターで絞り込み可能です。検索結果は左にデータセット一覧、右に「データセットの説明」「検索されたデータ」「リソースURL」の3ペインで表示されます。1回に 100 件を取得し、表示件数は 1〜100 件で入力可能です（デフォルト 20 件）。 |
-| `データ変換` | `自動変換` / `個別コンバータ` / `関連システム` の 3 つのタブに分かれます。 |
+| `前処理` | `GDAL/PDAL` / `Cesium Terrain` / `2D 画像タイル` / `glTF 最適化` / `XY 反転` の 5 つのタブに分かれます。変換前のデータ整形・タイル生成・最適化を行います。 |
+| `データ変換` | `座標設定` / `自動変換` / `個別コンバータ` / `関連システム` の 4 つのタブに分かれます。 |
 | `設定` | バージョン確認・更新確認・サーバー停止などを行います。 |
 
 画面上部の `Kasuga Converter` タイトル右側には、処理状態（待機中 / 実行中 / 完了など）が表示されます。
@@ -68,6 +69,7 @@ cargo run
 | `BIM/CIM` | IfcOpenShell / cjio | IFC / CityJSON → glTF/GLB/OBJ/CityGML |
 | `2D 画像タイル` | gdal2tiles.py / ctb-tile | ラスター → XYZ/TMS 画像タイル |
 | `glTF 最適化` | gltf-pipeline | glTF/GLB の Draco 圧縮・最適化 |
+| `XY 反転` | laspy | LAS/LAZ 点群の X 座標と Y 座標を入れ替え |
 
 ## 自動インストール対応
 
@@ -79,6 +81,7 @@ cargo run
 | mago-3d-tiler JAR | `tools/mago-3d-tiler.jar` |
 | Python 3.12.4 | `tools/python` |
 | Py3DTiles | `tools/python/Scripts/py3dtiles.exe` |
+| laspy（+ lazrs） | `tools/python` 内の Python パッケージ |
 | pg2b3dm | `tools/pg2b3dm/pg2b3dm.exe` |
 | gocesiumtiler | `tools/gocesiumtiler/gocesiumtiler.exe` |
 | IfcOpenShell | `tools/ifcopenshell/IfcConvert.exe` |
@@ -96,6 +99,15 @@ cargo run
 
 
 ## 更新履歴
+
+### v0.8.0
+
+- トップタブに `前処理` を追加し、`GDAL/PDAL` / `Cesium Terrain` / `2D 画像タイル` / `glTF 最適化` / `XY 反転` を集約
+- `XY 反転` タブを追加（laspy による LAS/LAZ 点群の X/Y 座標入れ替え。`/api/convert/xy-flip`）
+  - 出力拡張子の指定で LAS ↔ LAZ 変換にも対応
+- 関連システムに `laspy` タブを追加（laspy + lazrs の自動インストール、`/api/env/laspy` / `/api/install/laspy`）
+- タイトル右側の処理状態表示が機能していなかった問題を修正
+- インストーラーのバージョンを `Cargo.toml` から自動注入するように変更（run.py）
 
 ### v0.7.0
 

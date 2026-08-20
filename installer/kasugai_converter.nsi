@@ -9,8 +9,13 @@ RequestExecutionLevel user
 
 !define APP_NAME "KasugaiConverter"
 !define APP_NAME_DISPLAY "Kasugai Converter"
-!define APP_VERSION "0.6.0"
-!define APP_VERSION_FILE "0.6.0.0"
+; APP_VERSION は run.py が Cargo.toml から /DAPP_VERSION=... で注入する
+!ifndef APP_VERSION
+!define APP_VERSION "0.0.0"
+!endif
+!ifndef APP_VERSION_FILE
+!define APP_VERSION_FILE "${APP_VERSION}.0"
+!endif
 !define PUBLISHER "Kasugai"
 
 VIProductVersion "${APP_VERSION_FILE}"

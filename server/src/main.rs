@@ -128,6 +128,15 @@ struct ConvertBimcimRequest {
 }
 
 #[derive(Debug, Deserialize)]
+struct ConvertXyFlipRequest {
+    input: String,
+    output: String,
+    input_format: Option<String>,
+    output_format: Option<String>,
+    python_path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
 struct AutoConvertRequest {
     input: String,
     output: String,
@@ -212,6 +221,7 @@ async fn main() {
         .route("/convert/gocesiumtiler", post(convert_gocesiumtiler_handler))
         .route("/run/preprocess", post(preprocess_handler))
         .route("/convert/bimcim", post(convert_bimcim_handler))
+        .route("/convert/xy-flip", post(convert_xy_flip_handler))
         .route("/convert/obj-3dtiles11", post(convert_obj_to_3dtiles11_handler))
         .route("/convert/auto", post(convert_auto_handler))
         .route("/open-folder", post(open_folder_handler))
@@ -222,6 +232,7 @@ async fn main() {
         .route("/env/mago", get(get_mago_env))
         .route("/env/python", get(get_python_env))
         .route("/env/py3dtiles", get(get_py3dtiles_env))
+        .route("/env/laspy", get(get_laspy_env))
         .route("/env/pg2b3dm", get(get_pg2b3dm_env))
         .route("/env/gocesiumtiler", get(get_gocesiumtiler_env))
         .route("/env/ifcopenshell", get(get_ifcopenshell_env))
@@ -1148,6 +1159,263 @@ async fn convert_bimcim_handler(
     Json(ConvertResponse { job_id: response_id }).into_response()
 }
 
+async fn convert_xy_flip_handler(
+    State(state): State<AppState>,
+    Json(req): Json<ConvertXyFlipRequest>,
+) -> impl IntoResponse {
+    if req.input.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "input is required").into_response();
+    }
+    if req.output.trim().is_empty() {
+        return (axum::http::StatusCode::BAD_REQUEST, "output is required").into_response();
+    }
+
+    let input = req.input.trim();
+    let output = req.output.trim();
+
+    if !StdPath::new(input).exists() {
+        return (
+            axum::http::StatusCode::BAD_REQUEST,
+            format!("input not found: {}", input),
+        )
+            .into_response();
+    }
+
+    let selected_input_fmt = req
+        .input_format
+        .as_ref()
+        .map(|s| s.trim().to_lowercase())
+        .filter(|s| !s.is_empty());
+    let selected_output_fmt = req
+        .output_format
+        .as_ref()
+        .map(|s| s.trim().to_lowercase())
+        .filter(|s| !s.is_empty());
+
+    let path_input_ext = std::path::Path::new(input)
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase());
+    let path_output_ext = std::path::Path::new(output)
+        .extension()
+        .and_then(|s| s.to_str())
+        .map(|s| s.to_lowercase());
+
+    let input_fmt = if let Some(fmt) = selected_input_fmt.as_ref() {
+        let fmt_str = fmt.as_str();
+        if fmt_str != "auto" && fmt_str != "las" && fmt_str != "laz" {
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                format!("unsupported input format: {}", fmt),
+            )
+                .into_response();
+        }
+        if fmt_str == "auto" {
+            path_input_ext.clone()
+        } else {
+            Some(fmt.to_string())
+        }
+    } else {
+        path_input_ext.clone()
+    };
+
+    let output_fmt = if let Some(fmt) = selected_output_fmt.as_ref() {
+        let fmt_str = fmt.as_str();
+        if fmt_str != "auto" && fmt_str != "las" && fmt_str != "laz" {
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                format!("unsupported output format: {}", fmt),
+            )
+                .into_response();
+        }
+        if fmt_str == "auto" {
+            input_fmt.clone()
+        } else {
+            Some(fmt.to_string())
+        }
+    } else {
+        path_output_ext.clone()
+    };
+
+    match input_fmt.as_deref() {
+        Some("las") | Some("laz") => {}
+        _ => {
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                format!("unsupported input extension: {:?}", input_fmt),
+            )
+                .into_response();
+        }
+    }
+
+    match output_fmt.as_deref() {
+        Some("las") | Some("laz") => {}
+        _ => {
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                format!("unsupported output extension: {:?}", output_fmt),
+            )
+                .into_response();
+        }
+    }
+
+    if let Some(fmt) = selected_input_fmt.as_ref() {
+        let fmt_str = fmt.as_str();
+        if fmt_str != "auto" && path_input_ext.as_deref() != Some(fmt_str) {
+            return (
+                axum::http::StatusCode::BAD_REQUEST,
+                format!("input extension does not match selected format: {}", fmt),
+            )
+                .into_response();
+        }
+    }
+
+    let output = if let Some(fmt) = selected_output_fmt.as_ref() {
+        let fmt_str = fmt.as_str();
+        if fmt_str != "auto" {
+            StdPath::new(output)
+                .with_extension(fmt_str)
+                .to_string_lossy()
+                .into_owned()
+        } else {
+            output.to_string()
+        }
+    } else {
+        output.to_string()
+    };
+
+    let python_path = req
+        .python_path
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| {
+            if let Ok(p) = std::env::var("MAGO_PYTHON_PATH") {
+                let trimmed = p.trim().to_string();
+                if !trimmed.is_empty() && StdPath::new(&trimmed).exists() {
+                    return trimmed;
+                }
+            }
+            let tools_python = "tools/python/python.exe";
+            if StdPath::new(tools_python).exists() {
+                tools_python.to_string()
+            } else {
+                "python".to_string()
+            }
+        });
+
+    let job_id = {
+        let mut counter = state.next_id.lock().await;
+        let id = counter.to_string();
+        *counter += 1;
+        id
+    };
+    let created_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs();
+
+    {
+        let mut jobs = state.jobs.lock().await;
+        jobs.insert(
+            job_id.clone(),
+            Job {
+                id: job_id.clone(),
+                status: JobStatus::Pending,
+                output: String::new(),
+                exit_code: None,
+                created_at,
+            },
+        );
+    }
+
+    let script = r##"import sys
+import os
+
+input_path = sys.argv[1]
+output_path = sys.argv[2]
+
+input_ext = os.path.splitext(input_path)[1].lower()
+output_ext = os.path.splitext(output_path)[1].lower()
+
+if input_ext not in ('.las', '.laz'):
+    print(f"unsupported input extension: {input_ext}", file=sys.stderr)
+    sys.exit(1)
+
+if output_ext not in ('.las', '.laz'):
+    print(f"unsupported output extension: {output_ext}", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    import laspy
+except ImportError as e:
+    print(f"laspy is not installed: {e}", file=sys.stderr)
+    sys.exit(1)
+
+try:
+    las = laspy.read(input_path)
+except Exception as e:
+    print(f"failed to read {input_path}: {e}", file=sys.stderr)
+    sys.exit(1)
+
+x = las.x.copy()
+las.x = las.y
+las.y = x
+
+try:
+    las.write(output_path)
+except Exception as e:
+    print(f"failed to write {output_path}: {e}", file=sys.stderr)
+    sys.exit(1)
+
+print(f"XY flipped: {input_path} -> {output_path}")
+"##;
+
+    let tmp_dir = std::env::temp_dir().join(format!("kasugai_xy_flip_{}", job_id));
+    if let Err(e) = std::fs::create_dir_all(&tmp_dir) {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to create temp dir: {}", e),
+        )
+            .into_response();
+    }
+    let script_path = tmp_dir.join("xy_flip.py");
+    if let Err(e) = std::fs::write(&script_path, script) {
+        return (
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to write script: {}", e),
+        )
+            .into_response();
+    }
+
+    let input = input.to_string();
+    let output = output.to_string();
+    let script_path_str = match script_path.to_str() {
+        Some(s) => s.to_string(),
+        None => {
+            return (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                "script path is not valid UTF-8",
+            )
+                .into_response();
+        }
+    };
+
+    let response_id = job_id.clone();
+    let state_spawn = state.clone();
+    tokio::spawn(async move {
+        if let Err(e) = run_conversion(state_spawn, job_id.clone(), python_path, vec![script_path_str, input, output]).await {
+            let mut jobs = state.jobs.lock().await;
+            if let Some(job) = jobs.get_mut(&job_id) {
+                job.status = JobStatus::Failed;
+                job.output.push_str(&format!("\n[system error] {}\n", e));
+            }
+        }
+    });
+
+    Json(ConvertResponse { job_id: response_id }).into_response()
+}
+
 async fn convert_auto_handler(
     State(state): State<AppState>,
     Json(req): Json<AutoConvertRequest>,
@@ -1752,6 +2020,24 @@ Write-Output "py3dtiles installed"
 "#;
             ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
         }
+        "laspy" => {
+            let script = r#"
+$ErrorActionPreference = "Stop"
+$tools = "tools"
+$python = if (Test-Path "$tools/python/python.exe") { "$tools/python/python.exe" } else { "python" }
+Write-Output "Upgrading pip..."
+& $python -m pip install --upgrade pip --no-warn-script-location --progress-bar off
+if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
+Write-Output "Installing laspy..."
+& $python -m pip install --no-warn-script-location --progress-bar off laspy
+if ($LASTEXITCODE -ne 0) { throw "laspy install failed" }
+Write-Output "Installing lazrs for LAZ support..."
+& $python -m pip install --no-warn-script-location --progress-bar off lazrs
+if ($LASTEXITCODE -ne 0) { throw "lazrs install failed" }
+Write-Output "laspy installed"
+"#;
+            ("powershell".to_string(), vec!["-Command".to_string(), script.to_string()])
+        }
         "pg2b3dm" => {
             let script = r#"
 $ErrorActionPreference = "Stop"
@@ -2138,6 +2424,13 @@ struct Py3dtilesEnv {
 }
 
 #[derive(Debug, Serialize)]
+struct LaspyEnv {
+    found: bool,
+    path: Option<String>,
+    version_output: String,
+}
+
+#[derive(Debug, Serialize)]
 struct Pg2b3dmEnv {
     found: bool,
     path: String,
@@ -2223,6 +2516,61 @@ async fn get_py3dtiles_env() -> impl IntoResponse {
     }
 
     Json(Py3dtilesEnv {
+        found,
+        path,
+        version_output,
+    })
+}
+
+async fn get_laspy_env() -> impl IntoResponse {
+    let mut path: Option<String> = None;
+
+    if let Ok(p) = std::env::var("MAGO_PYTHON_PATH") {
+        let trimmed = p.trim().to_string();
+        if !trimmed.is_empty() && StdPath::new(&trimmed).exists() {
+            path = Some(trimmed);
+        }
+    }
+
+    if path.is_none() {
+        let tools_python = "tools/python/python.exe";
+        if StdPath::new(tools_python).exists() {
+            path = Some(tools_python.to_string());
+        }
+    }
+
+    if path.is_none() {
+        match Command::new("where").arg("python").output().await {
+            Ok(out) if out.status.success() => {
+                let first = String::from_utf8_lossy(&out.stdout)
+                    .lines()
+                    .next()
+                    .unwrap_or("")
+                    .trim()
+                    .to_string();
+                if !first.is_empty() {
+                    path = Some(first);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut found = false;
+    let mut version_output = String::new();
+    if let Some(p) = path.as_ref() {
+        let script = "import laspy; print(laspy.__version__)";
+        match Command::new(p).args(["-c", script]).output().await {
+            Ok(out) => {
+                version_output = String::from_utf8_lossy(&out.stdout).to_string();
+                version_output.push_str(&String::from_utf8_lossy(&out.stderr));
+                found = out.status.success();
+            }
+            _ => {}
+        }
+    }
+
+    Json(LaspyEnv {
         found,
         path,
         version_output,

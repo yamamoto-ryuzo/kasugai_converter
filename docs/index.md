@@ -11,11 +11,12 @@ Web ブラウザから複数の変換エンジンをタブで切り替えて利�
 
 ## 画面構成
 
-画面上部のトップタブで、大きく次の 3 つのモードに切り替えます。
+画面上部のトップタブで、大きく次の 4 つのモードに切り替えます。
 
 | トップタブ | 用途 |
 |---|---|
 | `データ取得` | CKAN カタログと GraphQL API（国土交通データプラットフォーム/DPF）からデータセットを検索・ダウンロードできます。カテゴリ、検索語、形式フィルターで絞り込み可能です。検索結果は左にデータセット一覧、右に「データセットの説明」「検索されたデータ」「リソースURL」の3ペインで表示されます。1回に 100 件を取得し、表示件数は 1〜100 件で入力可能です（デフォルト 20 件）。検索条件は「クリア」ボタンで初期化できます。 |
+| `前処理` | `GDAL/PDAL` / `Cesium Terrain` / `2D 画像タイル` / `glTF 最適化` / `XY 反転` の 5 つのタブに分かれます。変換前のデータ整形・タイル生成・最適化を行います。 |
 | `データ変換` | `座標設定` / `自動変換` / `個別コンバータ` / `関連システム` の 4 つのタブに分かれます。 |
 | `設定` | バージョン確認・更新確認・サーバー停止などを行います。 |
 
@@ -44,6 +45,7 @@ Web ブラウザから複数の変換エンジンをタブで切り替えて利�
 | `BIM/CIM` | IfcOpenShell / cjio | IFC / CityJSON から glTF/GLB/OBJ/CityGML へ |
 | `2D 画像タイル` | gdal2tiles.py / ctb-tile | ラスターから XYZ/TMS 画像タイルへ |
 | `glTF 最適化` | gltf-pipeline | glTF/GLB の Draco 圧縮・最適化 |
+| `XY 反転` | laspy | LAS/LAZ 点群の X 座標と Y 座標を入れ替え |
 
 ## 自動インストール
 
@@ -55,6 +57,7 @@ Web ブラウザから複数の変換エンジンをタブで切り替えて利�
 | mago-3d-tiler JAR | `tools/mago-3d-tiler.jar` |
 | Python 3.12.4 | `tools/python` |
 | Py3DTiles | `tools/python/Scripts/py3dtiles.exe` |
+| laspy（+ lazrs） | `tools/python` 内の Python パッケージ |
 | pg2b3dm | `tools/pg2b3dm/pg2b3dm.exe` |
 | gocesiumtiler | `tools/gocesiumtiler/gocesiumtiler.exe` |
 | IfcOpenShell | `tools/ifcopenshell/IfcConvert.exe` |
