@@ -1,0 +1,17 @@
+{
+  "name": "kasugai-converter-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Playwright E2E tests for Kasuga Converter",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:headed": "playwright test --headed",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "3d-tiles-tools": "^0.5.4",
+    "gltf-pipeline": "^4.3.1"
+  }
+}

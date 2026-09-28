@@ -548,6 +548,23 @@ async fn serve_index() -> impl IntoResponse {
     (headers, html).into_response()
 }
 
+/// Resolve a tool executable path: env var (if it exists on disk) → bundled
+/// tools/ candidates → bare command name as last resort.
+fn resolve_tool_path(env_key: &str, candidates: &[&str], fallback: &str) -> String {
+    if let Ok(p) = std::env::var(env_key) {
+        let trimmed = p.trim().to_string();
+        if !trimmed.is_empty() && StdPath::new(&trimmed).exists() {
+            return trimmed;
+        }
+    }
+    for c in candidates {
+        if StdPath::new(c).exists() {
+            return c.to_string();
+        }
+    }
+    fallback.to_string()
+}
+
 async fn convert_handler(
     State(state): State<AppState>,
     Json(req): Json<ConvertRequest>,
@@ -564,7 +581,7 @@ async fn convert_handler(
         .as_ref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| std::env::var("MAGO_JAVA_PATH").unwrap_or_else(|_| "java".to_string()));
+        .unwrap_or_else(|| resolve_tool_path("MAGO_JAVA_PATH", &["tools/jdk-21/bin/java.exe"], "java"));
 
     let jar_path = req
         .jar_path
@@ -731,7 +748,16 @@ async fn convert_py3dtiles_handler(
         .as_ref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "py3dtiles".to_string());
+        .unwrap_or_else(|| {
+            resolve_tool_path(
+                "PY3DTILES_PATH",
+                &[
+                    "tools/py3dtiles-venv/Scripts/py3dtiles.exe",
+                    "tools/python/Scripts/py3dtiles.exe",
+                ],
+                "py3dtiles",
+            )
+        });
 
     let job_id = {
         let mut counter = state.next_id.lock().await;
@@ -768,7 +794,7 @@ async fn convert_py3dtiles_handler(
     if let Some(srs_in) = req.srs_in.as_ref() {
         let trimmed = srs_in.trim();
         if !trimmed.is_empty() {
-            args.push("--srs-in".to_string());
+            args.push("--srs_in".to_string());
             args.push(trimmed.to_string());
         }
     }
@@ -776,7 +802,7 @@ async fn convert_py3dtiles_handler(
     if let Some(srs_out) = req.srs_out.as_ref() {
         let trimmed = srs_out.trim();
         if !trimmed.is_empty() {
-            args.push("--srs-out".to_string());
+            args.push("--srs_out".to_string());
             args.push(trimmed.to_string());
         }
     }
@@ -821,7 +847,7 @@ async fn convert_pg2b3dm_handler(
         .as_ref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "pg2b3dm".to_string());
+        .unwrap_or_else(|| resolve_tool_path("PG2B3DM_PATH", &["tools/pg2b3dm/pg2b3dm.exe"], "pg2b3dm"));
 
     let job_id = {
         let mut counter = state.next_id.lock().await;
@@ -943,7 +969,13 @@ async fn convert_gocesiumtiler_handler(
         .as_ref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| "tools/gocesiumtiler/gocesiumtiler.exe".to_string());
+        .unwrap_or_else(|| {
+            resolve_tool_path(
+                "GOCESIUMTILER_PATH",
+                &["tools/gocesiumtiler/gocesiumtiler.exe"],
+                "gocesiumtiler",
+            )
+        });
 
     let job_id = {
         let mut counter = state.next_id.lock().await;
@@ -970,7 +1002,12 @@ async fn convert_gocesiumtiler_handler(
         );
     }
 
-    let mut args: Vec<String> = vec!["file".to_string()];
+    let subcommand = if StdPath::new(req.input.trim()).is_dir() {
+        "folder"
+    } else {
+        "file"
+    };
+    let mut args: Vec<String> = vec![subcommand.to_string()];
 
     if let Some(epsg) = req.epsg.as_ref() {
         let trimmed = epsg.trim();
@@ -1669,7 +1706,7 @@ async fn convert_obj_to_3dtiles11_handler(
         .as_ref()
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
-        .unwrap_or_else(|| std::env::var("MAGO_JAVA_PATH").unwrap_or_else(|_| "java".to_string()));
+        .unwrap_or_else(|| resolve_tool_path("MAGO_JAVA_PATH", &["tools/jdk-21/bin/java.exe"], "java"));
 
     let jar_path = req
         .jar_path
@@ -2545,6 +2582,36 @@ async fn list_jobs(State(state): State<AppState>) -> impl IntoResponse {
     Json(values).into_response()
 }
 
+/// Resolve a bare command name (e.g. `npx`, `gdalwarp`) to a real executable
+/// path by searching PATH with PATHEXT extensions. std::process::Command does
+/// not apply PATHEXT, so script shims like `npx.cmd` are never found otherwise.
+fn resolve_program(program: &str) -> String {
+    if program.contains(['\\', '/']) || StdPath::new(program).is_file() {
+        return program.to_string();
+    }
+    let has_ext = StdPath::new(program).extension().is_some();
+    let pathext: Vec<String> = std::env::var("PATHEXT")
+        .map(|v| v.split(';').map(|s| s.trim().to_string()).collect())
+        .unwrap_or_else(|_| vec![".exe".to_string(), ".cmd".to_string(), ".bat".to_string()]);
+
+    if let Some(path_var) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path_var) {
+            let mut names: Vec<String> = Vec::new();
+            if !has_ext {
+                names.extend(pathext.iter().map(|ext| format!("{}{}", program, ext)));
+            }
+            names.push(program.to_string());
+            for name in names {
+                let cand = dir.join(&name);
+                if cand.is_file() {
+                    return cand.to_string_lossy().into_owned();
+                }
+            }
+        }
+    }
+    program.to_string()
+}
+
 async fn run_conversion(
     state: AppState,
     job_id: String,
@@ -2558,7 +2625,8 @@ async fn run_conversion(
         }
     }
 
-    let mut child = Command::new(&java_path)
+    let program = resolve_program(&java_path);
+    let mut child = Command::new(&program)
         .args(&args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -2615,7 +2683,8 @@ async fn run_conversion(
 }
 
 async fn run_command(program: &str, args: &[String]) -> Result<(i32, String), String> {
-    let mut child = Command::new(program)
+    let program = resolve_program(program);
+    let mut child = Command::new(&program)
         .args(args)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())

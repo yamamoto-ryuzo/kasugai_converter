@@ -154,6 +154,28 @@ cargo run
 - ダウンロード後に保存先フォルダーをエクスプローラーで開くボタンを追加
 - DPF API キーの前後空白をトリムするよう修正
 
+## E2E テスト（Playwright）
+
+`e2e/` に Playwright による E2E テストがあります。サーバー起動（`cargo run`）はテスト実行時に自動で行われます。
+
+```powershell
+cd e2e
+npm install
+npx playwright install chromium   # 初回のみ
+npm test                          # 全テスト実行
+npm run test:ui                   # UI モードで実行
+```
+
+テスト内容:
+
+- 画面表示・タブ切替・バージョン表示
+- 関連システムの検出状態（`tools/` 配下のツール検出）
+- 実変換: OBJ 表面処理、XY 反転（laspy）、glTF 最適化（gltf-pipeline）、gocesiumtiler / Py3DTiles / mago-3d-tiler、3D Tiles 1.1 upgrade、自動変換ルーティング
+
+`e2e/fixtures/` の LAS や GLB などのバイナリフィクスチャはテスト開始時に自動生成されます（`tools/python` の laspy 等を使用）。生成物・結果は `e2e/work/` と `e2e/test-results/` に出力されます。
+
+> 注意: `3d-tiles-tools` は依存する `better-sqlite3` の Node 24 向け prebuilt が無いため、`npx 3d-tiles-tools` による実行はこの環境では失敗します（VS C++ ツールセットが必要）。E2E では `e2e/node_modules` に `--ignore-scripts` で導入した CLI を直接呼んでいます。
+
 ## リリースビルド
 
 ```powershell

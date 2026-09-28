@@ -11,6 +11,16 @@ Thumbs.db
 *.log
 *.tmp
 
+# E2E (Playwright)
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+e2e/work/
+e2e/fixtures/sample.las
+e2e/fixtures/sample.glb
+e2e/fixtures/mago_in/
+e2e/fixtures/auto_in/
+
 # Release artifacts are kept in download/ for raw GitHub distribution
 download/*
 !download/latest.json
