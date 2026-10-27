@@ -206,3 +206,14 @@ python run.py -b --installer  # ZIP + NSIS インストーラー生成
 | [gltf-pipeline](https://github.com/CesiumGS/gltf-pipeline) | [Apache-2.0](https://github.com/CesiumGS/gltf-pipeline/blob/main/LICENSE.md) |
 
 詳細は [docs/license.md](docs/license.md) を参照してください。
+
+## 免責事項
+
+本システムは個人のPCで作成・テストされたものです。  
+ご利用によるいかなる損害も責任を負いません。
+
+<p align="center">
+  <a href="https://giphy.com/explore/free-gif" target="_blank">
+    <img src="https://github.com/yamamoto-ryuzo/QGIS_portable_3x/raw/master/imgs/giphy.gif" width="500" title="avvio QGIS">
+  </a>
+</p>
