@@ -103,6 +103,11 @@ cargo run
 
 ## 更新履歴
 
+### Unreleased
+
+- `GET /api/inspect?path=...` を追加（GeoJSON の地物数・属性・範囲、LAS/LAZ の点数・範囲・CRS、出力フォルダのタイル集計と tileset.json の範囲を返す）
+- 「データ変換」タブ内に `診断 / プレビュー` タブを追加し、変換前の入力診断と出力成果物の確認を可能に
+
 ### v0.8.0
 
 - トップタブに `前処理` を追加し、`GDAL/PDAL` / `Cesium Terrain` / `2D 画像タイル` / `glTF 最適化` / `XY 反転` を集約

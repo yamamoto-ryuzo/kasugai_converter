@@ -19,6 +19,7 @@ use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
 
 mod import;
+mod inspect;
 
 #[derive(Clone)]
 struct AppState {
@@ -256,6 +257,7 @@ async fn main() {
         .route("/import/groups", get(import::groups_handler))
         .route("/import/download", post(import::download_handler))
         .route("/import/dpf/download-urls", post(import::dpf_download_urls_handler))
+        .route("/inspect", get(inspect::inspect_handler))
         .with_state(state);
 
     let app = Router::new()

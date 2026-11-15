@@ -432,6 +432,7 @@
         <button class="tab-btn active" data-tab="auto">自動変換</button>
         <button class="tab-btn" data-tab="individual">個別コンバータ</button>
         <button class="tab-btn" data-tab="systems">関連システム</button>
+        <button class="tab-btn" data-tab="inspect">診断 / プレビュー</button>
       </div>
 
       <div id="coord" class="tab-content">
@@ -1024,6 +1025,23 @@
         </div>
       </div>
     </div>
+      <div id="inspect" class="tab-content">
+        <div class="card">
+          <h2>入力診断 / 出力プレビュー</h2>
+          <p class="hint">変換前に入力ファイルの内容（形式・CRS・範囲・地物数・属性）、または変換後の出力フォルダの内容（タイル数・tileset.json の範囲）を確認します。ジョブ完了後は出力フォルダを指定すると成果物の一覧を確認できます。</p>
+          <div class="grid">
+            <div>
+              <label for="inspectPath">ファイル / フォルダ パス</label>
+              <input type="text" id="inspectPath" placeholder="C:\data\input.geojson または出力フォルダ" />
+            </div>
+          </div>
+          <div class="actions">
+            <button id="inspectBrowseBtn" type="button">ファイル参照…</button>
+            <button id="inspectRunBtn" type="button">診断</button>
+          </div>
+          <pre id="inspectResult" style="display:none;max-height:400px;overflow:auto;background:#f3f4f6;padding:8px"></pre>
+        </div>
+      </div>
     </div>
 
     <div id="data-preprocess" class="top-tab-content">
@@ -3051,6 +3069,27 @@
         renderCatalogSelect(currentCatalogType);
         resetImportSearch();
       });
+    });
+
+    document.getElementById('inspectBrowseBtn').addEventListener('click', () => {
+      openFileDialog('inspectPath');
+    });
+    document.getElementById('inspectRunBtn').addEventListener('click', async () => {
+      const path = getValue('inspectPath');
+      const resEl = document.getElementById('inspectResult');
+      if (!path) { setStatus('診断するパスを入力してください', 'failed'); return; }
+      try {
+        const res = await fetch('/api/inspect?path=' + encodeURIComponent(path));
+        const body = await res.text();
+        resEl.style.display = 'block';
+        if (!res.ok) { resEl.textContent = body; setStatus('診断に失敗しました', 'failed'); return; }
+        resEl.textContent = JSON.stringify(JSON.parse(body), null, 2);
+        setStatus('診断完了', 'completed');
+      } catch (e) {
+        resEl.style.display = 'block';
+        resEl.textContent = String(e);
+        setStatus('診断に失敗しました', 'failed');
+      }
     });
 
     loadSystemEnv();
