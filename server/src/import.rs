@@ -221,6 +221,18 @@ async fn load_instances() -> Result<Vec<CatalogInstance>, String> {
         return Err("CKAN カタログ一覧を取得できませんでした".to_string());
     }
 
+    // remote ソースと同梱コピーで同一カタログが重複するため url-api で dedupe（先出を優先）
+    let mut seen = std::collections::HashSet::new();
+    servers.retain(|s| {
+        let api = s.url_api.trim().trim_end_matches('/').to_lowercase();
+        let key = if api.is_empty() {
+            format!("title:{}", s.title.trim().to_lowercase())
+        } else {
+            api
+        };
+        seen.insert(key)
+    });
+
     Ok(servers)
 }
 
