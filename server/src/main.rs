@@ -1181,11 +1181,13 @@ async fn convert_bimcim_handler(
                 .map(|s| s.trim().to_string())
                 .filter(|s| !s.is_empty())
                 .unwrap_or_else(|| "tools/ifcopenshell/IfcConvert.exe".to_string());
-            let script = format!(
-                "cd (Split-Path -Parent '{}'); & (Split-Path -Leaf '{}') '{}' '{}'",
-                exe, exe, req.input.trim().replace("'", "''"), req.output.trim().replace("'", "''")
-            );
-            ("powershell".to_string(), vec!["-Command".to_string(), script])
+            (
+                exe,
+                vec![
+                    req.input.trim().to_string(),
+                    req.output.trim().to_string(),
+                ],
+            )
         }
         "cjio" => {
             let command = req
