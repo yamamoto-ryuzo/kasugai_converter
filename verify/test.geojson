@@ -1,0 +1,4 @@
+{"type":"FeatureCollection","features":[
+{"type":"Feature","properties":{"name":"A","value":1},"geometry":{"type":"Point","coordinates":[139.0,35.0]}},
+{"type":"Feature","properties":{"name":"B"},"geometry":{"type":"LineString","coordinates":[[139.1,35.1],[139.2,35.2]]}}
+]}

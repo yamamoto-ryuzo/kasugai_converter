@@ -1,0 +1,1090 @@
+{
+  "component": "kasuga_converter",
+  "component_type": "rust_axum_server",
+  "version": "0.8.3",
+  "driver": {
+    "type": "http",
+    "detect": "GET http://127.0.0.1:8590/health",
+    "launch": "cd server && cargo run (または e2e playwright webServer が自動起動)",
+    "ready": "/health が応答",
+    "control": "HTTP http://127.0.0.1:8590/*",
+    "detected_from": "e2e/playwright.config.ts webServer / README"
+  },
+  "updated": "2026-11-15T22:51:39+09:00",
+  "features": [
+    {
+      "id": "srv.health",
+      "kind": "api_route",
+      "name": "GET /health",
+      "source": "server/src/main.rs:health_handler",
+      "signature": "GET /health",
+      "summary": "生存確認",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /health → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "srv.version",
+      "kind": "api_route",
+      "name": "GET /v1/server/version",
+      "source": "server/src/main.rs:version_handler",
+      "signature": "GET /api/v1/server/version",
+      "summary": "バージョン返却",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /v1/server/version → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "GET /api/v1/server/version→{version:0.8.3}"
+    },
+    {
+      "id": "srv.update_check",
+      "kind": "api_route",
+      "name": "GET /v1/server/update-check",
+      "source": "server/src/main.rs:update_check_handler",
+      "signature": "GET /api/v1/server/update-check",
+      "summary": "更新確認(外部fetch)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "200 {current,latest,update_available:false}"
+    },
+    {
+      "id": "srv.install_update",
+      "kind": "api_route",
+      "name": "POST /v1/server/install-update",
+      "source": "server/src/main.rs:install_update_handler",
+      "signature": "POST /api/v1/server/install-update",
+      "summary": "自己更新実行(破壊的)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "自己更新・破壊的"
+    },
+    {
+      "id": "srv.stop",
+      "kind": "api_route",
+      "name": "POST /v1/server/stop",
+      "source": "server/src/main.rs:stop_handler",
+      "signature": "POST /api/v1/server/stop",
+      "summary": "サーバ停止(制御経路を断つ)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "制御経路を断つ"
+    },
+    {
+      "id": "api.convert",
+      "kind": "api_route",
+      "name": "POST /convert",
+      "source": "server/src/main.rs:convert_handler",
+      "signature": "POST /api/convert",
+      "summary": "mago-3d-tiler 変換ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.convert_py3dtiles",
+      "kind": "api_route",
+      "name": "POST /convert/py3dtiles",
+      "source": "server/src/main.rs:convert_py3dtiles_handler",
+      "signature": "POST /api/convert/py3dtiles",
+      "summary": "Py3DTiles 変換ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.convert_pg2b3dm",
+      "kind": "api_route",
+      "name": "POST /convert/pg2b3dm",
+      "source": "server/src/main.rs:convert_pg2b3dm_handler",
+      "signature": "POST /api/convert/pg2b3dm",
+      "summary": "pg2b3dm 変換ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.convert_gocesiumtiler",
+      "kind": "api_route",
+      "name": "POST /convert/gocesiumtiler",
+      "source": "server/src/main.rs:convert_gocesiumtiler_handler",
+      "signature": "POST /api/convert/gocesiumtiler",
+      "summary": "gocesiumtiler 変換ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.run_preprocess",
+      "kind": "api_route",
+      "name": "POST /run/preprocess",
+      "source": "server/src/main.rs:preprocess_handler",
+      "signature": "POST /api/run/preprocess",
+      "summary": "GDAL/PDAL 前処理ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.convert_bimcim",
+      "kind": "api_route",
+      "name": "POST /convert/bimcim",
+      "source": "server/src/main.rs:convert_bimcim_handler",
+      "signature": "POST /api/convert/bimcim",
+      "summary": "BIM/CIM 変換ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "BIM/CIM e2e未カバー(IfcOpenShell検出済・要実ファイル)"
+    },
+    {
+      "id": "api.convert_xy_flip",
+      "kind": "api_route",
+      "name": "POST /convert/xy-flip",
+      "source": "server/src/main.rs:convert_xy_flip_handler",
+      "signature": "POST /api/convert/xy-flip",
+      "summary": "座標XY反転ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.convert_obj_flip",
+      "kind": "api_route",
+      "name": "POST /convert/obj-flip",
+      "source": "server/src/main.rs:convert_obj_flip_handler",
+      "signature": "POST /api/convert/obj-flip",
+      "summary": "OBJ 表面反転ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.convert_obj_3dtiles11",
+      "kind": "api_route",
+      "name": "POST /convert/obj-3dtiles11",
+      "source": "server/src/main.rs:convert_obj_to_3dtiles11_handler",
+      "signature": "POST /api/convert/obj-3dtiles11",
+      "summary": "OBJ→3D Tiles 1.1 変換",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.convert_auto",
+      "kind": "api_route",
+      "name": "POST /convert/auto",
+      "source": "server/src/main.rs:convert_auto_handler",
+      "signature": "POST /api/convert/auto",
+      "summary": "自動判定変換ジョブ",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.open_folder",
+      "kind": "api_route",
+      "name": "POST /open-folder",
+      "source": "server/src/main.rs:open_folder_handler",
+      "signature": "POST /api/open-folder",
+      "summary": "出力フォルダをOSで開く",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "OS起動・副作用"
+    },
+    {
+      "id": "api.open_file",
+      "kind": "api_route",
+      "name": "POST /open-file",
+      "source": "server/src/main.rs:open_file_handler",
+      "signature": "POST /api/open-file",
+      "summary": "ファイルをOSで開く",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "OS起動・副作用"
+    },
+    {
+      "id": "api.install",
+      "kind": "api_route",
+      "name": "POST /install/{name}",
+      "source": "server/src/main.rs:install_handler",
+      "signature": "POST /api/install/{name}",
+      "summary": "外部ツール導入(破壊的/長時間)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "外部ツール導入・破壊的/長時間"
+    },
+    {
+      "id": "api.job_get",
+      "kind": "api_route",
+      "name": "GET /jobs/{id}",
+      "source": "server/src/main.rs:get_job",
+      "signature": "GET /api/jobs/{id}",
+      "summary": "ジョブ状態取得",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /jobs/{id} → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "GET /api/jobs/{id}→応答"
+    },
+    {
+      "id": "api.job_list",
+      "kind": "api_route",
+      "name": "GET /jobs",
+      "source": "server/src/main.rs:list_jobs",
+      "signature": "GET /api/jobs",
+      "summary": "ジョブ一覧",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /jobs → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "GET /api/jobs→[]"
+    },
+    {
+      "id": "api.env_java",
+      "kind": "api_route",
+      "name": "GET /env/java",
+      "source": "server/src/main.rs:get_java_env",
+      "signature": "GET /api/env/java",
+      "summary": "JDK検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/java → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_mago",
+      "kind": "api_route",
+      "name": "GET /env/mago",
+      "source": "server/src/main.rs:get_mago_env",
+      "signature": "GET /api/env/mago",
+      "summary": "mago-3d-tiler検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/mago → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_python",
+      "kind": "api_route",
+      "name": "GET /env/python",
+      "source": "server/src/main.rs:get_python_env",
+      "signature": "GET /api/env/python",
+      "summary": "Python検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/python → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_py3dtiles",
+      "kind": "api_route",
+      "name": "GET /env/py3dtiles",
+      "source": "server/src/main.rs:get_py3dtiles_env",
+      "signature": "GET /api/env/py3dtiles",
+      "summary": "Py3DTiles検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/py3dtiles → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_laspy",
+      "kind": "api_route",
+      "name": "GET /env/laspy",
+      "source": "server/src/main.rs:get_laspy_env",
+      "signature": "GET /api/env/laspy",
+      "summary": "laspy検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/laspy → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_pg2b3dm",
+      "kind": "api_route",
+      "name": "GET /env/pg2b3dm",
+      "source": "server/src/main.rs:get_pg2b3dm_env",
+      "signature": "GET /api/env/pg2b3dm",
+      "summary": "pg2b3dm検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/pg2b3dm → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_gocesiumtiler",
+      "kind": "api_route",
+      "name": "GET /env/gocesiumtiler",
+      "source": "server/src/main.rs:get_gocesiumtiler_env",
+      "signature": "GET /api/env/gocesiumtiler",
+      "summary": "gocesiumtiler検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/gocesiumtiler → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_ifcopenshell",
+      "kind": "api_route",
+      "name": "GET /env/ifcopenshell",
+      "source": "server/src/main.rs:get_ifcopenshell_env",
+      "signature": "GET /api/env/ifcopenshell",
+      "summary": "IfcOpenShell検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/ifcopenshell → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_cjio",
+      "kind": "api_route",
+      "name": "GET /env/cjio",
+      "source": "server/src/main.rs:get_cjio_env",
+      "signature": "GET /api/env/cjio",
+      "summary": "cjio検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/cjio → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.env_node",
+      "kind": "api_route",
+      "name": "GET /env/node",
+      "source": "server/src/main.rs:get_node_env",
+      "signature": "GET /api/env/node",
+      "summary": "Node.js検出",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /env/node → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "api.import_servers",
+      "kind": "api_route",
+      "name": "GET /import/servers",
+      "source": "server/src/main.rs:import::get_servers_handler",
+      "signature": "GET /api/import/servers",
+      "summary": "取得元サーバ一覧",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /import/servers → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "GET /api/import/servers→登録リスト応答(なお search.ckan.jp エントリは陳腐化 Issue kasugai_converter#1)"
+    },
+    {
+      "id": "api.import_search",
+      "kind": "api_route",
+      "name": "POST /import/search",
+      "source": "server/src/main.rs:import::search_handler",
+      "signature": "POST /api/import/search",
+      "summary": "データセット検索(外部NW)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "有効api_urlで200応答(search.ckan.jp 登録値は無効→Issue kasugai_converter#1)"
+    },
+    {
+      "id": "api.import_groups",
+      "kind": "api_route",
+      "name": "GET /import/groups",
+      "source": "server/src/main.rs:import::groups_handler",
+      "signature": "GET /api/import/groups",
+      "summary": "インポートグループ一覧",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET /import/groups → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "有効api_urlで200応答(search.ckan.jp 登録値は無効→Issue kasugai_converter#1)"
+    },
+    {
+      "id": "api.import_download",
+      "kind": "api_route",
+      "name": "POST /import/download",
+      "source": "server/src/main.rs:import::download_handler",
+      "signature": "POST /api/import/download",
+      "summary": "データセットDL(外部NW)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "外部DL・長時間"
+    },
+    {
+      "id": "api.import_dpf_urls",
+      "kind": "api_route",
+      "name": "POST /import/dpf/download-urls",
+      "source": "server/src/main.rs:import::dpf_download_urls_handler",
+      "signature": "POST /api/import/dpf/download-urls",
+      "summary": "DPF DL URL生成(外部NW)",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e/手動(副作用あり)"
+      },
+      "last_result": "skip",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "DPF外部NW"
+    },
+    {
+      "id": "srv.index",
+      "kind": "api_route",
+      "name": "GET /",
+      "source": "server/src/main.rs:serve_index",
+      "signature": "GET /api/",
+      "summary": "静的UI配信",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "curl GET / → 応答assert"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.tab.data_get",
+      "kind": "ui_control",
+      "name": "データ取得",
+      "source": "server/static/index.html",
+      "signature": "data-tab→データ取得",
+      "summary": "UIタブ「データ取得」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.tab.data_preprocess",
+      "kind": "ui_control",
+      "name": "前処理",
+      "source": "server/static/index.html",
+      "signature": "data-tab→前処理",
+      "summary": "UIタブ「前処理」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.tab.data_convert",
+      "kind": "ui_control",
+      "name": "データ変換",
+      "source": "server/static/index.html",
+      "signature": "data-tab→データ変換",
+      "summary": "UIタブ「データ変換」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.tab.settings",
+      "kind": "ui_control",
+      "name": "設定",
+      "source": "server/static/index.html",
+      "signature": "data-tab→設定",
+      "summary": "UIタブ「設定」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.sub.coord",
+      "kind": "ui_control",
+      "name": "座標設定",
+      "source": "server/static/index.html",
+      "signature": "data-tab→座標設定",
+      "summary": "UIタブ「座標設定」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.sub.auto",
+      "kind": "ui_control",
+      "name": "自動変換",
+      "source": "server/static/index.html",
+      "signature": "data-tab→自動変換",
+      "summary": "UIタブ「自動変換」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.sub.individual",
+      "kind": "ui_control",
+      "name": "個別コンバータ",
+      "source": "server/static/index.html",
+      "signature": "data-tab→個別コンバータ",
+      "summary": "UIタブ「個別コンバータ」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.sub.systems",
+      "kind": "ui_control",
+      "name": "関連システム",
+      "source": "server/static/index.html",
+      "signature": "data-tab→関連システム",
+      "summary": "UIタブ「関連システム」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.eng.mago",
+      "kind": "ui_control",
+      "name": "mago-3d-tiler",
+      "source": "server/static/index.html",
+      "signature": "data-tab→mago-3d-tiler",
+      "summary": "UIタブ「mago-3d-tiler」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.eng.py3dtiles",
+      "kind": "ui_control",
+      "name": "Py3DTiles",
+      "source": "server/static/index.html",
+      "signature": "data-tab→Py3DTiles",
+      "summary": "UIタブ「Py3DTiles」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.eng.pg2b3dm",
+      "kind": "ui_control",
+      "name": "pg2b3dm",
+      "source": "server/static/index.html",
+      "signature": "data-tab→pg2b3dm",
+      "summary": "UIタブ「pg2b3dm」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.eng.gocesiumtiler",
+      "kind": "ui_control",
+      "name": "gocesiumtiler",
+      "source": "server/static/index.html",
+      "signature": "data-tab→gocesiumtiler",
+      "summary": "UIタブ「gocesiumtiler」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.eng.tiles11",
+      "kind": "ui_control",
+      "name": "3D Tiles 1.1",
+      "source": "server/static/index.html",
+      "signature": "data-tab→3D Tiles 1.1",
+      "summary": "UIタブ「3D Tiles 1.1」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.eng.bimcim",
+      "kind": "ui_control",
+      "name": "BIM/CIM",
+      "source": "server/static/index.html",
+      "signature": "data-tab→BIM/CIM",
+      "summary": "UIタブ「BIM/CIM」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.pp.gdal",
+      "kind": "ui_control",
+      "name": "GDAL/PDAL",
+      "source": "server/static/index.html",
+      "signature": "data-tab→GDAL/PDAL",
+      "summary": "UIタブ「GDAL/PDAL」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "ui.pp.terrain",
+      "kind": "ui_control",
+      "name": "Cesium Terrain",
+      "source": "server/static/index.html",
+      "signature": "data-tab→Cesium Terrain",
+      "summary": "UIタブ「Cesium Terrain」の表示・切替",
+      "needs_runtime": true,
+      "standalone_ok": false,
+      "depends": [
+        "axum server :8590",
+        "ブラウザ"
+      ],
+      "verify": {
+        "standalone": "",
+        "integrated": "e2e smoke.spec.ts タブ切替"
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "e2e playwright 27/27 pass (実変換確認済)"
+    },
+    {
+      "id": "static.cargo_check",
+      "kind": "logic_fn",
+      "name": "cargo check",
+      "source": "server/Cargo.toml",
+      "signature": "cargo check",
+      "summary": "静的コンパイル検証",
+      "needs_runtime": false,
+      "standalone_ok": true,
+      "depends": [],
+      "verify": {
+        "standalone": "cargo check → Finished",
+        "integrated": ""
+      },
+      "last_result": "pass",
+      "last_verified": "2026-11-15T22:51:39+09:00",
+      "note": "v0.8.3 Finished 10.4s"
+    }
+  ]
+}
