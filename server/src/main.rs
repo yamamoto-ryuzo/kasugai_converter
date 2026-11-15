@@ -13,7 +13,7 @@ use std::process::Stdio;
 use std::sync::Arc;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
-use tokio::io::{AsyncBufReadExt, BufReader};
+use tokio::io::AsyncReadExt;
 use tokio::process::Command;
 use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
@@ -2614,6 +2614,58 @@ fn resolve_program(program: &str) -> String {
     program.to_string()
 }
 
+// 子プロセスの出力バイト列をデコードする。UTF-16（BOM または NUL バイト密度で判定）→
+// UTF-8 → cp932(Shift_JIS) の順に試し、どれにも当てはまらなくても内容を破棄しない
+// （行単位の lines() は無効 UTF-8 で Err を返し残り出力が静かに消失するため使わない）。
+fn decode_process_output(bytes: &[u8]) -> String {
+    if bytes.is_empty() {
+        return String::new();
+    }
+    let (body, utf16le) = if bytes.starts_with(&[0xFF, 0xFE]) {
+        (&bytes[2..], Some(true))
+    } else if bytes.starts_with(&[0xFE, 0xFF]) {
+        (&bytes[2..], Some(false))
+    } else {
+        (bytes, detect_utf16_endianness(bytes))
+    };
+    if let Some(le) = utf16le {
+        let units: Vec<u16> = body
+            .chunks_exact(2)
+            .map(|c| {
+                if le {
+                    u16::from_le_bytes([c[0], c[1]])
+                } else {
+                    u16::from_be_bytes([c[0], c[1]])
+                }
+            })
+            .collect();
+        return String::from_utf16_lossy(&units);
+    }
+    match std::str::from_utf8(bytes) {
+        Ok(s) => s.to_string(),
+        Err(_) => encoding_rs::SHIFT_JIS.decode(bytes).0.into_owned(),
+    }
+}
+
+// BOM 無し UTF-16 の判定: ASCII 主体の UTF-16 は LE なら奇数側・BE なら偶数側の
+// バイト列に NUL が密集する。片側 1/4 以上が NUL で他側より多ければその並びとみなす。
+fn detect_utf16_endianness(bytes: &[u8]) -> Option<bool> {
+    let sample = &bytes[..bytes.len().min(512)];
+    let pairs = sample.len() / 2;
+    if pairs < 8 {
+        return None;
+    }
+    let even = sample.chunks_exact(2).filter(|c| c[0] == 0).count();
+    let odd = sample[1..].chunks_exact(2).filter(|c| c[0] == 0).count();
+    if odd * 4 >= pairs && odd > even {
+        Some(true) // 奇数側が NUL = UTF-16LE
+    } else if even * 4 >= pairs && even > odd {
+        Some(false) // 偶数側が NUL = UTF-16BE
+    } else {
+        None
+    }
+}
+
 async fn run_conversion(
     state: AppState,
     job_id: String,
@@ -2644,21 +2696,19 @@ async fn run_conversion(
     let stderr = child.stderr.take().ok_or("stderr not piped")?;
 
     let out_task = tokio::spawn(async move {
-        let mut reader = BufReader::new(stdout).lines();
-        while let Ok(Some(line)) = reader.next_line().await {
-            let mut l = out_log.lock().await;
-            l.push_str(&line);
-            l.push('\n');
-        }
+        let mut stdout = stdout;
+        let mut buf = Vec::new();
+        let _ = stdout.read_to_end(&mut buf).await;
+        let mut l = out_log.lock().await;
+        l.push_str(&decode_process_output(&buf));
     });
 
     let err_task = tokio::spawn(async move {
-        let mut reader = BufReader::new(stderr).lines();
-        while let Ok(Some(line)) = reader.next_line().await {
-            let mut l = err_log.lock().await;
-            l.push_str(&line);
-            l.push('\n');
-        }
+        let mut stderr = stderr;
+        let mut buf = Vec::new();
+        let _ = stderr.read_to_end(&mut buf).await;
+        let mut l = err_log.lock().await;
+        l.push_str(&decode_process_output(&buf));
     });
 
     let status = child
@@ -2702,21 +2752,19 @@ async fn run_command(program: &str, args: &[String]) -> Result<(i32, String), St
     let stderr = child.stderr.take().ok_or("stderr not piped")?;
 
     let out_task = tokio::spawn(async move {
-        let mut reader = BufReader::new(stdout).lines();
-        while let Ok(Some(line)) = reader.next_line().await {
-            let mut l = out_log.lock().await;
-            l.push_str(&line);
-            l.push('\n');
-        }
+        let mut stdout = stdout;
+        let mut buf = Vec::new();
+        let _ = stdout.read_to_end(&mut buf).await;
+        let mut l = out_log.lock().await;
+        l.push_str(&decode_process_output(&buf));
     });
 
     let err_task = tokio::spawn(async move {
-        let mut reader = BufReader::new(stderr).lines();
-        while let Ok(Some(line)) = reader.next_line().await {
-            let mut l = err_log.lock().await;
-            l.push_str(&line);
-            l.push('\n');
-        }
+        let mut stderr = stderr;
+        let mut buf = Vec::new();
+        let _ = stderr.read_to_end(&mut buf).await;
+        let mut l = err_log.lock().await;
+        l.push_str(&decode_process_output(&buf));
     });
 
     let status = child
@@ -3180,4 +3228,42 @@ async fn get_node_env() -> impl IntoResponse {
         path,
         version_output,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::decode_process_output;
+
+    #[test]
+    fn keeps_valid_utf8() {
+        assert_eq!(decode_process_output("OK\n".as_bytes()), "OK\n");
+    }
+
+    #[test]
+    fn decodes_utf16le_without_bom() {
+        let bytes: Vec<u8> = "Converting model.ifc"
+            .encode_utf16()
+            .flat_map(|u| u.to_le_bytes())
+            .collect();
+        assert_eq!(decode_process_output(&bytes), "Converting model.ifc");
+    }
+
+    #[test]
+    fn decodes_utf16le_with_bom() {
+        let mut bytes = vec![0xFF, 0xFE];
+        bytes.extend("fail".encode_utf16().flat_map(|u| u.to_le_bytes()));
+        assert_eq!(decode_process_output(&bytes), "fail");
+    }
+
+    #[test]
+    fn decodes_cp932_output() {
+        let (bytes, _, _) = encoding_rs::SHIFT_JIS.encode("エラー: 変換に失敗しました");
+        assert_eq!(decode_process_output(&bytes), "エラー: 変換に失敗しました");
+    }
+
+    #[test]
+    fn does_not_drop_undecodable_bytes() {
+        // UTF-8 でも cp932 でも完全にはデコードできないバイト列でも内容が残る
+        assert!(!decode_process_output(&[b'a', 0xFF, 0x80, b'b']).is_empty());
+    }
 }

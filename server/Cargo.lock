@@ -986,6 +986,7 @@ name = "kasugai_converter"
 version = "0.8.3"
 dependencies = [
  "axum",
+ "encoding_rs",
  "opener",
  "reqwest",
  "rfd",
