@@ -2495,7 +2495,7 @@ Write-Output "ifcopenshell installed to $dst"
         "cjio" => {
             let script = format!(r#"{ENSURE_EMBEDDED_PYTHON_PS}
 Write-Output "Installing cjio..."
-& $python -m pip install --no-warn-script-location --progress-bar off cjio
+& $python -m pip install --no-warn-script-location --progress-bar off "cjio[export]"
 if ($LASTEXITCODE -ne 0) {{ throw "cjio install failed" }}
 Write-Output "cjio installed"
 "#);
