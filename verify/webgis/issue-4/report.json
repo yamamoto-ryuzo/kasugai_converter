@@ -1,0 +1,3060 @@
+{
+  "unstable/cesium": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/unstable/cesium/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=layers-panel",
+            "layers-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "10-panel-layers-panel",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-panel=\"layers-panel\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-i18n=\"t"
+      },
+      {
+        "name": "10-panel-legend-panel",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-panel=\"legend-panel\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"panel"
+      },
+      {
+        "name": "10-panel-search-panel",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-panel=\"search-panel\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"panel"
+      },
+      {
+        "name": "10-panel-attr-panel",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-panel=\"attr-panel\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"panel-t"
+      },
+      {
+        "name": "10-panel-camera-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=camera-panel",
+            "camera-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "10-panel-display-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-terrain-panel",
+            "display-terrain-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-terrain-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-terrain-panel",
+            "display-terrain-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-drape-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-drape-panel",
+            "display-drape-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-tiles-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-tiles-panel",
+            "display-tiles-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-effects-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-effects-panel",
+            "display-effects-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-general-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-general-panel",
+            "display-general-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "10-panel-info-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-measure-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-measure-panel",
+            "tools-measure-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-spatial-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-spatial-panel",
+            "tools-spatial-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-draw-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-draw-panel",
+            "tools-draw-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-profile-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-profile-panel",
+            "tools-profile-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-los-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-los-panel",
+            "tools-los-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-export-panel",
+            "tools-export-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-print-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel",
+            "tools-print-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-time-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "30-manage-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "31-manage-project",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-settings-project-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-settings-inspector-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "31-manage-ai",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-gemini-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-ai-install-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-chat-instructions-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-datasource-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-plugin-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "31-manage-gmaps",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "31-manage-app",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-manage-pane=\"manage-app\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button hidden=\"\" type=\"button"
+      },
+      {
+        "name": "31-manage-other",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "39-manage-still-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "40-help-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "41-tab-mouse",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"mouse\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-tab=\"mouse\" data"
+      },
+      {
+        "name": "41-tab-keyboard",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"keyboard\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-tab=\"keyboard"
+      },
+      {
+        "name": "41-tab-draw",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"draw\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-tab=\"draw\" class="
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 4
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [
+        "layers-panel",
+        "legend-panel",
+        "search-panel",
+        "attr-panel",
+        "camera-panel",
+        "display-panel",
+        "info-panel"
+      ],
+      "data-settings-panel": [
+        "display-terrain-panel",
+        "display-drape-panel",
+        "display-tiles-panel",
+        "display-effects-panel",
+        "display-general-panel",
+        "tools-measure-panel",
+        "tools-spatial-panel",
+        "tools-draw-panel",
+        "tools-profile-panel",
+        "tools-los-panel",
+        "tools-export-panel",
+        "tools-print-panel",
+        "tools-time-panel"
+      ],
+      "data-manage-pane": [
+        "manage-project",
+        "manage-ai",
+        "manage-gmaps",
+        "manage-app",
+        "manage-other"
+      ],
+      "data-manage-sub": [
+        "settings-project-panel",
+        "settings-inspector-panel",
+        "gemini-panel",
+        "ai-install-panel",
+        "chat-instructions-panel",
+        "datasource-panel",
+        "plugin-panel",
+        "settings-rclone-panel",
+        "settings-cloud-panel",
+        "settings-drive-panel",
+        "settings-save-panel"
+      ],
+      "data-tab": [
+        "mouse",
+        "keyboard",
+        "draw"
+      ],
+      "manageOpen": true,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": true,
+      "title": "KASUGAI Canvas"
+    }
+  },
+  "unstable/maplibre": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/unstable/maplibre/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "21-tools-measure-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-measure-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-spatial-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-spatial-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-draw-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-draw-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-profile-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-profile-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-los-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-los-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-export-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-print-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "40-help-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-layers",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-legend",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=legend",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-search",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=search",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-attr",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=attr",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-camera",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=camera",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-display",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=display",
+            "data-settings-panel=display-terrain-panel",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "41-tab-info",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [],
+      "data-settings-panel": [
+        "display-terrain-panel",
+        "display-drape-panel",
+        "display-general-panel",
+        "tools-measure-panel",
+        "tools-spatial-panel",
+        "tools-draw-panel",
+        "tools-profile-panel",
+        "tools-los-panel",
+        "tools-export-panel",
+        "tools-print-panel"
+      ],
+      "data-manage-pane": [],
+      "data-manage-sub": [
+        "ai-pane-chat",
+        "ai-install-panel",
+        "ai-pane-instructions",
+        "datasource-panel",
+        "plugin-panel"
+      ],
+      "data-tab": [
+        "layers",
+        "legend",
+        "search",
+        "attr",
+        "camera",
+        "display",
+        "info"
+      ],
+      "manageOpen": false,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": false,
+      "title": "KASUGAI Canvas — MapLibre"
+    }
+  },
+  "unstable/openlayers": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/unstable/openlayers/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "21-tools-measure-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-measure-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-spatial-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-spatial-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-draw-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-draw-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-profile-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-profile-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-los-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-los-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-export-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-print-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "40-help-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-layers",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-legend",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=legend",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-search",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=search",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-attr",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=attr",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-camera",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=camera",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-display",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=display",
+            "data-settings-panel=display-drape-panel",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "41-tab-info",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [],
+      "data-settings-panel": [
+        "display-drape-panel",
+        "display-general-panel",
+        "tools-measure-panel",
+        "tools-spatial-panel",
+        "tools-draw-panel",
+        "tools-profile-panel",
+        "tools-los-panel",
+        "tools-export-panel",
+        "tools-print-panel"
+      ],
+      "data-manage-pane": [],
+      "data-manage-sub": [
+        "ai-pane-chat",
+        "ai-install-panel",
+        "ai-pane-instructions",
+        "datasource-panel",
+        "plugin-panel"
+      ],
+      "data-tab": [
+        "layers",
+        "legend",
+        "search",
+        "attr",
+        "camera",
+        "display",
+        "info"
+      ],
+      "manageOpen": false,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": false,
+      "title": "KASUGAI Canvas — OpenLayers"
+    }
+  },
+  "unstable/leaflet": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/unstable/leaflet/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "21-tools-measure-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-measure-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-spatial-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-spatial-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-draw-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-draw-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-profile-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-profile-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-los-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-los-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-export-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-print-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "40-help-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-layers",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-legend",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=legend",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-search",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=search",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-attr",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=attr",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-camera",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=camera",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-display",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=display",
+            "data-settings-panel=display-drape-panel",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "41-tab-info",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [],
+      "data-settings-panel": [
+        "display-drape-panel",
+        "display-general-panel",
+        "tools-measure-panel",
+        "tools-spatial-panel",
+        "tools-draw-panel",
+        "tools-profile-panel",
+        "tools-los-panel",
+        "tools-export-panel",
+        "tools-print-panel"
+      ],
+      "data-manage-pane": [],
+      "data-manage-sub": [
+        "ai-pane-chat",
+        "ai-install-panel",
+        "ai-pane-instructions",
+        "datasource-panel",
+        "plugin-panel"
+      ],
+      "data-tab": [
+        "layers",
+        "legend",
+        "search",
+        "attr",
+        "camera",
+        "display",
+        "info"
+      ],
+      "manageOpen": false,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": false,
+      "title": "KASUGAI Canvas — Leaflet"
+    }
+  },
+  "unstable/navara": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/unstable/navara/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": false,
+        "error": "TimeoutError: page.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#tools-open')\u001b[22m\n\u001b[2m    - locator resolved to <button title=\"ツール\" type=\"button\" id=\"tools-open\" aria-label="
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-settings-panel=\"tools-export-panel\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"butto"
+      },
+      {
+        "name": "21-tools-print-panel",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-settings-panel=\"tools-print-panel\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button"
+      },
+      {
+        "name": "40-help-open",
+        "ok": false,
+        "error": "TimeoutError: page.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#help-open')\u001b[22m\n\u001b[2m    - locator resolved to <a title=\"ヘルプ\" id=\"help-open\" target=\"_blank\" class=\"panel-man"
+      },
+      {
+        "name": "41-tab-layers",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"layers\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button data-tab=\"layers\" class=\"tab activ"
+      },
+      {
+        "name": "41-tab-legend",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"legend\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button class=\"tab\" data-tab=\"legend\">凡例</"
+      },
+      {
+        "name": "41-tab-search",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"search\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button class=\"tab\" data-tab=\"search\">検索</"
+      },
+      {
+        "name": "41-tab-attr",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"attr\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button class=\"tab\" data-tab=\"attr\">属性</butt"
+      },
+      {
+        "name": "41-tab-camera",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=camera"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "41-tab-display",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=display",
+            "data-settings-panel=display-terrain-panel"
+          ],
+          "visibleContainers": 1
+        }
+      },
+      {
+        "name": "41-tab-info",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active"
+          ],
+          "visibleContainers": 0
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [],
+      "data-settings-panel": [
+        "display-terrain-panel",
+        "display-effects-panel",
+        "display-general-panel",
+        "tools-export-panel",
+        "tools-print-panel"
+      ],
+      "data-manage-pane": [],
+      "data-manage-sub": [],
+      "data-tab": [
+        "layers",
+        "legend",
+        "search",
+        "attr",
+        "camera",
+        "display",
+        "info"
+      ],
+      "manageOpen": false,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": false,
+      "title": "KASUGAI Canvas — Navara"
+    }
+  },
+  "unstable/gsimaps": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/unstable/gsimaps/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "21-tools-measure-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-measure-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-spatial-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-spatial-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-draw-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-draw-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-profile-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-profile-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-los-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-los-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-export-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-general-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "40-help-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-layers",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-legend",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=legend",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-search",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=search",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-attr",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=attr",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-camera",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=camera",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-info",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-general-panel"
+          ],
+          "visibleContainers": 2
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [],
+      "data-settings-panel": [
+        "tools-measure-panel",
+        "tools-spatial-panel",
+        "tools-draw-panel",
+        "tools-profile-panel",
+        "tools-los-panel",
+        "tools-export-panel",
+        "tools-general-panel"
+      ],
+      "data-manage-pane": [],
+      "data-manage-sub": [
+        "ai-pane-chat",
+        "ai-install-panel",
+        "ai-pane-instructions",
+        "datasource-panel",
+        "plugin-panel"
+      ],
+      "data-tab": [
+        "layers",
+        "legend",
+        "search",
+        "attr",
+        "camera",
+        "info"
+      ],
+      "manageOpen": false,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": false,
+      "title": "KASUGAI Canvas — GSI Maps"
+    }
+  },
+  "stable/cesium": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/stable/cesium/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=layers-panel",
+            "layers-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "10-panel-layers-panel",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-panel=\"layers-panel\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-i18n=\"t"
+      },
+      {
+        "name": "10-panel-legend-panel",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-panel=\"legend-panel\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" class=\"panel"
+      },
+      {
+        "name": "10-panel-search-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=search-panel",
+            "search-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "10-panel-attr-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=attr-panel",
+            "attr-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "10-panel-camera-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=camera-panel",
+            "camera-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "10-panel-display-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-terrain-panel",
+            "display-terrain-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-terrain-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-terrain-panel",
+            "display-terrain-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-drape-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-drape-panel",
+            "display-drape-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-tiles-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-tiles-panel",
+            "display-tiles-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-effects-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-effects-panel",
+            "display-effects-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "11-display-general-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=display-panel",
+            "display-panel",
+            "data-settings-panel=display-general-panel",
+            "display-general-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "10-panel-info-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-measure-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-measure-panel",
+            "tools-measure-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-spatial-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-spatial-panel",
+            "tools-spatial-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-draw-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-draw-panel",
+            "tools-draw-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-profile-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-profile-panel",
+            "tools-profile-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-los-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-los-panel",
+            "tools-los-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-export-panel",
+            "tools-export-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-print-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel",
+            "tools-print-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "21-tools-time-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "30-manage-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "31-manage-project",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-settings-project-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-settings-inspector-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "31-manage-ai",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-gemini-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-ai-install-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-chat-instructions-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-datasource-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "32-plugin-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "31-manage-gmaps",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "31-manage-app",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-manage-pane=\"manage-app\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button hidden=\"\" type=\"button"
+      },
+      {
+        "name": "31-manage-other",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "39-manage-still-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "manage-open",
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 6
+        }
+      },
+      {
+        "name": "40-help-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 4
+        }
+      },
+      {
+        "name": "41-tab-mouse",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"mouse\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-tab=\"mouse\" data"
+      },
+      {
+        "name": "41-tab-keyboard",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"keyboard\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-tab=\"keyboard"
+      },
+      {
+        "name": "41-tab-draw",
+        "ok": false,
+        "error": "TimeoutError: locator.click: Timeout 8000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('[data-tab=\"draw\"]').first()\u001b[22m\n\u001b[2m    - locator resolved to <button type=\"button\" data-tab=\"draw\" class="
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-panel=info-panel",
+            "info-panel",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-time-panel",
+            "tools-time-panel"
+          ],
+          "visibleContainers": 4
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: the server responded with a status of 404 ()",
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [
+        "layers-panel",
+        "legend-panel",
+        "search-panel",
+        "attr-panel",
+        "camera-panel",
+        "display-panel",
+        "info-panel"
+      ],
+      "data-settings-panel": [
+        "display-terrain-panel",
+        "display-drape-panel",
+        "display-tiles-panel",
+        "display-effects-panel",
+        "display-general-panel",
+        "tools-measure-panel",
+        "tools-spatial-panel",
+        "tools-draw-panel",
+        "tools-profile-panel",
+        "tools-los-panel",
+        "tools-export-panel",
+        "tools-print-panel",
+        "tools-time-panel"
+      ],
+      "data-manage-pane": [
+        "manage-project",
+        "manage-ai",
+        "manage-gmaps",
+        "manage-app",
+        "manage-other"
+      ],
+      "data-manage-sub": [
+        "settings-project-panel",
+        "settings-inspector-panel",
+        "gemini-panel",
+        "ai-install-panel",
+        "chat-instructions-panel",
+        "datasource-panel",
+        "plugin-panel",
+        "settings-rclone-panel",
+        "settings-cloud-panel",
+        "settings-drive-panel",
+        "settings-save-panel"
+      ],
+      "data-tab": [
+        "mouse",
+        "keyboard",
+        "draw"
+      ],
+      "manageOpen": true,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": true,
+      "title": "KASUGAI Canvas"
+    }
+  },
+  "stable/maplibre": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/stable/maplibre/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "21-tools-measure-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-measure-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-spatial-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-spatial-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-draw-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-draw-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-profile-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-profile-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-los-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-los-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-export-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-print-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "40-help-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-layers",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-legend",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=legend",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-search",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=search",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-attr",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=attr",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-camera",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=camera",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-display",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=display",
+            "data-settings-panel=display-terrain-panel",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "41-tab-info",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [],
+      "data-settings-panel": [
+        "display-terrain-panel",
+        "display-drape-panel",
+        "display-general-panel",
+        "tools-measure-panel",
+        "tools-spatial-panel",
+        "tools-draw-panel",
+        "tools-profile-panel",
+        "tools-los-panel",
+        "tools-export-panel",
+        "tools-print-panel"
+      ],
+      "data-manage-pane": [],
+      "data-manage-sub": [
+        "ai-pane-chat",
+        "ai-install-panel",
+        "ai-pane-instructions",
+        "datasource-panel",
+        "plugin-panel"
+      ],
+      "data-tab": [
+        "layers",
+        "legend",
+        "search",
+        "attr",
+        "camera",
+        "display",
+        "info"
+      ],
+      "manageOpen": false,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": false,
+      "title": "KASUGAI Canvas — MapLibre"
+    }
+  },
+  "stable/leaflet": {
+    "url": "https://yamamoto-ryuzo.github.io/kasugai-canvas-web/stable/leaflet/?kasc=https%3A%2F%2Fraw.githubusercontent.com%2Fyamamoto-ryuzo%2Fkasugai_canvas_webGIS%2Frefs%2Fheads%2Fmain%2Fdefault%2Fkasugai_canvas.kasc",
+    "http": 200,
+    "steps": [
+      {
+        "name": "00-initial",
+        "ok": true,
+        "check": {
+          "active": [
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "20-tools-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers"
+          ],
+          "visibleContainers": 0
+        }
+      },
+      {
+        "name": "21-tools-measure-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-measure-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-spatial-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-spatial-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-draw-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-draw-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-profile-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-profile-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-los-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-los-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-export-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-export-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "21-tools-print-panel",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "40-help-open",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-layers",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=layers",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-legend",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=legend",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-search",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=search",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-attr",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=attr",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-camera",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=camera",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "41-tab-display",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=display",
+            "data-settings-panel=display-drape-panel",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 3
+        }
+      },
+      {
+        "name": "41-tab-info",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      },
+      {
+        "name": "90-final",
+        "ok": true,
+        "check": {
+          "active": [
+            "tools-open",
+            "data-tab=info",
+            "tab-button active",
+            "tab-content active",
+            "data-settings-panel=tools-print-panel"
+          ],
+          "visibleContainers": 2
+        }
+      }
+    ],
+    "consoleErrors": [
+      "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+      "Access to fetch at 'http://127.0.0.1:8511/health' from origin 'https://yamamoto-ryuzo.github.io' has been blocked by CORS policy: Permission was denied for this request to access the `loopback` address space.",
+      "Failed to load resource: net::ERR_FAILED",
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageErrors": [],
+    "failedReqs": [
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8510/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8585/mcp",
+      "net::ERR_FAILED http://127.0.0.1:8511/health",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8089/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8090/live/mcp-discover",
+      "net::ERR_CONNECTION_REFUSED http://127.0.0.1:8091/live/mcp-discover",
+      "net::ERR_ABORTED https://raw.githubusercontent.com/opengeospatial/geoparquet/refs/heads/main/examples/example.parquet"
+    ],
+    "dialogs": [],
+    "inventory": {
+      "data-panel": [],
+      "data-settings-panel": [
+        "display-drape-panel",
+        "display-general-panel",
+        "tools-measure-panel",
+        "tools-spatial-panel",
+        "tools-draw-panel",
+        "tools-profile-panel",
+        "tools-los-panel",
+        "tools-export-panel",
+        "tools-print-panel"
+      ],
+      "data-manage-pane": [],
+      "data-manage-sub": [
+        "ai-pane-chat",
+        "ai-install-panel",
+        "ai-pane-instructions",
+        "datasource-panel",
+        "plugin-panel"
+      ],
+      "data-tab": [
+        "layers",
+        "legend",
+        "search",
+        "attr",
+        "camera",
+        "display",
+        "info"
+      ],
+      "manageOpen": false,
+      "toolsOpen": true,
+      "helpOpen": true,
+      "walkHelp": false,
+      "title": "KASUGAI Canvas — Leaflet"
+    }
+  }
+}
