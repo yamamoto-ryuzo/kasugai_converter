@@ -106,6 +106,76 @@ test.describe('個別コンバータ', () => {
     expect(fs.existsSync(path.join(out, 'tileset.json')), res.log).toBeTruthy();
   });
 
+  test('mago-3d-tiler: FBX → b3dm タイルセット', async ({ page }) => {
+    const out = workDir('mago-fbx');
+    await setCoordEpsg(page, '3857');
+    await openSubTab(page, 'individual');
+    await openSubTab(page, 'mago');
+    await page.locator('#input').fill(path.join(FIXTURES, 'fbx_in'));
+    await page.locator('#output').fill(out);
+    await page.locator('#inputType').selectOption('fbx');
+    await page.locator('#outputType').selectOption('b3dm');
+
+    const res = await runJob(page, 'runBtn', 240_000);
+    expect(res.statusText, res.log).toContain('完了');
+    expect(fs.existsSync(path.join(out, 'tileset.json')), res.log).toBeTruthy();
+  });
+
+  test('FBX → 3D Tiles 1.1 GLB（input_type 自動判定）', async ({ request }) => {
+    const out = workDir('fbx-3dtiles11');
+    // npx 3d-tiles-tools は Node 24 + better-sqlite3 の prebuild 不在で失敗するため、
+    // e2e/node_modules の CLI を直接使う。
+    const cli = path.join(E2E_DIR, 'node_modules', '3d-tiles-tools', 'build', 'src', 'cli.mjs');
+    const job = await apiRunJob(
+      request,
+      '/api/convert/obj-3dtiles11',
+      {
+        input: path.join(FIXTURES, 'fbx_in'),
+        output: out,
+        crs: '3857',
+        tdt_command: `node ${cli}`,
+        tdt_extra_args: '--targetVersion 1.1 -f',
+      },
+      300_000,
+    );
+    expect(
+      fs.existsSync(path.join(out, job.id, 'tiles_1_1', 'tileset.json')),
+      job.output,
+    ).toBeTruthy();
+  });
+
+  test('mago-3d-tiler: テクスチャ付き FBX → b3dm（glb にテクスチャ埋込）', async ({ request }) => {
+    const out = workDir('mago-fbx-tex');
+    await apiRunJob(
+      request,
+      '/api/convert',
+      {
+        input: path.join(FIXTURES, 'fbx_tex_in'),
+        output: out,
+        input_type: 'fbx',
+        output_type: 'b3dm',
+        crs: '3857',
+      },
+      240_000,
+    );
+    const dataDir = path.join(out, 'data');
+    const tiles = fs.readdirSync(dataDir).filter((f) => /\.(glb|b3dm)$/.test(f));
+    expect(tiles.length).toBeGreaterThan(0);
+    let textured = false;
+    for (const f of tiles) {
+      const buf = fs.readFileSync(path.join(dataDir, f));
+      let off = 0;
+      if (buf.readUInt32LE(0) === 0x6d336462) {
+        // 'b3dm' — glb payload follows feature/batch tables
+        off = 28 + buf.readUInt32LE(8) + buf.readUInt32LE(12) + buf.readUInt32LE(16) + buf.readUInt32LE(20);
+      }
+      const jsonLen = buf.readUInt32LE(off + 12);
+      const json = JSON.parse(buf.slice(off + 20, off + 20 + jsonLen).toString('utf8'));
+      if ((json.images || []).length > 0) textured = true;
+    }
+    expect(textured, '出力 glb にテクスチャ画像が含まれていない').toBeTruthy();
+  });
+
   test('3D Tiles 1.1: tileset を upgrade して 1.1 化', async ({ page, request }) => {
     // 入力となる 1.0 タイルセットを mago で生成（UI 済み経路は API で代替）
     const src = workDir('tdt-src');
@@ -162,5 +232,42 @@ test.describe('自動変換', () => {
     expect(res.statusText, res.log).toContain('完了');
     // gocesiumtiler folder モードは入力ファイルごとにサブディレクトリを作る
     expect(fs.existsSync(path.join(out, 'sample', 'tileset.json')), res.log).toBeTruthy();
+  });
+
+  test('FBX → b3dm (mago-3d-tiler に自動ルーティング)', async ({ page }) => {
+    const out = workDir('auto-b3dm-fbx');
+    await page.goto('/');
+    await openTopTab(page, 'data-convert');
+    await setCoordEpsg(page, '3857');
+    await openSubTab(page, 'auto');
+    await page.locator('#autoInput').fill(path.join(FIXTURES, 'auto_fbx_in'));
+    await page.locator('#autoOutput').fill(out);
+    await openSubTab(page, '3d-tile-out');
+    await page.locator('#autoOutputFormat3dTile').selectOption('b3dm');
+
+    const res = await runJob(page, 'autoRunBtn', 240_000);
+    expect(res.statusText, res.log).toContain('完了');
+    expect(fs.existsSync(path.join(out, 'tileset.json')), res.log).toBeTruthy();
+  });
+
+  test('GIS オプション: proj / geoid / recursive が mago に引き渡される', async ({ request }) => {
+    const out = workDir('auto-gis-opts');
+    // fbx_nested_in は sub/ の中にのみ FBX+テクスチャを持つ → --recursive 必須
+    const job = await apiRunJob(
+      request,
+      '/api/convert/auto',
+      {
+        input: path.join(FIXTURES, 'fbx_nested_in'),
+        output: out,
+        output_format: 'b3dm',
+        proj: '+proj=merc +a=6378137 +b=6378137 +lat_ts=0 +lon_0=0 +x_0=0 +y_0=0 +units=m +no_defs',
+        geoid: 'EGM96',
+        recursive: true,
+      },
+      240_000,
+    );
+    expect(job.output).toContain('+proj=merc');
+    expect(job.output).toContain('EGM96');
+    expect(fs.existsSync(path.join(out, 'tileset.json')), job.output).toBeTruthy();
   });
 });

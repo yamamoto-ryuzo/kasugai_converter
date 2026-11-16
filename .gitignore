@@ -20,6 +20,10 @@ e2e/fixtures/sample.las
 e2e/fixtures/sample.glb
 e2e/fixtures/mago_in/
 e2e/fixtures/auto_in/
+e2e/fixtures/fbx_in/
+e2e/fixtures/auto_fbx_in/
+e2e/fixtures/fbx_tex_in/
+e2e/fixtures/fbx_nested_in/
 
 # Release artifacts are kept in download/ for raw GitHub distribution
 download/*

@@ -445,6 +445,7 @@
             <li>gocesiumtiler の <code>epsg</code>（個別 / 自動変換の pnts）</li>
             <li>3D Tiles 1.1 の <code>crs</code>（自動変換の 3dtiles-1-1-glb）</li>
           </ul>
+          <p class="hint">PROJ4 / ジオイド / 地形 GeoTIFF / X 軸回転 / 絶対高度は mago-3d-tiler 系（個別・自動変換）にのみ渡されます。FBX などのテクスチャファイルはモデルと同じフォルダ（またはモデル内の相対パス）に配置してください。</p>
           <form id="coordForm" class="grid">
             <div>
               <label for="coordEpsg">EPSG / SRS</label>
@@ -470,6 +471,30 @@
             <div>
               <label for="latitude">緯度</label>
               <input type="text" id="latitude" placeholder="35.6895" />
+            </div>
+            <div class="full">
+              <label for="coordProj">PROJ4 パラメータ</label>
+              <input type="text" id="coordProj" placeholder="+proj=tmerc +lat_0=… +lon_0=… +k=… +x_0=… +y_0=… +ellps=GRS80 +units=m +no_defs" />
+            </div>
+            <div>
+              <label for="coordGeoid">ジオイド</label>
+              <input type="text" id="coordGeoid" list="coordGeoidList" placeholder="Ellipsoid / EGM96 / GeoTIFF パス" />
+              <datalist id="coordGeoidList">
+                <option value="Ellipsoid"></option>
+                <option value="EGM96"></option>
+              </datalist>
+            </div>
+            <div>
+              <label for="coordTerrain">地形 GeoTIFF</label>
+              <input type="text" id="coordTerrain" placeholder="C:\data\dem.tif（clampToGround）" />
+            </div>
+            <div>
+              <label for="coordRotateX">X 軸回転（度）</label>
+              <input type="text" id="coordRotateX" placeholder="0（軸補正: 90 / -90）" />
+            </div>
+            <div>
+              <label for="coordAbsAlt">絶対高度</label>
+              <input type="text" id="coordAbsAlt" placeholder="モデル原点の絶対高度（m）" title="mago-3d-tiler 1.15.4 では altitude カラム解決が常に優先されるため実効しません" />
             </div>
           </form>
         </div>
@@ -541,6 +566,9 @@
             <div>
               <label for="extraArgs">追加オプション</label>
               <input type="text" id="extraArgs" placeholder="--heightColumn height --quantize" />
+            </div>
+            <div class="full">
+              <label style="font-weight:400; margin:0;"><input type="checkbox" id="magoRecursive" /> サブフォルダ内のファイルも再帰的に変換対象にする（--recursive）</label>
             </div>
           </form>
 
@@ -842,6 +870,9 @@
               <li>出力形式を選ぶと表示されます</li>
             </ul>
             <small>入力ディレクトリ内のファイルから自動判定します。</small>
+          </div>
+          <div class="full">
+            <label style="font-weight:400; margin:0;"><input type="checkbox" id="autoRecursive" /> サブフォルダ内のファイルも再帰的に変換対象にする（--recursive）</label>
           </div>
         </form>
 
@@ -1769,6 +1800,12 @@
         z_offset: getValue('zOffset') || undefined,
         longitude: getValue('longitude') || undefined,
         latitude: getValue('latitude') || undefined,
+        proj: getValue('coordProj') || undefined,
+        geoid: getValue('coordGeoid') || undefined,
+        terrain: getValue('coordTerrain') || undefined,
+        rotate_x_axis: getValue('coordRotateX') || undefined,
+        absolute_altitude: getValue('coordAbsAlt') || undefined,
+        recursive: document.getElementById('magoRecursive').checked || undefined,
         java_path: getValue('javaPath') || undefined,
         jar_path: getValue('jarPath') || undefined,
         jvm_options: getValue('jvmOptions') || undefined,
@@ -1885,6 +1922,12 @@
         z_offset: getValue('zOffset') || undefined,
         longitude: getValue('longitude') || undefined,
         latitude: getValue('latitude') || undefined,
+        proj: getValue('coordProj') || undefined,
+        geoid: getValue('coordGeoid') || undefined,
+        terrain: getValue('coordTerrain') || undefined,
+        rotate_x_axis: getValue('coordRotateX') || undefined,
+        absolute_altitude: getValue('coordAbsAlt') || undefined,
+        recursive: document.getElementById('autoRecursive').checked || undefined,
       };
       startJob('/api/convert/auto', payload, document.getElementById('autoRunBtn'));
     });

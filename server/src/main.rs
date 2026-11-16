@@ -61,6 +61,12 @@ struct ConvertRequest {
     jar_path: Option<String>,
     jvm_options: Option<String>,
     extra_args: Option<String>,
+    proj: Option<String>,
+    geoid: Option<String>,
+    terrain: Option<String>,
+    rotate_x_axis: Option<String>,
+    absolute_altitude: Option<String>,
+    recursive: Option<bool>,
 }
 
 #[derive(Debug, Serialize)]
@@ -157,12 +163,19 @@ struct AutoConvertRequest {
     z_offset: Option<String>,
     longitude: Option<String>,
     latitude: Option<String>,
+    proj: Option<String>,
+    geoid: Option<String>,
+    terrain: Option<String>,
+    rotate_x_axis: Option<String>,
+    absolute_altitude: Option<String>,
+    recursive: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]
 struct ConvertObjTo3dtiles11Request {
     input: String,
     output: String,
+    input_type: Option<String>,
     crs: Option<String>,
     origin: Option<String>,
     x_offset: Option<String>,
@@ -170,6 +183,12 @@ struct ConvertObjTo3dtiles11Request {
     z_offset: Option<String>,
     longitude: Option<String>,
     latitude: Option<String>,
+    proj: Option<String>,
+    geoid: Option<String>,
+    terrain: Option<String>,
+    rotate_x_axis: Option<String>,
+    absolute_altitude: Option<String>,
+    recursive: Option<bool>,
     output_type: Option<String>,
     java_path: Option<String>,
     jar_path: Option<String>,
@@ -567,6 +586,67 @@ fn resolve_tool_path(env_key: &str, candidates: &[&str], fallback: &str) -> Stri
     fallback.to_string()
 }
 
+fn push_opt(args: &mut Vec<String>, flag: &str, val: &Option<String>) {
+    if let Some(v) = val.as_ref() {
+        let t = v.trim();
+        if !t.is_empty() {
+            args.push(flag.to_string());
+            args.push(t.to_string());
+        }
+    }
+}
+
+fn mago_input_type_for_ext(ext: &str) -> Option<&'static str> {
+    match ext {
+        "fbx" => Some("fbx"),
+        "obj" => Some("obj"),
+        "3ds" => Some("3ds"),
+        "gltf" | "glb" => Some("gltf/glb"),
+        "las" | "laz" => Some("las/laz"),
+        "shp" => Some("shp"),
+        "geojson" | "json" => Some("geojson"),
+        "gpkg" => Some("gpkg"),
+        "kml" | "kmz" => Some("kml"),
+        "gml" | "xml" | "citygml" => Some("citygml"),
+        "igml" | "indoorgml" => Some("indoorgml"),
+        _ => None,
+    }
+}
+
+fn detect_mago_input_type(input: &str) -> Option<String> {
+    let path = StdPath::new(input);
+    if path.is_file() {
+        return path
+            .extension()
+            .and_then(|e| e.to_str())
+            .and_then(|e| mago_input_type_for_ext(&e.to_lowercase()))
+            .map(|s| s.to_string());
+    }
+    if path.is_dir() {
+        const PRIORITY: [&str; 18] = [
+            "fbx", "obj", "3ds", "gltf", "glb", "las", "laz", "shp", "geojson", "json", "gpkg",
+            "kml", "kmz", "gml", "xml", "citygml", "igml", "indoorgml",
+        ];
+        let mut exts: Vec<String> = Vec::new();
+        if let Ok(entries) = std::fs::read_dir(path) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_file() {
+                    if let Some(e) = p.extension().and_then(|e| e.to_str()) {
+                        exts.push(e.to_lowercase());
+                    }
+                }
+            }
+        }
+        for ext in PRIORITY {
+            if exts.iter().any(|e| e == ext) {
+                return mago_input_type_for_ext(ext).map(|s| s.to_string());
+            }
+        }
+    }
+    None
+}
+
 async fn convert_handler(
     State(state): State<AppState>,
     Json(req): Json<ConvertRequest>,
@@ -708,6 +788,15 @@ async fn convert_handler(
             args.push("--latitude".to_string());
             args.push(trimmed.to_string());
         }
+    }
+
+    push_opt(&mut args, "--proj", &req.proj);
+    push_opt(&mut args, "--geoid", &req.geoid);
+    push_opt(&mut args, "--terrain", &req.terrain);
+    push_opt(&mut args, "--rotateXAxis", &req.rotate_x_axis);
+    push_opt(&mut args, "--absoluteAltitude", &req.absolute_altitude);
+    if req.recursive.unwrap_or(false) {
+        args.push("--recursive".to_string());
     }
 
     if let Some(extra) = req.extra_args.as_ref() {
@@ -1596,13 +1685,17 @@ async fn convert_auto_handler(
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
 
+    let detected_input_type = input_format
+        .clone()
+        .or_else(|| detect_mago_input_type(&input));
+
     if let Some(fmt) = output_format.as_ref() {
         match fmt.as_str() {
             "b3dm" | "i3dm" => {
                 let convert_req = ConvertRequest {
                     input: req.input.trim().to_string(),
                     output: req.output.trim().to_string(),
-                    input_type: input_format,
+                    input_type: detected_input_type.clone(),
                     output_type: Some(fmt.clone()),
                     crs,
                     x_offset,
@@ -1614,6 +1707,12 @@ async fn convert_auto_handler(
                     jar_path: None,
                     jvm_options: None,
                     extra_args: None,
+                    proj: req.proj.clone(),
+                    geoid: req.geoid.clone(),
+                    terrain: req.terrain.clone(),
+                    rotate_x_axis: req.rotate_x_axis.clone(),
+                    absolute_altitude: req.absolute_altitude.clone(),
+                    recursive: req.recursive,
                 };
                 return convert_handler(State(state.clone()), Json(convert_req)).await.into_response();
             }
@@ -1635,6 +1734,7 @@ async fn convert_auto_handler(
                 let convert_req = ConvertObjTo3dtiles11Request {
                     input: req.input.trim().to_string(),
                     output: req.output.trim().to_string(),
+                    input_type: detected_input_type.clone(),
                     crs,
                     origin: None,
                     x_offset,
@@ -1642,6 +1742,12 @@ async fn convert_auto_handler(
                     z_offset,
                     longitude,
                     latitude,
+                    proj: req.proj.clone(),
+                    geoid: req.geoid.clone(),
+                    terrain: req.terrain.clone(),
+                    rotate_x_axis: req.rotate_x_axis.clone(),
+                    absolute_altitude: req.absolute_altitude.clone(),
+                    recursive: req.recursive,
                     output_type: None,
                     java_path: None,
                     jar_path: None,
@@ -1830,6 +1936,19 @@ async fn convert_obj_to_3dtiles11_handler(
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty());
 
+    let proj = req.proj;
+    let geoid = req.geoid;
+    let terrain = req.terrain;
+    let rotate_x_axis = req.rotate_x_axis;
+    let absolute_altitude = req.absolute_altitude;
+    let recursive = req.recursive.unwrap_or(false);
+    let input_type = req
+        .input_type
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .or_else(|| detect_mago_input_type(input.as_str()))
+        .unwrap_or_else(|| "obj".to_string());
     let output_type = req
         .output_type
         .as_ref()
@@ -1865,8 +1984,9 @@ async fn convert_obj_to_3dtiles11_handler(
         }
 
         let work_dir = format!("{}/{}", output_base, job_id);
-        let step10 = format!("{}/1.0", work_dir);
-        let step11 = format!("{}/1.1", work_dir);
+        // 3d-tiles-tools infers the output type from the -o extension; avoid dots in dir names
+        let step10 = format!("{}/tiles_1_0", work_dir);
+        let step11 = format!("{}/tiles_1_1", work_dir);
         let tileset_path = format!("{}/tileset.json", step10);
 
         let mut combined = String::new();
@@ -1889,7 +2009,7 @@ async fn convert_obj_to_3dtiles11_handler(
             return;
         }
 
-        // mago-3d-tiler: OBJ -> 3D Tiles 1.0
+        // mago-3d-tiler: 3D model -> 3D Tiles 1.0
         let mut mago_args: Vec<String> = Vec::new();
         if let Some(jvm) = jvm_options {
             for part in jvm.split_whitespace() {
@@ -1903,7 +2023,7 @@ async fn convert_obj_to_3dtiles11_handler(
         mago_args.push("--output".to_string());
         mago_args.push(step10.clone());
         mago_args.push("--inputType".to_string());
-        mago_args.push("obj".to_string());
+        mago_args.push(input_type);
         mago_args.push("--outputType".to_string());
         mago_args.push(output_type);
         if let Some(c) = crs {
@@ -1929,6 +2049,14 @@ async fn convert_obj_to_3dtiles11_handler(
         if let Some(v) = latitude {
             mago_args.push("--latitude".to_string());
             mago_args.push(v);
+        }
+        push_opt(&mut mago_args, "--proj", &proj);
+        push_opt(&mut mago_args, "--geoid", &geoid);
+        push_opt(&mut mago_args, "--terrain", &terrain);
+        push_opt(&mut mago_args, "--rotateXAxis", &rotate_x_axis);
+        push_opt(&mut mago_args, "--absoluteAltitude", &absolute_altitude);
+        if recursive {
+            mago_args.push("--recursive".to_string());
         }
         if let Some(extra) = mago_extra_args {
             for part in extra.split_whitespace() {

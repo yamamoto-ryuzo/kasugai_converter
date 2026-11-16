@@ -57,7 +57,9 @@ title: 使い方
 | `b3dm` | mago-3d-tiler | `/api/convert` | 3D Tiles 1.0 バッチモデル |
 | `i3dm` | mago-3d-tiler | `/api/convert` | 3D Tiles 1.0 インスタンスモデル |
 | `pnts` | gocesiumtiler | `/api/convert/gocesiumtiler` | 点群 3D Tiles |
-| `3dtiles-1-1-glb` | 3D Tiles 1.1 変換 | `/api/convert/obj-3dtiles11` | OBJ → 3D Tiles 1.1 GLB |
+| `3dtiles-1-1-glb` | 3D Tiles 1.1 変換 | `/api/convert/obj-3dtiles11` | 3D モデル → 3D Tiles 1.1 GLB |
+
+`b3dm` / `i3dm` / `3dtiles-1-1-glb` は OBJ / FBX / 3DS / glTF / GLB などの 3D モデル入力に対応します（mago-3d-tiler）。入力形式は入力パスの拡張子（ディレクトリの場合は内部のファイル）から自動判定され、mago-3d-tiler の `--inputType` に渡されます。API で `input_format` / `input_type` を明示指定することもできます。
 
 `座標設定` タブで設定した EPSG / CRS は、上記の mago-3d-tiler / gocesiumtiler / 3D Tiles 1.1 変換に渡されます。その他の 2D 系・LAZ・3D モデル（gltf / obj / fbx / dae）・地形系の出力形式は、UI 上で選択できますが、現時点では自動変換ルーティングが未対応です。
 
@@ -96,13 +98,24 @@ title: 使い方
 - **EPSG / SRS** … 使用する座標参照系を入力します。日本の平面直角座標系を含む主要な EPSG コードは入力候補に表示されます。
 - **X / Y / Z オフセット** … モデルの原点に対する補正値（mago-3d-tiler / 3D Tiles 1.1 に渡されます）。
 - **経度 / 緯度** … モデルの原点が置かれる地理座標（mago-3d-tiler / 3D Tiles 1.1 に渡されます）。平面直角座標系を EPSG で選ぶと、対応する原点経度・緯度が自動入力されます。
+- **PROJ4 パラメータ** … EPSG で表せない座標系を `+proj=...` 形式で直接指定（mago-3d-tiler の `--proj`）。
+- **ジオイド** … 高さ基準の補正。`Ellipsoid` / `EGM96` / ジオイド GeoTIFF パス（mago-3d-tiler の `--geoid`）。実測: 定数 40m の GeoTIFF でモデルがちょうど +40m 移動、`EGM96` でも補正が適用されることを確認済み。
+- **地形 GeoTIFF** … DEM GeoTIFF を指定するとモデルが地形へ clampToGround されます（mago-3d-tiler の `--terrain`）。実測: 既知標高パターンの DEM で頂点が地形高度へ垂直移動することを確認済み。
+  - **注意**: 地形/ジオイドのサンプリングはモデルの**ソース座標**（`経度/緯度` による配置変換の**前**）で行われます。GeoTIFF はモデルのソース CRS の範囲をカバーしている必要があります。`経度/緯度` で日本に配置するだけでは、ソース座標が (0,0) 付近のモデルは `Out of range` となり地形が適用されません。
+- **X 軸回転（度）** … Z-up / Y-up などモデルの軸方向が合わない場合の補正（mago-3d-tiler の `--rotateXAxis`）。実測: `-90` で頂点範囲が XY 平面から XZ 平面へ回転することを確認済み。
+- **絶対高度** … モデル原点の絶対高度（mago-3d-tiler の `--absoluteAltitude`）。
+  - **注意**: mago-3d-tiler 1.15.4 では実効しません（実測で出力が同一・上流コードでも `--altitudeColumn`（既定 `altitude`）の解決値が常に優先される実装）。建物の基準高度は `--altitudeColumn` 対応の属性を使ってください。
 
 以下のエンジンが `座標設定` の値を参照します。
 
-- mago-3d-tiler（`crs`、`xOffset`、`yOffset`、`zOffset`、`longitude`、`latitude`）
+- mago-3d-tiler（`crs`、`xOffset`、`yOffset`、`zOffset`、`longitude`、`latitude`、`proj`、`geoid`、`terrain`、`rotateXAxis`、`absoluteAltitude`）
 - Py3DTiles（`srs_in` / `srs_out`）
 - gocesiumtiler（`epsg`）
-- 3D Tiles 1.1 自動変換（`crs`）
+- 3D Tiles 1.1 自動変換（`crs`、および上記 mago-3d-tiler 系オプション）
+
+### テクスチャについて
+
+FBX / OBJ / glTF などのテクスチャ画像は、**モデルと同じフォルダ**（またはモデルファイル内で指定された相対パス）に配置してください。テクスチャが見つかると、変換後の glb に自動的に埋め込まれます。作成元マシンの絶対パスで参照されている場合は、テクスチャファイルを入力フォルダへコピーしてください。サブフォルダ内のモデルも対象にしたい場合は `サブフォルダ内のファイルも再帰的に変換対象にする（--recursive）` を有効にします（`mago-3d-tiler` タブ / `自動変換` タブ）。
 
 ### mago-3d-tiler
 

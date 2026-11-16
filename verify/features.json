@@ -10,7 +10,7 @@
     "control": "HTTP http://127.0.0.1:8590/*",
     "detected_from": "e2e/playwright.config.ts webServer / README"
   },
-  "updated": "2026-11-15T22:51:39+09:00",
+  "updated": "2026-11-16T00:00:00+09:00",
   "features": [
     {
       "id": "srv.health",
@@ -118,7 +118,7 @@
       "name": "POST /convert",
       "source": "server/src/main.rs:convert_handler",
       "signature": "POST /api/convert",
-      "summary": "mago-3d-tiler 変換ジョブ",
+      "summary": "mago-3d-tiler 変換ジョブ（GIS座標オプション proj/geoid/terrain/rotateXAxis/absoluteAltitude/recursive 対応）",
       "needs_runtime": true,
       "standalone_ok": false,
       "depends": [
@@ -129,8 +129,8 @@
         "integrated": "e2e/手動(副作用あり)"
       },
       "last_result": "pass",
-      "last_verified": "2026-11-15T22:51:39+09:00",
-      "note": "e2e playwright 27/27 pass (実変換確認済)"
+      "last_verified": "2026-11-16T00:00:00+09:00",
+      "note": "e2e playwright 32/32 pass (OBJ/FBX/テクスチャFBX実変換確認済)"
     },
     {
       "id": "api.convert_py3dtiles",
@@ -278,7 +278,7 @@
       "name": "POST /convert/obj-3dtiles11",
       "source": "server/src/main.rs:convert_obj_to_3dtiles11_handler",
       "signature": "POST /api/convert/obj-3dtiles11",
-      "summary": "OBJ→3D Tiles 1.1 変換",
+      "summary": "3Dモデル→3D Tiles 1.1 変換（input_type 指定可・未指定時は自動判定、GIS座標オプション対応）",
       "needs_runtime": true,
       "standalone_ok": false,
       "depends": [
@@ -289,8 +289,8 @@
         "integrated": "e2e/手動(副作用あり)"
       },
       "last_result": "pass",
-      "last_verified": "2026-11-15T22:51:39+09:00",
-      "note": "e2e playwright 27/27 pass (実変換確認済)"
+      "last_verified": "2026-11-16T00:00:00+09:00",
+      "note": "e2e playwright 32/32 pass (FBX実変換確認済)"
     },
     {
       "id": "api.convert_auto",
@@ -298,7 +298,7 @@
       "name": "POST /convert/auto",
       "source": "server/src/main.rs:convert_auto_handler",
       "signature": "POST /api/convert/auto",
-      "summary": "自動判定変換ジョブ",
+      "summary": "自動判定変換ジョブ（入力形式を拡張子/ディレクトリから自動検出、GIS座標オプション対応）",
       "needs_runtime": true,
       "standalone_ok": false,
       "depends": [
@@ -309,8 +309,8 @@
         "integrated": "e2e/手動(副作用あり)"
       },
       "last_result": "pass",
-      "last_verified": "2026-11-15T22:51:39+09:00",
-      "note": "e2e playwright 27/27 pass (実変換確認済)"
+      "last_verified": "2026-11-16T00:00:00+09:00",
+      "note": "e2e playwright 32/32 pass (FBX/proj/geoid/recursive実変換確認済)"
     },
     {
       "id": "api.open_folder",
@@ -822,7 +822,7 @@
       "name": "座標設定",
       "source": "server/static/index.html",
       "signature": "data-tab→座標設定",
-      "summary": "UIタブ「座標設定」の表示・切替",
+      "summary": "UIタブ「座標設定」の表示・切替（EPSG/オフセット/経緯度/PROJ4/ジオイド/地形/X軸回転/絶対高度）",
       "needs_runtime": true,
       "standalone_ok": false,
       "depends": [
@@ -834,8 +834,8 @@
         "integrated": "e2e smoke.spec.ts タブ切替"
       },
       "last_result": "pass",
-      "last_verified": "2026-11-15T22:51:39+09:00",
-      "note": "e2e playwright 27/27 pass (実変換確認済)"
+      "last_verified": "2026-11-16T00:00:00+09:00",
+      "note": "e2e playwright 32/32 pass"
     },
     {
       "id": "ui.sub.auto",
