@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D Tiles 変換ガイド — Kasuga Converter ドキュメント</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="nav.js" defer></script>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Kasuga Converter <span class="version-badge">v0.8.3</span></h1>
+      <p>3D Tiles 変換ガイド — 最終出力が 3D Tiles となる入力形式と出力品質の整理</p>
+    </header>
+    <main>
+      <section>
+        <h2>1. 概要</h2>
+        <p>
+          このドキュメントは、Kasuga Converter で <strong>最終出力が 3D Tiles（tileset.json をルートとするタイルセット）</strong>
+          となる全変換ルートについて、理論的に受け付け可能な入力形式と、出力品質を左右するパラメータを整理したものです。
+        </p>
+        <p>
+          記載内容は同梱ツールの<strong>実バイナリ／JAR のヘルプ・バイトコード・実実行で検証した事実</strong>に基づきます。
+          上流ドキュメントの記載と実挙動が異なる箇所は「注意事項」として明記しています。
+        </p>
+        <table>
+          <thead><tr><th>ルート</th><th>エンジン</th><th>API</th><th>出力</th></tr></thead>
+          <tbody>
+            <tr><td>mago-3d-tiler</td><td>mago-3d-tiler 1.15.4（Java）</td><td><code>POST /api/convert</code></td><td>3D Tiles（b3dm / i3dm / pnts / glb）</td></tr>
+            <tr><td>gocesiumtiler</td><td>gocesiumtiler 2.0.1（Go）</td><td><code>POST /api/convert/gocesiumtiler</code></td><td>3D Tiles 1.0 / 1.1 点群</td></tr>
+            <tr><td>Py3DTiles</td><td>Py3DTiles（Python）</td><td><code>POST /api/convert/py3dtiles</code></td><td>3D Tiles 1.0（pnts）/ 1.1（glTF）</td></tr>
+            <tr><td>pg2b3dm</td><td>pg2b3dm 2.27（.NET）</td><td><code>POST /api/convert/pg2b3dm</code></td><td>3D Tiles 1.0（b3dm）</td></tr>
+            <tr><td>OBJ → 3D Tiles 1.1</td><td>mago + 3d-tiles-tools</td><td><code>POST /api/convert/obj-3dtiles11</code></td><td>3D Tiles 1.1（2 段階パイプライン）</td></tr>
+            <tr><td>自動変換</td><td>上記の自動選択</td><td><code>POST /api/convert/auto</code></td><td>入力・出力形式から自動ルーティング</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>2. 3D Tiles のバージョンとコンテンツ形式</h2>
+        <div class="card">
+          <p style="margin:0">
+            <strong>推奨形式: 3D Tiles 1.1（.glb コンテンツ）</strong> — この環境（KASUGAI Canvas + CesiumJS 1.147）では
+            <strong>glb を第一選択</strong>にしてください。自動変換タブの既定出力形式も
+            <code>glb (3D Tiles 1.1)</code> に設定しています。理由は次のとおりです。
+          </p>
+          <ul>
+            <li>Canvas の全対応エンジン（Cesium ネイティブ 1.147 / deck.gl 系 / Navara）で表示できる</li>
+            <li>Draco / meshopt / KTX2 圧縮で転送量・デコード負荷が最小（＝表示が速い）</li>
+            <li>メッシュ・インスタンス・点群を 1 形式で統一でき、pnts 廃止後の 1.1 標準に沿う</li>
+            <li>mago 1.15.4 は既定で 1.1 出力のため、追加指定なしで glb が得られる</li>
+          </ul>
+          <p style="margin:0">
+            <strong>例外（1.0 を選ぶケース）</strong>: CesiumJS 1.107 未満の古いビューア・外部ツールへ配る場合や、
+            受け取り側が 1.0 のみ対応の場合。そのときは mago に <code>--tilesVersion 1.0</code>、
+            gocesiumtiler に <code>--version 1.0</code>、Py3DTiles に <code>--spec-version 1.0</code> を指定し、
+            .b3dm / .pnts で出力します。
+          </p>
+        </div>
+        <p>
+          出力タイルセットの実バージョンは <code>tileset.json</code> の <code>"asset": { "version": "…" }</code> で確認できます。
+          コンテンツ形式と仕様バージョンは次のように対応します。
+        </p>
+        <table>
+          <thead><tr><th>仕様</th><th>コンテンツ形式</th><th>特徴</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>3D Tiles 1.0</td>
+              <td><code>.b3dm</code> / <code>.i3dm</code> / <code>.pnts</code></td>
+              <td>従来のバイナリ形式。内部は glTF を包んだ独自コンテナ。CesiumJS をはじめ広く互換。</td>
+            </tr>
+            <tr>
+              <td>3D Tiles 1.1</td>
+              <td><code>.glb</code>（glTF 直接コンテンツ）</td>
+              <td>コンテナを廃し glTF をそのままコンテンツに使う。<code>EXT_mesh_features</code> / <code>EXT_structural_metadata</code> で属性・フィーチャ ID を保持。Draco 圧縮・KTX2 テクスチャ等 glTF 拡張の資産を直接利用でき、転送量・デコード負荷を最も削減できる。点群も glb で表現され pnts は不要になる。</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>2-1. コンテンツ形式別の特徴と速度</h3>
+        <p>
+          3D Tiles の LOD（レベル・オブ・ディテール）は、コンテンツ形式ではなく
+          <strong><code>tileset.json</code> のタイル木（各タイルの <code>geometricError</code> と
+          <code>refine</code>）で管理</strong>されます。ビューアは画面上の誤差許容量に応じて
+          描画タイルを自動切替えするため、<strong>全形式が等しく「距離に応じた描画軽量化」の恩恵を受けます</strong>。
+          そのうえでの形式ごとの速度特性は次のとおりです。
+        </p>
+        <table>
+          <thead><tr><th>形式</th><th>用途</th><th>LOD の仕組み</th><th>速度面の特徴</th><th>Cesium 対応</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>.b3dm</code></td>
+              <td>建物・構造物などバッチ化したメッシュ</td>
+              <td>タイル木の geometricError による切替（HLOD）</td>
+              <td>多数フィーチャを 1 タイルへ結合してドローコール削減。広域メッシュを階層化すれば高速。</td>
+              <td rowspan="3">全バージョン対応（1.0 の標準形式）</td>
+            </tr>
+            <tr>
+              <td><code>.i3dm</code></td>
+              <td>街路樹・電柱・センサ等「同一モデルの多数配置」</td>
+              <td>同上（インスタンスの集合をタイル分割）</td>
+              <td><strong>GPU インスタンシングで 1 モデルを繰返し描画するため最速級</strong>。配置だけを変えるデータでは、b3dm に個別結合するより大幅に軽い。</td>
+            </tr>
+            <tr>
+              <td><code>.pnts</code></td>
+              <td>点群（LAS/LAZ/XYZ/PLY 由来）</td>
+              <td>オクツリー分割＋遠景の点間引き（プログレッシブ表示）</td>
+              <td>遠景は粗い点疎表示・近景は高密度に自動遷移。数千万点規模でも初期表示が速い。<strong>1.1 では glb 化が推奨</strong>。</td>
+            </tr>
+            <tr>
+              <td><code>.glb</code>（1.1）</td>
+              <td>メッシュ・インスタンス・点群すべて</td>
+              <td>同上（タイル木は共通）</td>
+              <td><strong>転送・デコード面で総合的に最速</strong>。Draco/meshopt 圧縮・KTX2 圧縮テクスチャが使え、1.0 コンテナより小さく軽い。新規作成はこれが第一選択。</td>
+              <td>CesiumJS 1.107 以降（1.1 対応）</td>
+            </tr>
+          </tbody>
+        </table>
+        <p>
+          <strong>Cesium 対応について</strong>: 上記 4 形式はすべて CesiumJS で描画できます。
+          ただし <code>.glb</code> コンテンツ（3D Tiles 1.1）は <strong>CesiumJS 1.107 以降</strong>が必要です。
+          1.107 未満の古い CesiumJS や、three.js 系ローダ等の Cesium 以外のビューアでは
+          1.0 形式（.b3dm / .i3dm / .pnts）のみ対応の場合があるため、
+          <strong>最大互換性が必要なら <code>--tilesVersion 1.0</code> / <code>--version 1.0</code> で 1.0 出力</strong>を選んでください。
+        </p>
+        <p>
+          <strong>テクスチャ・マテリアルの再現性</strong>:
+          <code>.b3dm</code> の中身も実は glTF（コンテナに包んだだけ）なので、
+          <strong>テクスチャ・PBR マテリアルの再現性は b3dm と glb で同格</strong>です。
+          glb はさらに KTX2（Basis Universal）/ WebP 等の圧縮テクスチャ拡張が使えるため、
+          同等の見た目を保ったまま軽量化できる点で有利です。
+          一方 <code>.pnts</code> にはテクスチャが存在せず頂点色のみのため、
+          <strong>フォトグラメトリ等のテクスチャ付きモデルは必ずメッシュ系（b3dm / glb）ルート</strong>を選んでください。
+          実際の再現性はコンバータ側の解釈にも依存します（mago/Assimp のマテリアル解釈、
+          OBJ+MTL 等のテクスチャ参照は入力と同一ディレクトリへの配置が必須）。
+          <code>--quantize</code> や Draco 圧縮はジオメトリの圧縮でありテクスチャは維持されます。
+        </p>
+
+        <h3>2-3. KASUGAI Canvas のエンジン別対応</h3>
+        <p>
+          本ツールの出力を表示する KASUGAI Canvas 側のエンジン対応は次のとおりです
+          （Canvas が読む <code>.kasc</code> の <code>3dtiles:</code> レイヤとして供給する場合）。
+        </p>
+        <table>
+          <thead><tr><th>Canvas エンジン</th><th>3D Tiles 表示方式</th><th>対応形式</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Cesium</strong>（メインエンジン）</td>
+              <td><code>Cesium3DTileset</code> ネイティブ（同梱 CesiumJS 1.147.0）</td>
+              <td>b3dm / i3dm / pnts / glb すべて対応。1.1 出力もそのまま表示可</td>
+            </tr>
+            <tr>
+              <td><strong>MapLibre</strong></td>
+              <td>deck.gl <code>Tile3DLayer</code>（deck.gl 9.4 + loaders.gl、3dtiles 含有時のみ CDN 遅延ロード）</td>
+              <td>b3dm / i3dm / pnts / glb（loaders.gl 経由）。2D マップ上に 3D タイルを重畳</td>
+            </tr>
+            <tr>
+              <td><strong>OpenLayers</strong></td>
+              <td>同上（deck.gl Tile3DLayer オーバーレイ）</td>
+              <td>同上</td>
+            </tr>
+            <tr>
+              <td><strong>Leaflet</strong></td>
+              <td>同上（deck.gl Tile3DLayer オーバーレイ）</td>
+              <td>同上</td>
+            </tr>
+            <tr>
+              <td><strong>Navara</strong></td>
+              <td>ネイティブ <code>3d-tiles</code> ソース</td>
+              <td>3D Tiles 対応</td>
+            </tr>
+            <tr>
+              <td><strong>GSI Maps</strong>（調整中）</td>
+              <td>なし</td>
+              <td><strong>非対応</strong> — <code>3dtiles:</code> レイヤは情報タブへ警告のみ表示</td>
+            </tr>
+          </tbody>
+        </table>
+        <blockquote>
+          <strong>まとめ</strong>: Canvas での表示対象は <strong>GSI Maps 以外の全エンジン</strong>です。
+          メインの Cesium は 1.1（glb）を含む全形式をネイティブ描画でき、
+          MapLibre / OpenLayers / Leaflet は deck.gl 経由で同じタイルセットを 2D マップ上に重畳表示します。
+          出力形式を選ぶ際は CesiumJS 1.147 環境なら 1.1（glb）、他エンジン併用や古い環境も考慮するなら 1.0（b3dm/pnts）が無難です。
+        </blockquote>
+        <blockquote>
+          <strong>「LOD 管理されて高速」なのはどれか — 結論</strong>:
+          LOD による高速化はタイルセット側の機能なので<strong>全形式が対象</strong>です。
+          その中で特に速いのは、用途が合えば <code>i3dm</code>（インスタンシングによる描画）、
+          汎用的には <code>glb</code>（3D Tiles 1.1。圧縮資産で転送・デコードが最小）です。
+          点群は <code>pnts</code> でも十分高速ですが、1.1 対応環境では <code>glb</code> 点群が最適です。
+        </blockquote>
+
+        <h3>2-2. エンジン別の既定バージョン（実測値）</h3>
+        <table>
+          <thead><tr><th>エンジン</th><th>既定</th><th>切替オプション</th><th>備考</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>mago-3d-tiler 1.15.4</td>
+              <td><strong>1.1</strong>（ヘルプ記載 <code>[Default: 1.1]</code>）</td>
+              <td><code>--tilesVersion 1.0|1.1</code></td>
+              <td><code>--outputType b3dm</code> でも既定では <code>asset.version 1.1</code> + <code>.glb</code> コンテンツを出力（実測）。1.0 の <code>.b3dm</code> が必要なら <code>--tilesVersion 1.0</code> を追加オプションに指定。</td>
+            </tr>
+            <tr>
+              <td>gocesiumtiler 2.0.1</td>
+              <td><strong>1.0</strong></td>
+              <td><code>--version 1.0|1.1</code>（UI のバージョン選択）</td>
+              <td>1.1 指定で glb コンテンツのタイルセットを生成。</td>
+            </tr>
+            <tr>
+              <td>Py3DTiles</td>
+              <td><strong>1.0</strong></td>
+              <td><code>--spec-version 1.0|1.1</code></td>
+              <td>1.1 指定で pnts の代わりに glTF ファイルを生成。</td>
+            </tr>
+            <tr>
+              <td>pg2b3dm 2.27</td>
+              <td><strong>1.0</strong>（b3dm）</td>
+              <td>—</td>
+              <td><code>--tileset_version</code> で tileset.json のバージョン文字列のみ設定可。</td>
+            </tr>
+            <tr>
+              <td>OBJ → 3D Tiles 1.1 ルート</td>
+              <td><strong>1.1</strong></td>
+              <td><code>--targetVersion</code>（既定 <code>1.1</code>）</td>
+              <td>mago で 1.0 相当を生成後、3d-tiles-tools <code>upgrade</code> で 1.1 化する 2 段パイプライン。<code>tiles_1_0/</code> と <code>tiles_1_1/</code> の両方が残る。</td>
+            </tr>
+          </tbody>
+        </table>
+        <blockquote>
+          <strong>重要</strong>: UI の「b3dm」は mago の <code>--outputType</code> 名に由来しますが、同梱版の既定では
+          <strong>3D Tiles 1.1 の tileset + glb</strong> が生成されます。厳密な 1.0 バイナリ（.b3dm）が必要な場合は
+          追加オプションに <code>--tilesVersion 1.0</code> を入れてください。
+        </blockquote>
+      </section>
+
+      <section>
+        <h2>3. 入力可能形式（理論対応表）</h2>
+
+        <h3>3-1. 自動変換のルーティング</h3>
+        <p>
+          「データ変換 → 自動変換」タブでは、出力形式 × 入力拡張子からエンジンを自動選択します。
+          3D Tiles 系の対応は次のとおりです。
+        </p>
+        <table>
+          <thead><tr><th>出力形式</th><th>入力可能拡張子</th><th>使用エンジン</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><code>b3dm</code></td>
+              <td>shp / geojson / json / gpkg / kml / gml / xml / obj / fbx / 3ds / ase / dae / gltf / glb / stl / ply / x3d / 3mf / ifc / lxo / lwo / lws / x</td>
+              <td>mago-3d-tiler</td>
+            </tr>
+            <tr>
+              <td><code>i3dm</code></td>
+              <td>shp / geojson / json / gpkg / kml</td>
+              <td>mago-3d-tiler（要 <code>--instance</code>。追加オプションに指定）</td>
+            </tr>
+            <tr>
+              <td><code>pnts</code></td>
+              <td>las / laz → gocesiumtiler、xyz / ply のみ → Py3DTiles</td>
+              <td>gocesiumtiler / Py3DTiles</td>
+            </tr>
+            <tr>
+              <td><code>3dtiles-1-1-glb</code> <span class="badge">既定・推奨</span></td>
+              <td>b3dm と同一 ＋ las / laz（点群は mago で pnts 生成後 1.1 へ upgrade し glb 化）</td>
+              <td>mago + 3d-tiles-tools</td>
+            </tr>
+            <tr>
+              <td><code>b3dm</code>（PostGIS）</td>
+              <td>PostGIS テーブル（3D ジオメトリ）</td>
+              <td>pg2b3dm（個別コンバータから）</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h4>コンバータ選択の優先順位</h4>
+        <ol>
+          <li>
+            <strong>第1キーは <code>output_format</code></strong>（UI の出力形式選択）。
+            <code>b3dm</code> / <code>i3dm</code> は mago 固定、<code>3dtiles-1-1-glb</code> は
+            mago + 3d-tiles-tools パイプライン固定です。エンジンが複数あり得るのは <code>pnts</code> のみです。
+          </li>
+          <li>
+            <strong><code>pnts</code> 内の優先順位</strong>: 入力ディレクトリの拡張子を走査し、
+            <code>.las</code> / <code>.laz</code> が1つでもあれば <strong>gocesiumtiler</strong> を優先します
+            （LAS 専用・オクツリー高速・サブサンプリング対応）。
+            las/laz がなく <code>.xyz</code> / <code>.ply</code> のみの場合だけ <strong>Py3DTiles</strong> へ分岐します。
+          </li>
+          <li>
+            <strong>入力形式の決定</strong>: API の <code>input_format</code> 明示指定が最優先。
+            未指定時はディレクトリを走査して自動検出します（mago 本体の判定順と同じ
+            <strong>KML 優先 → 先頭一致</strong>で決定）。
+          </li>
+          <li>
+            <strong>pg2b3dm は自動ルーティングの対象外</strong>です
+            （PostGIS 接続情報が必須のため、個別コンバータタブからのみ実行します）。
+          </li>
+        </ol>
+        <blockquote>
+          <strong>注意</strong>: <code>pnts</code> で <code>.las</code> と <code>.xyz</code> が混在する入力を
+          自動変換すると gocesiumtiler が選択され、<strong>xyz / ply ファイルは処理されません</strong>。
+          混在する場合は形式ごとに分けて変換するか、Py3DTiles ルートを個別に実行してください。
+          また mago も las/laz → pnts を処理できますが、自動変換では点群専用の gocesiumtiler を優先しています
+          （mago ルートは個別コンバータタブから利用可能）。
+        </blockquote>
+
+        <h3>3-2. mago-3d-tiler 1.15.4 の入力形式（検証済み）</h3>
+        <p>
+          mago の <code>--inputType</code> は内部で <code>FormatType.fromExtension</code> で解釈されるため、
+          <strong>単一の形式名・拡張子トークン</strong>を渡します。各 inputType は「主拡張子 + 副拡張子」の
+          2 拡張子をディレクトリから収集します（大文字小文字は区別しない）。
+        </p>
+        <table>
+          <thead><tr><th>inputType</th><th>収集される拡張子</th><th>カテゴリ</th><th>出力</th></tr></thead>
+          <tbody>
+            <tr><td><code>citygml</code></td><td>.gml / .xml</td><td>GIS ベクター</td><td>b3dm</td></tr>
+            <tr><td><code>indoorgml</code></td><td>.gml / .xml</td><td>GIS ベクター</td><td>b3dm</td></tr>
+            <tr><td><code>shp</code></td><td>.shp</td><td>GIS ベクター</td><td>b3dm / i3dm</td></tr>
+            <tr><td><code>geojson</code></td><td>.geojson / .json</td><td>GIS ベクター</td><td>b3dm / i3dm</td></tr>
+            <tr><td><code>gpkg</code></td><td>.gpkg</td><td>GIS ベクター</td><td>b3dm / i3dm</td></tr>
+            <tr><td><code>kml</code></td><td>.kml（参照 .dae を収集）</td><td>KML/COLLADA</td><td>b3dm / i3dm</td></tr>
+            <tr><td><code>las</code> / <code>laz</code></td><td>.las / .laz</td><td>点群</td><td>pnts</td></tr>
+            <tr><td><code>obj</code></td><td>.obj（参照 .mtl 等）</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>fbx</code></td><td>.fbx</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>3ds</code></td><td>.3ds</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>ase</code></td><td>.ase</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>dae</code> / <code>collada</code></td><td>.dae</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>gltf</code> / <code>glb</code></td><td>.gltf / .glb</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>stl</code></td><td>.stl</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>ply</code></td><td>.ply</td><td>3D メッシュ（Assimp）※点群ではない</td><td>b3dm</td></tr>
+            <tr><td><code>x3d</code></td><td>.x3d</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>3mf</code></td><td>.3mf</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>ifc</code></td><td>.ifc</td><td>BIM（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>modo</code> / <code>lxo</code></td><td>.lxo</td><td>3D モデル（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>lwo</code> / <code>lws</code></td><td>.lwo / .lws</td><td>LightWave（Assimp）</td><td>b3dm</td></tr>
+            <tr><td><code>x</code> / <code>directx</code></td><td>.x</td><td>DirectX（Assimp）</td><td>b3dm</td></tr>
+          </tbody>
+        </table>
+        <blockquote>
+          <strong>バグ修正済み</strong>: ヘルプ記載の <code>gltf/glb</code>・<code>las/laz</code> という
+          スラッシュ複合値は <code>fromExtension</code> にマッチせず、<strong>エラーにならず KML へ静かにフォールバック</strong>
+          して失敗します。本ツールでは <code>gltf</code> / <code>glb</code> / <code>las</code> / <code>laz</code> の
+          個別トークンへ変換してから渡します。同様に <code>.kmz</code> / <code>.igml</code> / <code>.citygml</code> は
+          mago が収集しない拡張子のため対象外です。
+        </blockquote>
+
+        <h3>3-3. 点群（pnts）の入力とエンジン分担</h3>
+        <table>
+          <thead><tr><th>入力</th><th>gocesiumtiler</th><th>Py3DTiles</th><th>mago</th></tr></thead>
+          <tbody>
+            <tr><td><code>.las</code> / <code>.laz</code></td><td>○（自動変換の既定）</td><td>○（.laz は lastools 必要）</td><td>○</td></tr>
+            <tr><td><code>.xyz</code></td><td>×</td><td>○</td><td>×</td></tr>
+            <tr><td><code>.ply</code></td><td>×</td><td>○（点群として）</td><td>○（メッシュとして b3dm）</td></tr>
+          </tbody>
+        </table>
+        <p>
+          自動変換で <code>pnts</code> を選んだ場合、入力ディレクトリ内の拡張子を走査し、
+          <strong>las/laz があれば gocesiumtiler、xyz/ply のみなら Py3DTiles</strong> を選択します。
+          <code>.ply</code> はエンジンによって意味が異なる点に注意してください（mago ではメッシュ → b3dm、
+          Py3DTiles では点群 → pnts）。
+        </p>
+
+        <h3>3-4. i3dm の入力要件</h3>
+        <p>
+          i3dm（インスタンスタイル）は <strong>GIS の点フィーチャ + インスタンスモデル</strong>の組合せです。
+          入力として shp / geojson / json / gpkg / kml を受け付け、インスタンスモデルは
+          <code>--instance</code> オプションで指定します（既定 <code>{出力}/instance.dae</code>）。
+          自動変換では「追加オプション」に <code>--instance path/to/model.dae</code> と記述してください。
+          向き・大きさ・密度は属性列で制御します（<code>--headingColumn</code> / <code>--scaleColumn</code> / <code>--densityColumn</code>）。
+        </p>
+
+        <h3>3-5. pg2b3dm の入力</h3>
+        <p>
+          PostGIS データベースの 3D ジオメトリ列を直接 b3dm 化します。ファイル入力ではなく
+          <code>--connection</code> + <code>--table</code>（+ 任意で <code>--query</code> で絞り込み）を指定します。
+        </p>
+      </section>
+
+      <section>
+        <h2>4. 出力品質パラメータ</h2>
+        <p>
+          UI に無い項目は、各タブの「追加オプション」（<code>extra_args</code>）へそのまま CLI 引数として記述できます。
+        </p>
+
+        <h3>4-1. mago-3d-tiler — タイル構造・LOD</h3>
+        <table>
+          <thead><tr><th>オプション</th><th>意味</th><th>品質への影響</th></tr></thead>
+          <tbody>
+            <tr><td><code>--minLod</code> / <code>--maxLod</code></td><td>生成する LOD 範囲</td><td>maxLod を上げると詳細度↑・タイル数・サイズ↑</td></tr>
+            <tr><td><code>--minGeometricError</code> / <code>--maxGeometricError</code></td><td>幾何誤差の下限/上限</td><td>描画エンジンが LOD を切替える閾値。小さいほど高精細だが転送量増</td></tr>
+            <tr><td><code>--maxCount</code></td><td>ノードあたり最大三角形数</td><td>タイル粒度の調整。小さいとタイル数増・オーバーヘッド増</td></tr>
+            <tr><td><code>--refineAdd</code></td><td>refine を ADD モードに</td><td>親タイルに子を追加描画。粗い段も残るためギャップが出にくい</td></tr>
+            <tr><td><code>--splitByNode</code></td><td>シーンのノード単位でタイル分割</td><td>構造がタイル境界に反映。個別選択・属性化に有効</td></tr>
+            <tr><td><code>--quantize</code></td><td><code>KHR_mesh_quantization</code> でメッシュ量子化</td><td>頂点データを圧縮しサイズ削減（対応ビューアが必要）</td></tr>
+            <tr><td><code>--photogrammetry</code></td><td>フォトグラメトリ用 b3dm を GPU で生成</td><td>大規模メッシュ向けの生成経路</td></tr>
+            <tr><td><code>--curvatureCorrection</code></td><td>楕円体面の曲率補正</td><td>広域モデルの高度ずれを抑制</td></tr>
+            <tr><td><code>--tilesVersion 1.0|1.1</code></td><td>出力仕様バージョン（既定 1.1）</td><td>1.0 を明示すると従来の .b3dm コンテンツ</td></tr>
+            <tr><td><code>--merge</code></td><td>複数 tileset.json をマージ</td><td>分割出力の統合</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4-2. mago-3d-tiler — 点群（las/laz → pnts）</h3>
+        <table>
+          <thead><tr><th>オプション</th><th>意味</th><th>品質への影響</th></tr></thead>
+          <tbody>
+            <tr><td><code>--maxPoints</code></td><td>1 タイルあたり最大点数</td><td>タイル粒度。大きいほど高密だが1タイルが重い</td></tr>
+            <tr><td><code>--pointRatio</code></td><td>元データから残す点の割合（%）</td><td>間引き率。軽量化と引換えに密度低下</td></tr>
+            <tr><td><code>--sourcePrecision</code></td><td>元精度のまま点群タイルを生成</td><td>位置精度の保持（サイズは増）</td></tr>
+            <tr><td><code>--force4ByteRGB</code></td><td>RGB を強制 4 バイト化</td><td>色情報の保持方式を固定</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4-3. mago-3d-tiler — GIS ベクター押出・配置</h3>
+        <table>
+          <thead><tr><th>オプション</th><th>意味</th></tr></thead>
+          <tbody>
+            <tr><td><code>--heightColumn</code> / <code>--altitudeColumn</code></td><td>建物高さ / 基準高度を取る属性列</td></tr>
+            <tr><td><code>--minimumHeight</code></td><td>押出しの最小高さ</td></tr>
+            <tr><td><code>--absoluteAltitude</code></td><td>絶対高度（※後述の制限あり）</td></tr>
+            <tr><td><code>--skirtHeight</code></td><td>建物スカート高さ（地形との隙間埋め）</td></tr>
+            <tr><td><code>--diameterColumn</code></td><td>管状押出モデルの直径列（mm）</td></tr>
+            <tr><td><code>--attributeFilter</code></td><td>属性フィルタ（例: <code>"classification=window,door;type=building"</code>）</td></tr>
+            <tr><td><code>--nameColumn</code></td><td>名前列（タイル内フィーチャ名）</td></tr>
+            <tr><td><code>--flipCoordinate</code></td><td>2D 元データの x,y 座標反転</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4-4. gocesiumtiler — 点群</h3>
+        <table>
+          <thead><tr><th>オプション</th><th>既定</th><th>品質への影響</th></tr></thead>
+          <tbody>
+            <tr><td><code>--resolution</code> (m)</td><td>20</td><td>最低 LOD での点間距離。小さいほど精細・タイル数増</td></tr>
+            <tr><td><code>--depth</code></td><td>10</td><td>オクツリーの最大深さ。深いほど高解像度まで到達</td></tr>
+            <tr><td><code>--min-points-per-tile</code></td><td>5000</td><td>タイル分割の停止条件。小さいほど細かく分割</td></tr>
+            <tr><td><code>--subsample</code></td><td>1</td><td>残す点の割合（0.01–1）。軽量化用の間引き</td></tr>
+            <tr><td><code>--8-bit</code></td><td>off</td><td>入力色を 8bit 色空間として解釈（LAS の色深度に合わせる）</td></tr>
+            <tr><td><code>--z-offset</code></td><td>0</td><td>Z 方向オフセット（楕円体高/ジオイド高の補正用）</td></tr>
+            <tr><td><code>--version 1.0|1.1</code></td><td>1.0</td><td>1.1 で glb コンテンツ出力</td></tr>
+            <tr><td><code>--join</code>（folder 時）</td><td>off</td><td>複数 LAS を 1 クラウドに統合</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4-5. Py3DTiles — 点群</h3>
+        <table>
+          <thead><tr><th>オプション</th><th>意味</th></tr></thead>
+          <tbody>
+            <tr><td><code>--srs_in</code> / <code>--srs_out</code></td><td>入力/出力 EPSG（数字部のみ）。再投影で品質・位置精度に直結</td></tr>
+            <tr><td><code>--jobs</code></td><td>並列ジョブ数（既定 CPU 数）</td></tr>
+            <tr><td><code>--cache_size</code></td><td>キャッシュ MB（既定 利用可能メモリ/10）</td></tr>
+            <tr><td><code>--overwrite</code></td><td>出力先を再作成</td></tr>
+            <tr><td><code>--no-rgb</code></td><td>RGB 属性を出力しない（軽量化）</td></tr>
+            <tr><td><code>--extra-fields</code></td><td>追加分類・強度などの属性フィールドをタイルへ含める</td></tr>
+            <tr><td><code>--color_scale</code></td><td>色スケールの強制</td></tr>
+            <tr><td><code>--spec-version 1.0|1.1</code></td><td>1.1 で glTF 出力（pnts の代わり）</td></tr>
+            <tr><td><code>--pyproj-always-xy</code></td><td>軸順が異なる CRS のデータ向け再投影オプション</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4-6. pg2b3dm — PostGIS → b3dm</h3>
+        <table>
+          <thead><tr><th>オプション</th><th>意味</th></tr></thead>
+          <tbody>
+            <tr><td><code>-g / --geometric_errors</code></td><td>LOD ごとの幾何誤差（UI: 幾何誤差フィールド）</td></tr>
+            <tr><td><code>--max_features_per_tile</code></td><td>1 タイルの最大フィーチャ数（既定 1000）</td></tr>
+            <tr><td><code>-l / --lodcolumn</code></td><td>LOD を示す属性列</td></tr>
+            <tr><td><code>-a / --attributecolumns</code></td><td>バッチテーブルへ含める属性列</td></tr>
+            <tr><td><code>--shaderscolumn</code></td><td>色・透明度などシェーダ列（UI: シェーダ列）</td></tr>
+            <tr><td><code>-q / --query</code></td><td>対象行の絞り込みクエリ</td></tr>
+            <tr><td><code>--create_gltf</code></td><td>glTF 生成の有無（既定 true）</td></tr>
+          </tbody>
+        </table>
+
+        <h3>4-7. 前処理で品質を上げる</h3>
+        <p>
+          変換前の前処理で出力品質を改善できます。「前処理」タブから利用します。
+        </p>
+        <ul>
+          <li><strong>glTF 最適化（gltf-pipeline）</strong>: Draco 圧縮等で glb/b3dm 内 glTF を軽量化。テクスチャ圧縮・メッシュ最適化。</li>
+          <li><strong>GDAL/PDAL</strong>: 再投影・座標系統一・点群フィルタで入力品質を整える。</li>
+          <li><strong>XY 反転（laspy）</strong>: 軸順が逆の LAS/LAZ を変換前に修正。</li>
+          <li><strong>OBJ 表面処理</strong>: 法線・面の向き・UV の反転で表示崩れを修正。</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>5. 既知の制限・注意事項</h2>
+        <ul>
+          <li>
+            <strong>mago の <code>--absoluteAltitude</code> は 1.15.4 で実質無効</strong>:
+            高度列解決の内部処理に上書きされるため、本ツールでは <code>z_offset</code> と
+            <code>absolute_altitude</code> を数値加算して <code>--zOffset</code> で渡すワークアラウンドを行います
+            （非数値の場合は選択値をそのまま透過）。
+          </li>
+          <li>
+            <strong>mago 既定は 1.1 出力</strong>: <code>--outputType b3dm</code> でも
+            <code>asset.version 1.1</code> + <code>.glb</code> になります。1.0 の <code>.b3dm</code> が
+            必要なら追加オプションに <code>--tilesVersion 1.0</code>。
+          </li>
+          <li>
+            <strong>無効な <code>--inputType</code> はエラーにならない</strong>:
+            KML へ静かにフォールバックして後段で失敗するため、ツール側で有効トークンへ正規化しています。
+            手動で CLI を呼ぶ際も <code>gltf/glb</code> のような複合値は使わないでください。
+          </li>
+          <li>
+            <strong><code>.ply</code> の二義性</strong>: mago ではメッシュ（→b3dm）、Py3DTiles では点群（→pnts）。
+            点群 PLY を b3dm にしたい場合は意図的に mago ルートを選んでください。
+          </li>
+          <li>
+            <strong>i3dm は <code>--instance</code> 必須</strong>: 未指定時は
+            <code>{出力}/instance.dae</code> を探します。モデルを置くか追加オプションで指定してください。
+          </li>
+          <li>
+            <strong>pnts は 1.1 では非推奨</strong>: 3D Tiles 1.1 では点群も glb コンテンツが推奨です。
+            pnts（1.0）で生成後、3d-tiles-tools の <code>upgrade</code>（「3D Tiles 1.1」ルート）で 1.1 化できます。
+          </li>
+          <li>
+            <strong>mago が収集しない拡張子</strong>: <code>.kmz</code> / <code>.igml</code> / <code>.citygml</code> は
+            対象外です（.gml/.xml として citygml/indoorgml で扱います）。
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>6. 確認・診断</h2>
+        <ul>
+          <li>生成物のバージョンは <code>tileset.json</code> の <code>asset.version</code>、コンテンツは <code>content.uri</code>（.b3dm/.glb/.pnts）で確認。</li>
+          <li>「データ変換 → 関連システム」タブで各ツールの検出状態と対応拡張子を確認できます。</li>
+          <li><code>POST /api/inspect</code> で生成タイルセットの構造を診断する機能があります（診断/プレビュー）。</li>
+          <li>ジョブの実行ログには実際に渡された CLI 引数が記録されるため、意図したオプションが反映されたか確認できます。</li>
+        </ul>
+        <h3>6-1. 関連 API</h3>
+        <table>
+          <thead><tr><th>API</th><th>用途</th></tr></thead>
+          <tbody>
+            <tr><td><code>POST /api/convert</code></td><td>mago-3d-tiler 直接実行（input_type 正規化あり）</td></tr>
+            <tr><td><code>POST /api/convert/auto</code></td><td>入力形式からの自動ルーティング（extra_args パススルー）</td></tr>
+            <tr><td><code>POST /api/convert/gocesiumtiler</code></td><td>LAS/LAZ → 点群 3D Tiles</td></tr>
+            <tr><td><code>POST /api/convert/py3dtiles</code></td><td>LAS/LAZ/XYZ/PLY → 点群 3D Tiles</td></tr>
+            <tr><td><code>POST /api/convert/pg2b3dm</code></td><td>PostGIS → b3dm</td></tr>
+            <tr><td><code>POST /api/convert/obj-3dtiles11</code></td><td>mago(1.0) → 3d-tiles-tools upgrade → 1.1</td></tr>
+            <tr><td><code>POST /api/run/preprocess</code></td><td>3d-tiles-tools / gltf-pipeline 等の汎用前処理</td></tr>
+            <tr><td><code>POST /api/inspect</code></td><td>タイルセットの診断</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>7. 参照</h2>
+        <ul>
+          <li><a href="https://github.com/Gaia3D/mago-3d-tiler">mago-3d-tiler</a>（同梱: 1.15.4）</li>
+          <li><a href="https://github.com/mfbonfigli/gocesiumtiler">gocesiumtiler</a>（同梱: 2.0.1）</li>
+          <li><a href="https://py3dtiles.org/">Py3DTiles</a></li>
+          <li><a href="https://github.com/Geodan/pg2b3dm">pg2b3dm</a>（同梱: 2.27）</li>
+          <li><a href="https://github.com/CesiumGS/3d-tiles">3D Tiles 仕様</a></li>
+        </ul>
+        <p><a href="index.html">← ドキュメントトップへ戻る</a></p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

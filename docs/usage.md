@@ -52,16 +52,20 @@ title: 使い方
 
 現在実装されている `出力形式` とコンバータの対応は下表の通りです。
 
-| 出力形式 | 選択されるコンバータ | 呼び出しルート | 備考 |
+| 出力形式 | 選択されるコンバータ | 呼び出しルート | 理論的な入力可能形式 |
 |---|---|---|---|
-| `b3dm` | mago-3d-tiler | `/api/convert` | 3D Tiles 1.0 バッチモデル |
-| `i3dm` | mago-3d-tiler | `/api/convert` | 3D Tiles 1.0 インスタンスモデル |
-| `pnts` | gocesiumtiler | `/api/convert/gocesiumtiler` | 点群 3D Tiles |
-| `3dtiles-1-1-glb` | 3D Tiles 1.1 変換 | `/api/convert/obj-3dtiles11` | 3D モデル → 3D Tiles 1.1 GLB |
+| `b3dm` | mago-3d-tiler | `/api/convert` | shp / geojson / json / gpkg / kml / gml / xml（IndoorGML 含む）/ obj / fbx / 3ds / ase / dae / gltf / glb / stl / ply / x3d / 3mf / ifc / lxo / lwo / lws / x |
+| `i3dm` | mago-3d-tiler | `/api/convert` | shp / geojson / json / gpkg / kml の点フィーチャ＋ `--instance` モデル（既定 `{出力}/instance.dae`） |
+| `pnts` | gocesiumtiler / Py3DTiles | `/api/convert/gocesiumtiler` `/api/convert/py3dtiles` | las / laz（gocesiumtiler）。xyz / ply のみの入力は Py3DTiles を使用 |
+| `3dtiles-1-1-glb` | 3D Tiles 1.1 変換 | `/api/convert/obj-3dtiles11` | `b3dm` と同じ入力 ＋ las / laz（mago で 1.0 生成後、3d-tiles-tools で 1.1 へ upgrade。las/laz は pnts 経由で点群 glb 化） |
 
-`b3dm` / `i3dm` / `3dtiles-1-1-glb` は OBJ / FBX / 3DS / glTF / GLB などの 3D モデル入力に対応します（mago-3d-tiler）。入力形式は入力パスの拡張子（ディレクトリの場合は内部のファイル）から自動判定され、mago-3d-tiler の `--inputType` に渡されます。API で `input_format` / `input_type` を明示指定することもできます。
+入力形式は入力パスの拡張子（ディレクトリの場合は内部のファイル）から自動判定され、mago-3d-tiler の `--inputType` に渡されます。API で `input_format` / `input_type` を明示指定することもできます。
+
+mago-3d-tiler 1.15.4 の `--inputType` はヘルプ記載の `gltf/glb` `las/laz` を受理せず（KML へフォールバックして失敗）、実際には `gltf` `las` など FormatType 名 / 拡張子を指定する必要があります。本システムは常に有効なトークンへ変換して渡します。また .kmz / .igml / .citygml 拡張子は mago が収集しないため対象外です（KML＋Collada は .kml、IndoorGML / CityGML は .gml / .xml を使用してください）。
 
 `座標設定` タブで設定した EPSG / CRS は、上記の mago-3d-tiler / gocesiumtiler / 3D Tiles 1.1 変換に渡されます。その他の 2D 系・LAZ・3D モデル（gltf / obj / fbx / dae）・地形系の出力形式は、UI 上で選択できますが、現時点では自動変換ルーティングが未対応です。
+
+3D Tiles のバージョン仕様・各エンジンの品質パラメータの詳細は [3D Tiles 変換ガイド](3dtiles.html) を参照してください。
 
 ## 2. 必要ツールをインストールする
 
@@ -103,8 +107,7 @@ title: 使い方
 - **地形 GeoTIFF** … DEM GeoTIFF を指定するとモデルが地形へ clampToGround されます（mago-3d-tiler の `--terrain`）。実測: 既知標高パターンの DEM で頂点が地形高度へ垂直移動することを確認済み。
   - **注意**: 地形/ジオイドのサンプリングはモデルの**ソース座標**（`経度/緯度` による配置変換の**前**）で行われます。GeoTIFF はモデルのソース CRS の範囲をカバーしている必要があります。`経度/緯度` で日本に配置するだけでは、ソース座標が (0,0) 付近のモデルは `Out of range` となり地形が適用されません。
 - **X 軸回転（度）** … Z-up / Y-up などモデルの軸方向が合わない場合の補正（mago-3d-tiler の `--rotateXAxis`）。実測: `-90` で頂点範囲が XY 平面から XZ 平面へ回転することを確認済み。
-- **絶対高度** … モデル原点の絶対高度（mago-3d-tiler の `--absoluteAltitude`）。
-  - **注意**: mago-3d-tiler 1.15.4 では実効しません（実測で出力が同一・上流コードでも `--altitudeColumn`（既定 `altitude`）の解決値が常に優先される実装）。建物の基準高度は `--altitudeColumn` 対応の属性を使ってください。
+- **絶対高度** … モデル原点の絶対高度（m）。mago-3d-tiler 1.15.4 の `--absoluteAltitude` は `--altitudeColumn`（既定 `altitude`）の解決値に常に上書きされ実効しないため、本システムでは**垂直オフセットとして確実に効く `--zOffset` へ加算**して渡す代替実装としています（実測: 指定値分だけモデルが垂直移動することを確認済み）。`Z オフセット` と併用した場合は合算されます。GeoJSON 等で `altitude` 属性を持つフィーチャは「上書き」ではなく「加算」になる点に注意してください。
 
 以下のエンジンが `座標設定` の値を参照します。
 
@@ -121,7 +124,7 @@ FBX / OBJ / glTF などのテクスチャ画像は、**モデルと同じフォ�
 
 - 入力ディレクトリ
 - 出力ディレクトリ
-- 入力・出力形式
+- 入力・出力形式（入力は自動判定も可能。`i3dm` 出力は shp / geojson / gpkg / kml の点フィーチャ入力と `--instance` モデルファイルが必要で、追加オプションに `--instance <パス>` を指定）
 - 座標系 / オフセット / 経度・緯度（`座標設定` タブ）
 - Java パス / JAR パス
 

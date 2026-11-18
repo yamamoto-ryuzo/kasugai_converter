@@ -270,4 +270,42 @@ test.describe('自動変換', () => {
     expect(job.output).toContain('EGM96');
     expect(fs.existsSync(path.join(out, 'tileset.json')), job.output).toBeTruthy();
   });
+
+  test('絶対高度: absolute_altitude が --zOffset として垂直シフトされる', async ({ request }) => {
+    // mago 1.15.4 の --absoluteAltitude は altitudeColumn 解決に常に上書きされ
+    // 実効しないため、サーバー側で --zOffset へ加算して渡す代替実装。
+    // 出力 glb の RootNode 平行移動が absolute_altitude 分だけ垂直にずれることを検証する。
+    const rootTranslation = (dir: string): number[] => {
+      const dataDir = path.join(dir, 'data');
+      const glbFile = fs
+        .readdirSync(dataDir)
+        .filter((f) => f.endsWith('.glb'))
+        .sort()
+        .map((f) => path.join(dataDir, f))[0];
+      const buf = fs.readFileSync(glbFile);
+      const jsonLen = buf.readUInt32LE(12);
+      const gltf = JSON.parse(buf.subarray(20, 20 + jsonLen).toString('utf8'));
+      const root = gltf.nodes.find((n: { name?: string }) => n.name === 'RootNode');
+      return root.translation;
+    };
+
+    const base = { input: path.join(FIXTURES, 'fbx_in'), output_format: 'b3dm', crs: '4326', longitude: '137.5', latitude: '35.5' };
+    const outBase = workDir('auto-aa-base');
+    const outAa = workDir('auto-aa-1000');
+    await apiRunJob(request, '/api/convert/auto', { ...base, output: outBase }, 240_000);
+    const jobAa = await apiRunJob(
+      request,
+      '/api/convert/auto',
+      { ...base, output: outAa, z_offset: '100', absolute_altitude: '1000' },
+      240_000,
+    );
+    expect(fs.existsSync(path.join(outAa, 'tileset.json')), jobAa.output).toBeTruthy();
+
+    const t0 = rootTranslation(outBase);
+    const t1 = rootTranslation(outAa);
+    const delta = Math.hypot(t1[0] - t0[0], t1[1] - t0[1], t1[2] - t0[2]);
+    // z_offset(100) + absolute_altitude(1000) = 1100m の垂直シフト
+    expect(delta).toBeGreaterThan(1050);
+    expect(delta).toBeLessThan(1150);
+  });
 });

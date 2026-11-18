@@ -79,4 +79,5 @@ cargo run
 
 - [セットアップ](setup)
 - [使い方](usage)
+- [3D Tiles 変換ガイド（入力形式・出力品質）](3dtiles.html)
 - [ライセンス](license)

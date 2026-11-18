@@ -112,6 +112,7 @@ struct ConvertGocesiumtilerRequest {
     depth: Option<String>,
     min_points_per_tile: Option<String>,
     version: Option<String>,
+    z_offset: Option<String>,
     command: Option<String>,
     extra_args: Option<String>,
 }
@@ -169,6 +170,7 @@ struct AutoConvertRequest {
     rotate_x_axis: Option<String>,
     absolute_altitude: Option<String>,
     recursive: Option<bool>,
+    extra_args: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -596,19 +598,73 @@ fn push_opt(args: &mut Vec<String>, flag: &str, val: &Option<String>) {
     }
 }
 
+// mago 1.15.4 の --absoluteAltitude は altitudeColumn 解決値に常に上書きされ実効しない
+// ため、垂直オフセットとして確実に効く --zOffset へ加算して渡す代替実装。
+// 両方指定された場合は合算する。
+fn push_z_offset_with_absolute_altitude(
+    args: &mut Vec<String>,
+    z_offset: &Option<String>,
+    absolute_altitude: &Option<String>,
+) {
+    let z = z_offset.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    let a = absolute_altitude
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty());
+    let zn = z.and_then(|s| s.parse::<f64>().ok());
+    let an = a.and_then(|s| s.parse::<f64>().ok());
+    let combined = match (zn, an) {
+        (zv, Some(av)) => Some(zv.unwrap_or(0.0) + av),
+        (Some(zv), None) => Some(zv),
+        (None, None) => None,
+    };
+    if let Some(v) = combined {
+        let s = if v == v.trunc() && v.abs() < 1e15 {
+            format!("{}", v as i64)
+        } else {
+            format!("{}", v)
+        };
+        args.push("--zOffset".to_string());
+        args.push(s);
+    } else if let Some(s) = z.or(a) {
+        // 数値化できない場合は指定値をそのまま渡す
+        args.push("--zOffset".to_string());
+        args.push(s.to_string());
+    }
+}
+
+// mago-3d-tiler 1.15.4 の --inputType は内部で FormatType.fromExtension() で
+// 解釈される（FormatType 名 / extension / subExtension のいずれかに一致）。
+// ヘルプ記載の "gltf/glb" "las/laz" はどれにも一致せず KML へフォールバック
+// して失敗するため、mago が解釈できる単一トークンを返す（実行検証済み）。
+// kmz / igml は FormatType に存在せず mago は収集しない。
 fn mago_input_type_for_ext(ext: &str) -> Option<&'static str> {
     match ext {
-        "fbx" => Some("fbx"),
-        "obj" => Some("obj"),
-        "3ds" => Some("3ds"),
-        "gltf" | "glb" => Some("gltf/glb"),
-        "las" | "laz" => Some("las/laz"),
+        // GIS ベクター（パラメトリック押し出し / i3dm インスタンス配置）
         "shp" => Some("shp"),
         "geojson" | "json" => Some("geojson"),
         "gpkg" => Some("gpkg"),
-        "kml" | "kmz" => Some("kml"),
         "gml" | "xml" | "citygml" => Some("citygml"),
-        "igml" | "indoorgml" => Some("indoorgml"),
+        "indoorgml" | "igml" => Some("indoorgml"),
+        "kml" => Some("kml"),
+        // 点群（mago では outputType pnts へ自動割当）
+        "las" | "laz" => Some("las"),
+        // Assimp 経由の 3D モデル
+        "gltf" | "glb" => Some("gltf"),
+        "fbx" => Some("fbx"),
+        "obj" => Some("obj"),
+        "dae" => Some("collada"),
+        "3ds" => Some("3ds"),
+        "ase" => Some("ase"),
+        "stl" => Some("stl"),
+        "ply" => Some("ply"),
+        "x3d" => Some("x3d"),
+        "3mf" => Some("3mf"),
+        "ifc" => Some("ifc"),
+        "lxo" => Some("modo"),
+        "lwo" => Some("lwo"),
+        "lws" => Some("lws"),
+        "x" => Some("directx"),
         _ => None,
     }
 }
@@ -623,10 +679,9 @@ fn detect_mago_input_type(input: &str) -> Option<String> {
             .map(|s| s.to_string());
     }
     if path.is_dir() {
-        const PRIORITY: [&str; 18] = [
-            "fbx", "obj", "3ds", "gltf", "glb", "las", "laz", "shp", "geojson", "json", "gpkg",
-            "kml", "kmz", "gml", "xml", "citygml", "igml", "indoorgml",
-        ];
+        // mago の findInputFormatType と同じ判定順:
+        // 1) .kml を先に探す（KML 参照の .dae 等と誤判定しないよう KML 優先）
+        // 2) それ以外は走査順で最初に解釈できる拡張子を採用
         let mut exts: Vec<String> = Vec::new();
         if let Ok(entries) = std::fs::read_dir(path) {
             for entry in entries.flatten() {
@@ -638,13 +693,42 @@ fn detect_mago_input_type(input: &str) -> Option<String> {
                 }
             }
         }
-        for ext in PRIORITY {
-            if exts.iter().any(|e| e == ext) {
-                return mago_input_type_for_ext(ext).map(|s| s.to_string());
+        if exts.iter().any(|e| e == "kml") {
+            return Some("kml".to_string());
+        }
+        for ext in exts {
+            if let Some(t) = mago_input_type_for_ext(&ext) {
+                return Some(t.to_string());
             }
         }
     }
     None
+}
+
+// 入力パス（ファイル or ディレクトリ直下）に含まれる拡張子一覧を返す。
+fn collect_input_extensions(input: &str) -> Vec<String> {
+    let path = StdPath::new(input);
+    if path.is_file() {
+        return path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| vec![e.to_lowercase()])
+            .unwrap_or_default();
+    }
+    let mut exts = Vec::new();
+    if path.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(path) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_file() {
+                    if let Some(e) = p.extension().and_then(|e| e.to_str()) {
+                        exts.push(e.to_lowercase());
+                    }
+                }
+            }
+        }
+    }
+    exts
 }
 
 async fn convert_handler(
@@ -730,7 +814,13 @@ async fn convert_handler(
         let trimmed = it.trim();
         if !trimmed.is_empty() {
             args.push("--inputType".to_string());
-            args.push(trimmed.to_string());
+            // ヘルプ記載の複合値は fromExtension に一致せず KML フォールバック
+            // するため、有効な単一トークンへ正規化してから渡す
+            args.push(match trimmed.to_lowercase().as_str() {
+                "gltf/glb" => "gltf".to_string(),
+                "las/laz" => "las".to_string(),
+                _ => trimmed.to_string(),
+            });
         }
     }
 
@@ -766,14 +856,6 @@ async fn convert_handler(
         }
     }
 
-    if let Some(v) = req.z_offset.as_ref() {
-        let trimmed = v.trim();
-        if !trimmed.is_empty() {
-            args.push("--zOffset".to_string());
-            args.push(trimmed.to_string());
-        }
-    }
-
     if let Some(v) = req.longitude.as_ref() {
         let trimmed = v.trim();
         if !trimmed.is_empty() {
@@ -794,7 +876,7 @@ async fn convert_handler(
     push_opt(&mut args, "--geoid", &req.geoid);
     push_opt(&mut args, "--terrain", &req.terrain);
     push_opt(&mut args, "--rotateXAxis", &req.rotate_x_axis);
-    push_opt(&mut args, "--absoluteAltitude", &req.absolute_altitude);
+    push_z_offset_with_absolute_altitude(&mut args, &req.z_offset, &req.absolute_altitude);
     if req.recursive.unwrap_or(false) {
         args.push("--recursive".to_string());
     }
@@ -875,12 +957,33 @@ async fn convert_py3dtiles_handler(
         );
     }
 
-    let mut args: Vec<String> = vec![
-        "convert".to_string(),
-        req.input.trim().to_string(),
-        "--out".to_string(),
-        req.output.trim().to_string(),
-    ];
+    // py3dtiles convert はファイル名を位置引数に取る。
+    // ディレクトリが渡された場合は対応ファイル（las/laz/xyz/ply）を展開する。
+    let mut args: Vec<String> = vec!["convert".to_string()];
+    let input_path = StdPath::new(req.input.trim());
+    let mut files: Vec<String> = Vec::new();
+    if input_path.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(input_path) {
+            for entry in entries.flatten() {
+                let p = entry.path();
+                if p.is_file() {
+                    if let Some(e) = p.extension().and_then(|e| e.to_str()) {
+                        if ["las", "laz", "xyz", "ply"].contains(&e.to_lowercase().as_str()) {
+                            files.push(p.to_string_lossy().to_string());
+                        }
+                    }
+                }
+            }
+        }
+        files.sort();
+    }
+    if files.is_empty() {
+        args.push(req.input.trim().to_string());
+    } else {
+        args.extend(files);
+    }
+    args.push("--out".to_string());
+    args.push(req.output.trim().to_string());
 
     if let Some(srs_in) = req.srs_in.as_ref() {
         let trimmed = srs_in.trim();
@@ -1136,6 +1239,14 @@ async fn convert_gocesiumtiler_handler(
         let trimmed = version.trim();
         if !trimmed.is_empty() {
             args.push("--version".to_string());
+            args.push(trimmed.to_string());
+        }
+    }
+
+    if let Some(z) = req.z_offset.as_ref() {
+        let trimmed = z.trim();
+        if !trimmed.is_empty() {
+            args.push("--z-offset".to_string());
             args.push(trimmed.to_string());
         }
     }
@@ -1706,7 +1817,7 @@ async fn convert_auto_handler(
                     java_path: None,
                     jar_path: None,
                     jvm_options: None,
-                    extra_args: None,
+                    extra_args: req.extra_args.clone(),
                     proj: req.proj.clone(),
                     geoid: req.geoid.clone(),
                     terrain: req.terrain.clone(),
@@ -1717,20 +1828,66 @@ async fn convert_auto_handler(
                 return convert_handler(State(state.clone()), Json(convert_req)).await.into_response();
             }
             "pnts" => {
+                // 点群→3D Tiles の理論入力は las/laz（gocesiumtiler）と
+                // las/laz/xyz/ply（Py3DTiles）。xyz/ply は gocesiumtiler が
+                // 読めないため Py3DTiles へ分岐する。
+                let input_path = req.input.trim();
+                let exts = collect_input_extensions(input_path);
+                let has_gocesium = exts.iter().any(|e| e == "las" || e == "laz");
+                let has_py3d_only = exts.iter().any(|e| e == "xyz" || e == "ply");
+                if !has_gocesium && has_py3d_only {
+                    let convert_req = ConvertPy3dtilesRequest {
+                        input: input_path.to_string(),
+                        output: req.output.trim().to_string(),
+                        srs_in: crs.clone(),
+                        srs_out: crs,
+                        command: None,
+                        extra_args: req.extra_args.clone(),
+                    };
+                    return convert_py3dtiles_handler(State(state.clone()), Json(convert_req)).await.into_response();
+                }
+                // z_offset / absolute_altitude は gocesiumtiler の --z-offset へ
+                // 数値合算して引き継ぐ（非数値は z_offset の生値を優先）
+                let goc_z = {
+                    let zn = req
+                        .z_offset
+                        .as_deref()
+                        .and_then(|s| s.trim().parse::<f64>().ok());
+                    let an = req
+                        .absolute_altitude
+                        .as_deref()
+                        .and_then(|s| s.trim().parse::<f64>().ok());
+                    match (zn, an) {
+                        (Some(z), Some(a)) => Some(format!("{}", z + a)),
+                        (Some(z), None) => Some(format!("{}", z)),
+                        (None, Some(a)) => Some(format!("{}", a)),
+                        (None, None) => req
+                            .z_offset
+                            .clone()
+                            .filter(|s| !s.trim().is_empty()),
+                    }
+                };
                 let convert_req = ConvertGocesiumtilerRequest {
-                    input: req.input.trim().to_string(),
+                    input: input_path.to_string(),
                     output: req.output.trim().to_string(),
                     epsg: crs,
                     resolution: None,
                     depth: None,
                     min_points_per_tile: None,
                     version: None,
+                    z_offset: goc_z,
                     command: None,
-                    extra_args: None,
+                    extra_args: req.extra_args.clone(),
                 };
                 return convert_gocesiumtiler_handler(State(state.clone()), Json(convert_req)).await.into_response();
             }
             "3dtiles-1-1-glb" => {
+                // las/laz は mago で pnts 生成してから 1.1 へ upgrade する
+                // （outputType 未指定だと b3dm になり点群を誤処理するため明示）
+                let mago_output_type = match detected_input_type.as_deref() {
+                    Some("las") => Some("pnts".to_string()),
+                    _ => None,
+                };
                 let convert_req = ConvertObjTo3dtiles11Request {
                     input: req.input.trim().to_string(),
                     output: req.output.trim().to_string(),
@@ -1748,11 +1905,11 @@ async fn convert_auto_handler(
                     rotate_x_axis: req.rotate_x_axis.clone(),
                     absolute_altitude: req.absolute_altitude.clone(),
                     recursive: req.recursive,
-                    output_type: None,
+                    output_type: mago_output_type,
                     java_path: None,
                     jar_path: None,
                     jvm_options: None,
-                    mago_extra_args: None,
+                    mago_extra_args: req.extra_args.clone(),
                     tdt_command: None,
                     tdt_extra_args: None,
                 };
@@ -1847,7 +2004,18 @@ async fn convert_obj_to_3dtiles11_handler(
                 .filter(|s| !s.trim().is_empty())
                 .map(|s| s.trim().to_string())
                 .unwrap_or_else(|| {
+                    // tools/node-tools に常駐インストールした 3d-tiles-tools を最優先
+                    // （npx の都度インストールは Windows でロック競合・EPERM 失敗しやすい）
+                    let local_cli = "tools/node-tools/node_modules/3d-tiles-tools/build/src/cli.mjs";
                     let bundled_node = "tools/node/node.exe";
+                    if StdPath::new(local_cli).exists() {
+                        let node = if StdPath::new(bundled_node).exists() {
+                            bundled_node.to_string()
+                        } else {
+                            "node".to_string()
+                        };
+                        return format!("{} {}", node, local_cli);
+                    }
                     let bundled_npx_cli = "tools/node/node_modules/npm/bin/npx-cli.js";
                     if StdPath::new(bundled_node).exists() && StdPath::new(bundled_npx_cli).exists() {
                         format!("{} {} 3d-tiles-tools", bundled_node, bundled_npx_cli)
@@ -2038,10 +2206,6 @@ async fn convert_obj_to_3dtiles11_handler(
             mago_args.push("--yOffset".to_string());
             mago_args.push(v);
         }
-        if let Some(v) = z_offset {
-            mago_args.push("--zOffset".to_string());
-            mago_args.push(v);
-        }
         if let Some(v) = longitude {
             mago_args.push("--longitude".to_string());
             mago_args.push(v);
@@ -2054,7 +2218,7 @@ async fn convert_obj_to_3dtiles11_handler(
         push_opt(&mut mago_args, "--geoid", &geoid);
         push_opt(&mut mago_args, "--terrain", &terrain);
         push_opt(&mut mago_args, "--rotateXAxis", &rotate_x_axis);
-        push_opt(&mut mago_args, "--absoluteAltitude", &absolute_altitude);
+        push_z_offset_with_absolute_altitude(&mut mago_args, &z_offset, &absolute_altitude);
         if recursive {
             mago_args.push("--recursive".to_string());
         }
@@ -2103,6 +2267,8 @@ async fn convert_obj_to_3dtiles11_handler(
         tdt_args.push(tileset_path);
         tdt_args.push("-o".to_string());
         tdt_args.push(step11.clone());
+        // 出力先は事前作成済みのため、上書き拒否されないよう --force を付ける
+        tdt_args.push("--force".to_string());
         if !tdt_extra_args.is_empty() {
             for part in tdt_extra_args.split_whitespace() {
                 tdt_args.push(part.to_string());
@@ -2651,6 +2817,9 @@ New-Item -ItemType Directory -Path $dst -Force
 Move-Item "$($dir.FullName)/*" $dst -Force -ErrorAction SilentlyContinue
 Remove-Item $tmp -Recurse -Force
 Write-Output "node installed to $dst"
+Write-Output "Installing 3d-tiles-tools into tools/node-tools..."
+& "$dst/node.exe" "$dst/node_modules/npm/bin/npm-cli.js" install --prefix "$tools/node-tools" "3d-tiles-tools@0.5.4" --ignore-scripts --no-audit --no-fund
+if ($LASTEXITCODE -ne 0) { Write-Output "3d-tiles-tools install failed (npx fallback will be used)" }
 "#;
             let script = script.replace("{version}", &version);
             ("powershell".to_string(), vec!["-Command".to_string(), script])
@@ -3362,7 +3531,10 @@ async fn get_node_env() -> impl IntoResponse {
 
 #[cfg(test)]
 mod tests {
-    use super::decode_process_output;
+    use super::{
+        collect_input_extensions, decode_process_output, detect_mago_input_type,
+        mago_input_type_for_ext,
+    };
 
     #[test]
     fn keeps_valid_utf8() {
@@ -3395,5 +3567,55 @@ mod tests {
     fn does_not_drop_undecodable_bytes() {
         // UTF-8 でも cp932 でも完全にはデコードできないバイト列でも内容が残る
         assert!(!decode_process_output(&[b'a', 0xFF, 0x80, b'b']).is_empty());
+    }
+
+    // mago-3d-tiler 1.15.4 の --inputType は FormatType.fromExtension で解釈される。
+    // ヘルプ記載のスラッシュ区切り値は受理されず KML へフォールバックするため、
+    // 返却値は mago が解釈できる単一トークンでなければならない。
+    #[test]
+    fn mago_input_type_uses_valid_tokens() {
+        let exts = [
+            "shp", "geojson", "json", "gpkg", "gml", "xml", "citygml", "igml", "indoorgml",
+            "kml", "las", "laz", "gltf", "glb", "fbx", "obj", "dae", "3ds", "ase", "stl",
+            "ply", "x3d", "3mf", "ifc", "lxo", "lwo", "lws", "x",
+        ];
+        for ext in exts {
+            let t = mago_input_type_for_ext(ext).expect(ext);
+            assert!(!t.contains('/'), "{} maps to invalid token {}", ext, t);
+        }
+        assert_eq!(mago_input_type_for_ext("glb"), Some("gltf"));
+        assert_eq!(mago_input_type_for_ext("laz"), Some("las"));
+        assert_eq!(mago_input_type_for_ext("dae"), Some("collada"));
+        // mago が収集しない拡張子は対象外
+        assert_eq!(mago_input_type_for_ext("kmz"), None);
+        assert_eq!(mago_input_type_for_ext("csv"), None);
+    }
+
+    #[test]
+    fn detect_input_type_prefers_kml_like_mago() {
+        // mago の findInputFormatType と同じく KML を最優先で選択する
+        let dir = std::env::temp_dir().join("kasugai_detect_kml_prio");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("model.dae"), b"").unwrap();
+        std::fs::write(dir.join("doc.kml"), b"").unwrap();
+        assert_eq!(
+            detect_mago_input_type(dir.to_str().unwrap()),
+            Some("kml".to_string())
+        );
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn collect_extensions_lists_dir_files() {
+        let dir = std::env::temp_dir().join("kasugai_collect_ext");
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        std::fs::write(dir.join("a.xyz"), b"").unwrap();
+        std::fs::write(dir.join("b.PLY"), b"").unwrap();
+        let exts = collect_input_extensions(dir.to_str().unwrap());
+        assert!(exts.contains(&"xyz".to_string()));
+        assert!(exts.contains(&"ply".to_string()));
+        let _ = std::fs::remove_dir_all(&dir);
     }
 }

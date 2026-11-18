@@ -494,7 +494,7 @@
             </div>
             <div>
               <label for="coordAbsAlt">絶対高度</label>
-              <input type="text" id="coordAbsAlt" placeholder="モデル原点の絶対高度（m）" title="mago-3d-tiler 1.15.4 では altitude カラム解決が常に優先されるため実効しません" />
+              <input type="text" id="coordAbsAlt" placeholder="モデル原点の絶対高度（m）" title="mago-3d-tiler 1.15.4 の --absoluteAltitude は実効しないため、Z オフセットへ加算して --zOffset として渡されます" />
             </div>
           </form>
         </div>
@@ -527,17 +527,34 @@
               <label for="inputType">入力形式</label>
               <select id="inputType">
                 <option value="">自動判定</option>
-                <option value="shp">Shapefile (shp)</option>
-                <option value="geojson">GeoJSON</option>
-                <option value="gpkg">GeoPackage</option>
-                <option value="kml">KML</option>
-                <option value="citygml">CityGML</option>
-                <option value="indoorgml">IndoorGML</option>
-                <option value="obj">OBJ</option>
-                <option value="fbx">FBX</option>
-                <option value="3ds">3DS</option>
-                <option value="gltf/glb">glTF/GLB</option>
-                <option value="las/laz">LAS/LAZ</option>
+                <optgroup label="GIS ベクター">
+                  <option value="shp">Shapefile (shp)</option>
+                  <option value="geojson">GeoJSON (geojson/json)</option>
+                  <option value="gpkg">GeoPackage (gpkg)</option>
+                  <option value="citygml">CityGML (gml/xml)</option>
+                  <option value="indoorgml">IndoorGML (gml/xml)</option>
+                  <option value="kml">KML (kml)</option>
+                </optgroup>
+                <optgroup label="点群">
+                  <option value="las">LAS/LAZ (las/laz)</option>
+                </optgroup>
+                <optgroup label="3D モデル (Assimp)">
+                  <option value="gltf">glTF/GLB (gltf/glb)</option>
+                  <option value="fbx">FBX</option>
+                  <option value="obj">OBJ</option>
+                  <option value="collada">Collada (dae)</option>
+                  <option value="3ds">3DS (3ds)</option>
+                  <option value="ase">ASE (ase)</option>
+                  <option value="stl">STL (stl)</option>
+                  <option value="ply">PLY (ply)</option>
+                  <option value="x3d">X3D (x3d)</option>
+                  <option value="3mf">3MF (3mf)</option>
+                  <option value="ifc">IFC (ifc)</option>
+                  <option value="modo">MODO (lxo)</option>
+                  <option value="lwo">LightWave Object (lwo)</option>
+                  <option value="lws">LightWave Scene (lws)</option>
+                  <option value="directx">DirectX (x)</option>
+                </optgroup>
               </select>
             </div>
             <div>
@@ -684,7 +701,7 @@
             </div>
             <div>
               <label for="gocesiumVersion">3D Tiles バージョン</label>
-              <input type="text" id="gocesiumVersion" placeholder="1.0" value="1.0" />
+              <input type="text" id="gocesiumVersion" placeholder="1.1" value="1.1" />
             </div>
             <div>
               <label for="gocesiumCommand">コマンドパス</label>
@@ -709,7 +726,7 @@
           <form id="tiles11Form" class="grid">
             <div class="full">
               <label for="tdtCommand">コマンド</label>
-              <input type="text" id="tdtCommand" placeholder="npx 3d-tiles-tools" value="npx 3d-tiles-tools" required />
+              <input type="text" id="tdtCommand" placeholder="node tools/node-tools/node_modules/3d-tiles-tools/build/src/cli.mjs" value="node tools/node-tools/node_modules/3d-tiles-tools/build/src/cli.mjs" required />
             </div>
             <div class="full">
               <label for="tdtTool">処理</label>
@@ -798,14 +815,14 @@
           <div class="full">
             <label>出力形式カテゴリ</label>
             <div class="tabs" style="margin-bottom:0.5rem;">
-              <button class="tab-btn active" data-tab="2d-vector-out" type="button">2D ベクター</button>
+              <button class="tab-btn" data-tab="2d-vector-out" type="button">2D ベクター</button>
               <button class="tab-btn" data-tab="2d-tile-out" type="button">2D タイル</button>
               <button class="tab-btn" data-tab="3d-model-out" type="button">3D モデル</button>
-              <button class="tab-btn" data-tab="3d-tile-out" type="button">3D タイル</button>
+              <button class="tab-btn active" data-tab="3d-tile-out" type="button">3D タイル</button>
               <button class="tab-btn" data-tab="pointcloud-out" type="button">点群</button>
               <button class="tab-btn" data-tab="terrain-out" type="button">地形</button>
             </div>
-            <div id="2d-vector-out" class="tab-content active">
+            <div id="2d-vector-out" class="tab-content">
               <label for="autoOutputFormat2dVector">2D ベクター</label>
               <select id="autoOutputFormat2dVector" class="auto-platform-format">
                 <option value="">自動判定</option>
@@ -835,14 +852,14 @@
                 <option value="dae">DAE（Cesium / QGIS / ArcGIS）</option>
               </select>
             </div>
-            <div id="3d-tile-out" class="tab-content">
+            <div id="3d-tile-out" class="tab-content active">
               <label for="autoOutputFormat3dTile">3D タイル</label>
               <select id="autoOutputFormat3dTile" class="auto-platform-format">
                 <option value="">自動判定</option>
+                <option value="3dtiles-1-1-glb" selected>glb (3D Tiles 1.1)（Cesium / QGIS / ArcGIS）※推奨・既定</option>
                 <option value="b3dm">b3dm（Cesium / QGIS / ArcGIS）</option>
                 <option value="i3dm">i3dm（Cesium）</option>
                 <option value="pnts">pnts（Cesium）</option>
-                <option value="3dtiles-1-1-glb">glb (3D Tiles 1.1)（Cesium / QGIS / ArcGIS）</option>
               </select>
             </div>
             <div id="pointcloud-out" class="tab-content">
@@ -870,9 +887,14 @@
               <li>出力形式を選ぶと表示されます</li>
             </ul>
             <small>入力ディレクトリ内のファイルから自動判定します。</small>
+            <div id="inputFormatNote" class="hint" style="margin-top:0.25rem;"></div>
           </div>
           <div class="full">
             <label style="font-weight:400; margin:0;"><input type="checkbox" id="autoRecursive" /> サブフォルダ内のファイルも再帰的に変換対象にする（--recursive）</label>
+          </div>
+          <div class="full">
+            <label for="autoExtraArgs">追加オプション</label>
+            <input type="text" id="autoExtraArgs" placeholder="--instance C:\data\tree.dae --heightColumn height" />
           </div>
         </form>
 
@@ -903,7 +925,7 @@
         <div id="system-jdk" class="tab-content active system-item">
           <div class="system-title" style="margin-bottom:0.5rem;">JDK 21 <span id="jdkStatusTag" class="tag ng">未検出</span></div>
           <p class="hint"><strong>概要:</strong> mago-3d-tiler など Java 製コンバータの実行環境です。</p>
-          <p class="hint"><strong>変換:</strong> 直接的な変換は行いません。mago-3d-tiler の実行基盤として使用し、.shp / .geojson / .gpkg / .kml / .gml / .citygml / .igml / .obj / .fbx / .3ds / .gltf / .glb → 3D Tiles (b3dm) 変換を支えます。</p>
+          <p class="hint"><strong>変換:</strong> 直接的な変換は行いません。mago-3d-tiler の実行基盤として使用し、.shp / .geojson / .json / .gpkg / .kml / .gml / .xml / .obj / .fbx / .3ds / .ase / .dae / .gltf / .glb / .stl / .ply / .x3d / .3mf / .ifc / .lxo / .lwo / .lws / .x → 3D Tiles (b3dm)、.shp / .geojson / .gpkg / .kml → i3dm、.las / .laz → pnts 変換を支えます。</p>
           <div class="system-meta" id="jdkInfo">
             mago-3d-tiler の実行には JDK 21 以上が必要です。
             <pre id="jdkVersionOutput" style="display:none;"></pre>
@@ -919,8 +941,8 @@
 
         <div id="system-mago" class="tab-content system-item">
           <div class="system-title" style="margin-bottom:0.5rem;">mago-3d-tiler JAR <span id="magoStatusTag" class="tag ng">未検出</span></div>
-          <p class="hint"><strong>概要:</strong> CityGML / GeoJSON / Shapefile など 2D/3D データを 3D Tiles (b3dm) 化するエンジンです。</p>
-          <p class="hint"><strong>変換:</strong> .shp / .geojson / .gpkg / .kml / .gml / .citygml / .igml / .obj / .fbx / .3ds / .gltf / .glb → 3D Tiles (b3dm)。</p>
+          <p class="hint"><strong>概要:</strong> CityGML / GeoJSON / Shapefile などの GIS データや各種 3D モデル・点群を 3D Tiles (b3dm / i3dm / pnts) 化するエンジンです。</p>
+          <p class="hint"><strong>変換:</strong> .shp / .geojson / .json / .gpkg / .kml / .gml / .xml（IndoorGML 含む）/ .obj / .fbx / .3ds / .ase / .dae / .gltf / .glb / .stl / .ply / .x3d / .3mf / .ifc / .lxo / .lwo / .lws / .x → 3D Tiles (b3dm)。.shp / .geojson / .gpkg / .kml ＋ --instance モデル → i3dm。.las / .laz → pnts。</p>
           <div class="system-meta" id="magoInfo">
             JAR ファイルが <code>tools/mago-3d-tiler.jar</code> または <code>MAGO_JAR_PATH</code> に見つかりません。
           </div>
@@ -949,7 +971,7 @@
         <div id="system-py3dtiles" class="tab-content system-item">
           <div class="system-title" style="margin-bottom:0.5rem;">Py3DTiles <span id="py3dtilesStatusTag" class="tag ng">未検出</span></div>
           <p class="hint"><strong>概要:</strong> 点群データを 3D Tiles (pnts) 化する Python ライブラリです。</p>
-          <p class="hint"><strong>変換:</strong> .las / .laz → 3D Tiles (pnts)。</p>
+          <p class="hint"><strong>変換:</strong> .las / .laz / .xyz / .ply → 3D Tiles (pnts)。</p>
           <div class="system-meta" id="py3dtilesInfo">
             venv 内に py3dtiles がインストールされていません。
             <pre id="py3dtilesVersionOutput" style="display:none;"></pre>
@@ -1673,10 +1695,10 @@
       'obj': ['ifc', 'cityjson', 'citygml', 'gltf', 'glb', 'obj', 'fbx', '3ds'],
       'fbx': ['ifc', 'cityjson', 'citygml', 'gltf', 'glb', 'obj', 'fbx', '3ds'],
       'dae': ['ifc', 'cityjson', 'citygml', 'gltf', 'glb', 'obj', 'fbx', '3ds'],
-      'b3dm': ['shp', 'geojson', 'gpkg', 'kml', 'gml', 'citygml', 'igml', 'obj', 'fbx', '3ds', 'gltf', 'glb'],
-      'i3dm': ['gltf', 'glb', 'obj', 'fbx', '3ds'],
-      'pnts': ['las', 'laz', 'csv'],
-      '3dtiles-1-1-glb': ['gltf', 'glb', 'obj', 'fbx', '3ds', 'ifc', 'cityjson', 'citygml', 'b3dm'],
+      'b3dm': ['shp', 'geojson', 'json', 'gpkg', 'kml', 'gml', 'xml', 'obj', 'fbx', '3ds', 'ase', 'dae', 'gltf', 'glb', 'stl', 'ply', 'x3d', '3mf', 'ifc', 'lxo', 'lwo', 'lws', 'x'],
+      'i3dm': ['shp', 'geojson', 'json', 'gpkg', 'kml'],
+      'pnts': ['las', 'laz', 'xyz', 'ply'],
+      '3dtiles-1-1-glb': ['shp', 'geojson', 'json', 'gpkg', 'kml', 'gml', 'xml', 'obj', 'fbx', '3ds', 'ase', 'dae', 'gltf', 'glb', 'stl', 'ply', 'x3d', '3mf', 'ifc', 'lxo', 'lwo', 'lws', 'x', 'las', 'laz'],
       'laz': ['las', 'laz'],
       'quantized-mesh': ['tif', 'tiff', 'dem', 'asc'],
       'dem': ['tif', 'tiff', 'dem', 'asc'],
@@ -1697,6 +1719,12 @@
       updateInputFormatList();
     }
 
+    const outputFormatNotes = {
+      'i3dm': '点フィーチャの位置にモデルを配置します。追加オプションで --instance <モデルファイル> を指定（未指定時は 出力/instance.dae を参照）',
+      'pnts': 'las/laz は gocesiumtiler、xyz/ply のみの入力は Py3DTiles が選択されます',
+      '3dtiles-1-1-glb': '推奨形式。mago-3d-tiler で 3D Tiles を生成後、3d-tiles-tools で 1.1 へ upgrade します（las/laz は mago 経由で点群 glb 化）',
+    };
+
     function updateInputFormatList() {
       const output = document.getElementById('autoOutputFormat').value;
       const list = document.getElementById('inputFormatList');
@@ -1706,6 +1734,7 @@
       } else {
         list.innerHTML = inputs.map(i => '<li>' + i + '</li>').join('');
       }
+      document.getElementById('inputFormatNote').textContent = outputFormatNotes[output] || '';
     }
 
     document.getElementById('auto').querySelectorAll('.tab-btn').forEach(btn => {
@@ -1719,7 +1748,13 @@
       });
     });
     document.getElementById('auto').querySelectorAll('.auto-platform-format').forEach(sel => {
-      sel.addEventListener('change', updateAutoOutputFormat);
+      // セレクト変更時はその値をそのまま採用する
+      // （updateAutoOutputFormat は current 値へのスナップバックを含むため
+      //   change イベントに直接使うと選択が打ち消される）
+      sel.addEventListener('change', () => {
+        document.getElementById('autoOutputFormat').value = sel.value;
+        updateInputFormatList();
+      });
     });
     updateAutoOutputFormat();
 
@@ -1928,6 +1963,7 @@
         rotate_x_axis: getValue('coordRotateX') || undefined,
         absolute_altitude: getValue('coordAbsAlt') || undefined,
         recursive: document.getElementById('autoRecursive').checked || undefined,
+        extra_args: getValue('autoExtraArgs') || undefined,
       };
       startJob('/api/convert/auto', payload, document.getElementById('autoRunBtn'));
     });

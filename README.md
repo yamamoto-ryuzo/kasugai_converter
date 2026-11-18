@@ -61,8 +61,8 @@ cargo run
 
 | タブ | エンジン | 用途 |
 |------|----------|------|
-| `mago-3d-tiler` | [mago-3d-tiler](https://github.com/Gaia3D/mago-3d-tiler) | 3DS/FBX/OBJ/glTF/GLB/LAS/LAZ/CityGML/IndoorGML/SHP/GeoJSON/GPKG → 3D Tiles 1.0（b3dm/i3dm/pnts） |
-| `Py3DTiles` | [Py3DTiles](https://py3dtiles.org/) | LAS 点群など → 3D Tiles 1.0（pnts） |
+| `mago-3d-tiler` | [mago-3d-tiler](https://github.com/Gaia3D/mago-3d-tiler) | SHP/GeoJSON/GPKG/KML/CityGML/IndoorGML/OBJ/FBX/3DS/ASE/DAE/glTF/GLB/STL/PLY/X3D/3MF/IFC/LXO/LWO/LWS/X → b3dm/i3dm、LAS/LAZ → pnts（3D Tiles 1.0） |
+| `Py3DTiles` | [Py3DTiles](https://py3dtiles.org/) | LAS/LAZ/XYZ/PLY 点群 → 3D Tiles 1.0（pnts） |
 | `gocesiumtiler` | [gocesiumtiler](https://github.com/mfbonfigli/gocesiumtiler) | LAS/LAZ 点群 → 3D Tiles 1.0（pnts） / 1.1（glb） |
 | `pg2b3dm` | [pg2b3dm](https://github.com/Geodan/pg2b3dm) | PostGIS 3D ジオメトリ → 3D Tiles 1.0（b3dm） |
 | `GDAL/PDAL` | GDAL / PDAL | 再投影、フォーマット変換、点群フィルタなどの前処理 |
@@ -105,6 +105,14 @@ cargo run
 
 ### Unreleased
 
+- `3dtiles-1-1-glb` ルートの 3d-tiles-tools 実行を修正（出力先事前作成による `already exists` 失敗に `--force` 付与、npx 都度インストールをやめ `tools/node-tools` 常駐 CLI を優先使用）
+- 自動変換の既定出力形式を `glb (3D Tiles 1.1)` に変更（既定タブを `3D タイル` にし `glb` を既定選択。las / laz 入力も mago 経由で点群 glb 化、gocesiumtiler 既定 1.1）
+- 3D Tiles 系ルートの理論的な入力可能形式を見直し
+  - mago-3d-tiler 1.15.4 の `--inputType` は `gltf/glb` / `las/laz` を受理せず KML へフォールバックする問題を修正（有効トークンへ変換して渡す）
+  - Assimp 系拡張子（dae / ase / stl / ply / x3d / 3mf / ifc / lxo / lwo / lws / x）を入力可能形式に追加、kmz / igml を除外
+  - `i3dm` の入力可能形式を shp / geojson / gpkg / kml ＋ `--instance` モデルに修正（自動変換に `追加オプション` を追加し `--instance` を指定可能）
+  - `pnts` で xyz / ply のみの入力は Py3DTiles へ自動分岐
+  - `3dtiles-1-1-glb` の入力可能形式を b3dm 系と同一に修正
 - `GET /api/inspect?path=...` を追加（GeoJSON の地物数・属性・範囲、LAS/LAZ の点数・範囲・CRS、出力フォルダのタイル集計と tileset.json の範囲を返す）
 - 「データ変換」タブ内に `診断 / プレビュー` タブを追加し、変換前の入力診断と出力成果物の確認を可能に
 - FBX → 3D Tiles 変換を整理・拡充
